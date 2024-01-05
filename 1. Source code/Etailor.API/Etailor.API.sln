@@ -5,6 +5,10 @@ VisualStudioVersion = 17.7.34009.444
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Etailor.API.Repository", "Etailor.API.Repository\Etailor.API.Repository.csproj", "{A310281C-CC6A-434A-B654-98D29DDF7B3C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Etailor.API.Service", "Etailor.API.Service\Etailor.API.Service.csproj", "{D53EDEE8-57CB-4A53-9FC7-66ED07576BA8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Etailor.API.WebAPI", "Etailor.API.WebAPI\Etailor.API.WebAPI.csproj", "{4BD35522-68DD-4EC1-9374-C94247DF87F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{A310281C-CC6A-434A-B654-98D29DDF7B3C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A310281C-CC6A-434A-B654-98D29DDF7B3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A310281C-CC6A-434A-B654-98D29DDF7B3C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D53EDEE8-57CB-4A53-9FC7-66ED07576BA8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D53EDEE8-57CB-4A53-9FC7-66ED07576BA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D53EDEE8-57CB-4A53-9FC7-66ED07576BA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D53EDEE8-57CB-4A53-9FC7-66ED07576BA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BD35522-68DD-4EC1-9374-C94247DF87F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BD35522-68DD-4EC1-9374-C94247DF87F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BD35522-68DD-4EC1-9374-C94247DF87F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BD35522-68DD-4EC1-9374-C94247DF87F1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
