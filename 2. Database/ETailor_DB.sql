@@ -229,9 +229,11 @@ Create Table [Order] (
 	Approver nvarchar(30) FOREIGN KEY REFERENCES Staff(Id) null,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null,
-	DeletedTime datetime Null,
-	IsCancel [bit] NULL DEFAULT 0,
+	BuyTime datetime null,
+	IsBuy [bit] NULL DEFAULT 0,
 	CancelTime datetime Null,
+	IsCancel [bit] NULL DEFAULT 0,
+	DeletedTime datetime Null,
 	[IsDelete] [bit] NULL DEFAULT 0
 )
 
