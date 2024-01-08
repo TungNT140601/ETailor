@@ -1,0 +1,6 @@
+[submodule "1. Source code/ETailor.Client"]
+	path = 1. Source code/ETailor.Client
+	url = https://github.com/TungNT140601/ETailor.Client
+[submodule "1. Source code/Etailor.Mobile"]
+	path = 1. Source code/Etailor.Mobile
+	url = https://github.com/vuncse151184/Etailor.Mobile
