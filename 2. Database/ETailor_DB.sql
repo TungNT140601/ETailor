@@ -1,6 +1,3 @@
-Create database ETailor_DB
-Go
-
 Use ETailor_DB
 Go
 

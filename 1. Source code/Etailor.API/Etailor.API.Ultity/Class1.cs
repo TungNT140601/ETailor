@@ -1,4 +1,4 @@
-﻿namespace Etailor.API.Service
+﻿namespace Etailor.API.Ultity
 {
     public class Class1
     {

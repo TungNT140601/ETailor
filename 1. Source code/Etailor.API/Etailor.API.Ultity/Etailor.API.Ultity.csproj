@@ -6,9 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Etailor.API.Repository\Etailor.API.Repository.csproj" />
-    <ProjectReference Include="..\Etailor.API.Ultity\Etailor.API.Ultity.csproj" />
-  </ItemGroup>
-
 </Project>
