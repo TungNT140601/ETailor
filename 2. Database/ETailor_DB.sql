@@ -221,6 +221,7 @@ Create Table [Order] (
 	DiscountPrice decimal(18,3) null,
 	DiscountCode nvarchar(30) null,
 	AfterDiscountPrice decimal(18,3) null,
+	PayDeposit [bit] NULL DEFAULT 0, 
 	Deposit decimal(18,3) null,
 	PaidMoney decimal(18,3) null,
 	UnPaidMoney decimal(18,3) null,
