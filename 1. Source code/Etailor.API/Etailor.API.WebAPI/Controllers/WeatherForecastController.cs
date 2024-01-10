@@ -8,6 +8,7 @@ namespace Etailor.API.WebAPI.Controllers
     [Route("api/[controller]")]
     public class WeatherForecastController : ControllerBase
     {
+        [HttpPost]
         public IActionResult SendMail([FromBody] SendMailModel sendMailModel)
         {
             try
