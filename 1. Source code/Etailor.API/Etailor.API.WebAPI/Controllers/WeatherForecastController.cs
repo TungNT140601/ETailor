@@ -1,33 +1,54 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Mail;
+using System.Net;
 
 namespace Etailor.API.WebAPI.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class WeatherForecastController : ControllerBase
     {
-        private static readonly string[] Summaries = new[]
+        public IActionResult SendMail([FromBody] SendMailModel sendMailModel)
         {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
-
-        private readonly ILogger<WeatherForecastController> _logger;
-
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
-        {
-            _logger = logger;
-        }
-
-        [HttpGet(Name = "GetWeatherForecast")]
-        public IEnumerable<WeatherForecast> Get()
-        {
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+            try
             {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
+
+                string fromMail = "tuetailor@gmail.com";
+                //string fromPassword = "gblfgbilbwaehjkw"; //"tungnt14062001@gmail.com"
+                string fromPassword = "idpqyvuzktpgstlb"; //"tuetailor@gmail.com"
+
+                MailMessage message = new MailMessage();
+                message.From = new MailAddress(fromMail);
+                message.Subject = sendMailModel.Subject;
+                foreach (var mail in sendMailModel.Emails)
+                {
+                    message.To.Add(new MailAddress(mail));
+                }
+                message.Body = sendMailModel.Body;
+                message.IsBodyHtml = sendMailModel.IsBodyHtml;
+
+                var smtpClient = new SmtpClient("smtp.gmail.com")
+                {
+                    Port = 587,
+                    Credentials = new NetworkCredential(fromMail, fromPassword),
+                    EnableSsl = true,
+                };
+
+                smtpClient.Send(message);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
+    }
+    public class SendMailModel
+    {
+        public List<string> Emails { get; set; }
+        public string Subject { get; set; }
+        public string Body { get; set; }
+        public bool IsBodyHtml { get; set; }
     }
 }
