@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Etailor.API.Repository.EntityModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.Extensions.Configuration;
 
 namespace Etailor.API.Repository.DataAccess
 {
@@ -50,18 +49,8 @@ namespace Etailor.API.Repository.DataAccess
         {
             if (!optionsBuilder.IsConfigured)
             {
-                //optionsBuilder.UseSqlServer(GetConnectionString());
             }
         }
-
-        //private string GetConnectionString()
-        //{
-        //    var config = new ConfigurationBuilder()
-        //        .SetBasePath(Directory.GetCurrentDirectory())
-        //        .AddJsonFile("appsettings.json", true, true)
-        //        .Build();
-        //    return config["ConnectionStrings:ETailor_DB"];
-        //}
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -90,7 +79,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.CreaterNavigation)
                     .WithMany(p => p.Blogs)
                     .HasForeignKey(d => d.Creater)
-                    .HasConstraintName("FK__Blog__Creater__56B3DD81");
+                    .HasConstraintName("FK__Blog__Creater__61F08603");
             });
 
             modelBuilder.Entity<BodyAttribute>(entity =>
@@ -118,12 +107,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.BodySize)
                     .WithMany(p => p.BodyAttributes)
                     .HasForeignKey(d => d.BodySizeId)
-                    .HasConstraintName("FK__BodyAttri__BodyS__719CDDE7");
+                    .HasConstraintName("FK__BodyAttri__BodyS__7CD98669");
 
                 entity.HasOne(d => d.ProfileBodyAttribute)
                     .WithMany(p => p.BodyAttributes)
                     .HasForeignKey(d => d.ProfileBodyAttributeId)
-                    .HasConstraintName("FK__BodyAttri__Profi__70A8B9AE");
+                    .HasConstraintName("FK__BodyAttri__Profi__7BE56230");
             });
 
             modelBuilder.Entity<BodySize>(entity =>
@@ -168,7 +157,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Customer)
                     .WithMany(p => p.Chats)
                     .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__Chat__CustomerId__477199F1");
+                    .HasConstraintName("FK__Chat__CustomerId__52AE4273");
             });
 
             modelBuilder.Entity<ChatHistory>(entity =>
@@ -198,12 +187,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Chat)
                     .WithMany(p => p.ChatHistories)
                     .HasForeignKey(d => d.ChatId)
-                    .HasConstraintName("FK__ChatHisto__ChatI__4B422AD5");
+                    .HasConstraintName("FK__ChatHisto__ChatI__567ED357");
 
                 entity.HasOne(d => d.StaffReplyNavigation)
                     .WithMany(p => p.ChatHistories)
                     .HasForeignKey(d => d.StaffReply)
-                    .HasConstraintName("FK__ChatHisto__Staff__4D2A7347");
+                    .HasConstraintName("FK__ChatHisto__Staff__58671BC9");
             });
 
             modelBuilder.Entity<ComponentStyle>(entity =>
@@ -229,7 +218,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.ProductComponent)
                     .WithMany(p => p.ComponentStyles)
                     .HasForeignKey(d => d.ProductComponentId)
-                    .HasConstraintName("FK__Component__Produ__10216507");
+                    .HasConstraintName("FK__Component__Produ__1B5E0D89");
             });
 
             modelBuilder.Entity<Customer>(entity =>
@@ -255,6 +244,18 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.IsDelete).HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
+
+                entity.Property(e => e.Otp)
+                    .HasMaxLength(10)
+                    .HasColumnName("OTP");
+
+                entity.Property(e => e.OtpexpireTime)
+                    .HasColumnType("datetime")
+                    .HasColumnName("OTPExpireTime");
+
+                entity.Property(e => e.Otpused)
+                    .HasColumnName("OTPUsed")
+                    .HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.Password).HasMaxLength(255);
 
@@ -321,7 +322,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.MaterialCategory)
                     .WithMany(p => p.Materials)
                     .HasForeignKey(d => d.MaterialCategoryId)
-                    .HasConstraintName("FK__Material__Materi__1B9317B3");
+                    .HasConstraintName("FK__Material__Materi__26CFC035");
             });
 
             modelBuilder.Entity<MaterialCategory>(entity =>
@@ -347,7 +348,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.MaterialType)
                     .WithMany(p => p.MaterialCategories)
                     .HasForeignKey(d => d.MaterialTypeId)
-                    .HasConstraintName("FK__MaterialC__Mater__16CE6296");
+                    .HasConstraintName("FK__MaterialC__Mater__220B0B18");
             });
 
             modelBuilder.Entity<MaterialForComponent>(entity =>
@@ -377,17 +378,17 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Material)
                     .WithMany(p => p.MaterialForComponents)
                     .HasForeignKey(d => d.MaterialId)
-                    .HasConstraintName("FK__MaterialF__Mater__336AA144");
+                    .HasConstraintName("FK__MaterialF__Mater__3EA749C6");
 
                 entity.HasOne(d => d.OrderMaterial)
                     .WithMany(p => p.MaterialForComponents)
                     .HasForeignKey(d => d.OrderMaterialId)
-                    .HasConstraintName("FK__MaterialF__Order__345EC57D");
+                    .HasConstraintName("FK__MaterialF__Order__3F9B6DFF");
 
                 entity.HasOne(d => d.ProductComponent)
                     .WithMany(p => p.MaterialForComponents)
                     .HasForeignKey(d => d.ProductComponentId)
-                    .HasConstraintName("FK__MaterialF__Produ__3552E9B6");
+                    .HasConstraintName("FK__MaterialF__Produ__408F9238");
             });
 
             modelBuilder.Entity<MaterialType>(entity =>
@@ -428,7 +429,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Customer)
                     .WithMany(p => p.Notifications)
                     .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__Notificat__Custo__51EF2864");
+                    .HasConstraintName("FK__Notificat__Custo__5D2BD0E6");
             });
 
             modelBuilder.Entity<Order>(entity =>
@@ -482,17 +483,17 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.ApproverNavigation)
                     .WithMany(p => p.Orders)
                     .HasForeignKey(d => d.Approver)
-                    .HasConstraintName("FK__Order__Approver__2610A626");
+                    .HasConstraintName("FK__Order__Approver__314D4EA8");
 
                 entity.HasOne(d => d.Customer)
                     .WithMany(p => p.Orders)
                     .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__Order__CustomerI__22401542");
+                    .HasConstraintName("FK__Order__CustomerI__2D7CBDC4");
 
                 entity.HasOne(d => d.Discount)
                     .WithMany(p => p.Orders)
                     .HasForeignKey(d => d.DiscountId)
-                    .HasConstraintName("FK__Order__DiscountI__2334397B");
+                    .HasConstraintName("FK__Order__DiscountI__2E70E1FD");
             });
 
             modelBuilder.Entity<OrderDetail>(entity =>
@@ -522,17 +523,17 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Order)
                     .WithMany(p => p.OrderDetails)
                     .HasForeignKey(d => d.OrderId)
-                    .HasConstraintName("FK__OrderDeta__Order__39237A9A");
+                    .HasConstraintName("FK__OrderDeta__Order__4460231C");
 
                 entity.HasOne(d => d.Product)
                     .WithMany(p => p.OrderDetails)
                     .HasForeignKey(d => d.ProductId)
-                    .HasConstraintName("FK__OrderDeta__Produ__3A179ED3");
+                    .HasConstraintName("FK__OrderDeta__Produ__45544755");
 
                 entity.HasOne(d => d.ProfileBodyAttribute)
                     .WithMany(p => p.OrderDetails)
                     .HasForeignKey(d => d.ProfileBodyAttributeId)
-                    .HasConstraintName("FK__OrderDeta__Profi__3B0BC30C");
+                    .HasConstraintName("FK__OrderDeta__Profi__46486B8E");
             });
 
             modelBuilder.Entity<OrderMaterial>(entity =>
@@ -572,17 +573,17 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.ApproverNavigation)
                     .WithMany(p => p.OrderMaterials)
                     .HasForeignKey(d => d.Approver)
-                    .HasConstraintName("FK__OrderMate__Appro__2F9A1060");
+                    .HasConstraintName("FK__OrderMate__Appro__3AD6B8E2");
 
                 entity.HasOne(d => d.MaterialCategory)
                     .WithMany(p => p.OrderMaterials)
                     .HasForeignKey(d => d.MaterialCategoryId)
-                    .HasConstraintName("FK__OrderMate__Mater__2CBDA3B5");
+                    .HasConstraintName("FK__OrderMate__Mater__37FA4C37");
 
                 entity.HasOne(d => d.Order)
                     .WithMany(p => p.OrderMaterials)
                     .HasForeignKey(d => d.OrderId)
-                    .HasConstraintName("FK__OrderMate__Order__2BC97F7C");
+                    .HasConstraintName("FK__OrderMate__Order__370627FE");
             });
 
             modelBuilder.Entity<Product>(entity =>
@@ -614,7 +615,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.ProductCategory)
                     .WithMany(p => p.Products)
                     .HasForeignKey(d => d.ProductCategoryId)
-                    .HasConstraintName("FK__Product__Product__7849DB76");
+                    .HasConstraintName("FK__Product__Product__038683F8");
             });
 
             modelBuilder.Entity<ProductBodySize>(entity =>
@@ -642,12 +643,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.BodySize)
                     .WithMany(p => p.ProductBodySizes)
                     .HasForeignKey(d => d.BodySizeId)
-                    .HasConstraintName("FK__ProductBo__BodyS__7E02B4CC");
+                    .HasConstraintName("FK__ProductBo__BodyS__093F5D4E");
 
                 entity.HasOne(d => d.Product)
                     .WithMany(p => p.ProductBodySizes)
                     .HasForeignKey(d => d.ProductId)
-                    .HasConstraintName("FK__ProductBo__Produ__7D0E9093");
+                    .HasConstraintName("FK__ProductBo__Produ__084B3915");
             });
 
             modelBuilder.Entity<ProductCategory>(entity =>
@@ -690,12 +691,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Product)
                     .WithMany(p => p.ProductComponents)
                     .HasForeignKey(d => d.ProductId)
-                    .HasConstraintName("FK__ProductCo__Produ__0B5CAFEA");
+                    .HasConstraintName("FK__ProductCo__Produ__1699586C");
 
                 entity.HasOne(d => d.ProductStep)
                     .WithMany(p => p.ProductComponents)
                     .HasForeignKey(d => d.ProductStepId)
-                    .HasConstraintName("FK__ProductCo__Produ__0C50D423");
+                    .HasConstraintName("FK__ProductCo__Produ__178D7CA5");
             });
 
             modelBuilder.Entity<ProductStage>(entity =>
@@ -723,12 +724,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Maker)
                     .WithMany(p => p.ProductStages)
                     .HasForeignKey(d => d.MakerId)
-                    .HasConstraintName("FK__ProductSt__Maker__02C769E9");
+                    .HasConstraintName("FK__ProductSt__Maker__0E04126B");
 
                 entity.HasOne(d => d.Product)
                     .WithMany(p => p.ProductStages)
                     .HasForeignKey(d => d.ProductId)
-                    .HasConstraintName("FK__ProductSt__Produ__01D345B0");
+                    .HasConstraintName("FK__ProductSt__Produ__0D0FEE32");
             });
 
             modelBuilder.Entity<ProductStep>(entity =>
@@ -756,7 +757,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.ProductStage)
                     .WithMany(p => p.ProductSteps)
                     .HasForeignKey(d => d.ProductStageId)
-                    .HasConstraintName("FK__ProductSt__Produ__0697FACD");
+                    .HasConstraintName("FK__ProductSt__Produ__11D4A34F");
             });
 
             modelBuilder.Entity<ProfileBodyAttribute>(entity =>
@@ -786,12 +787,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Customer)
                     .WithMany(p => p.ProfileBodyAttributes)
                     .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__ProfileBo__Custo__671F4F74");
+                    .HasConstraintName("FK__ProfileBo__Custo__725BF7F6");
 
                 entity.HasOne(d => d.Maker)
                     .WithMany(p => p.ProfileBodyAttributes)
                     .HasForeignKey(d => d.MakerId)
-                    .HasConstraintName("FK__ProfileBo__Maker__69FBBC1F");
+                    .HasConstraintName("FK__ProfileBo__Maker__753864A1");
             });
 
             modelBuilder.Entity<Role>(entity =>
@@ -834,12 +835,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Order)
                     .WithMany(p => p.Transactions)
                     .HasForeignKey(d => d.OrderId)
-                    .HasConstraintName("FK__Transacti__Order__41B8C09B");
+                    .HasConstraintName("FK__Transacti__Order__4CF5691D");
 
                 entity.HasOne(d => d.TransactionType)
                     .WithMany(p => p.Transactions)
                     .HasForeignKey(d => d.TransactionTypeId)
-                    .HasConstraintName("FK__Transacti__Trans__42ACE4D4");
+                    .HasConstraintName("FK__Transacti__Trans__4DE98D56");
             });
 
             modelBuilder.Entity<TransactionType>(entity =>
@@ -890,7 +891,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.HasOne(d => d.Role)
                     .WithMany(p => p.Staff)
                     .HasForeignKey(d => d.RoleId)
-                    .HasConstraintName("FK__Staff__RoleId__5E8A0973");
+                    .HasConstraintName("FK__Staff__RoleId__68D28DBC");
             });
 
             OnModelCreatingPartial(modelBuilder);

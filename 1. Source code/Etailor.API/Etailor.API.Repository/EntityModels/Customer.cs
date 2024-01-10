@@ -23,6 +23,9 @@ namespace Etailor.API.Repository.EntityModels
         public string? Password { get; set; }
         public bool? PhoneVerified { get; set; }
         public bool? EmailVerified { get; set; }
+        public string? Otp { get; set; }
+        public DateTime? OtpexpireTime { get; set; }
+        public bool? Otpused { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? DeletedTime { get; set; }
