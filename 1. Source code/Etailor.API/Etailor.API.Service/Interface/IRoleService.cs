@@ -10,5 +10,6 @@ namespace Etailor.API.Service.Interface
     public interface IRoleService
     {
         IEnumerable<Role> GetRoles();
+        string GetRoleId(string roleName);
     }
 }

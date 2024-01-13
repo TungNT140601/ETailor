@@ -24,11 +24,11 @@ namespace Etailor.API.Repository.Repository
             dbSet = this.dBContext.Set<T>();
         }
 
-        public async Task<bool> Create(T entity)
+        public bool Create(T entity)
         {
             try
             {
-                await dbSet.AddAsync(entity);
+                dbSet.Add(entity);
                 dBContext.SaveChanges();
                 return true;
             }
@@ -38,7 +38,7 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
-        public async Task<bool> Delete(string id)
+        public bool Delete(string id)
         {
             try
             {
@@ -50,7 +50,7 @@ namespace Etailor.API.Repository.Repository
                 else
                 {
                     dbSet.Remove(data);
-                    await dBContext.SaveChangesAsync();
+                    dBContext.SaveChanges();
                     return true;
                 }
             }
@@ -88,7 +88,7 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
-        public async Task<bool> Update(string id, T entity)
+        public bool Update(string id, T entity)
         {
             try
             {
@@ -100,7 +100,7 @@ namespace Etailor.API.Repository.Repository
                 else
                 {
                     dbSet.Update(entity);
-                    await dBContext.SaveChangesAsync();
+                    dBContext.SaveChanges();
                     return true;
                 }
             }

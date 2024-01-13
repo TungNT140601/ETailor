@@ -1,6 +1,7 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
 using Etailor.API.Service.Interface;
+using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,47 @@ namespace Etailor.API.Service.Service
         public RoleService(IRoleRepository roleRepository)
         {
             this.roleRepository = roleRepository;
+        }
+
+        public string GetRoleId(string roleName)
+        {
+            try
+            {
+                var role = roleRepository.GetAll(x => x.Name.Trim() == roleName.Trim()).FirstOrDefault();
+                if (role == null)
+                {
+                    role = new Role()
+                    {
+                        Id = Ultils.GenGuidString(),
+                        Name = roleName,
+                        IsDelete = false
+                    };
+                    if (roleRepository.Create(role))
+                    {
+                        return role.Id;
+                    }
+                    else
+                    {
+                        throw new SystemsException("Error when add new role");
+                    }
+                }
+                else
+                {
+                    return role.Id;
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
         }
 
         public IEnumerable<Role> GetRoles()
