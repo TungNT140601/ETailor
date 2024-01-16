@@ -97,11 +97,11 @@
               "type": "Microsoft.ApiManagement/service/apis",
               "name": "EtailorAPIWebAPI/EtailorAPIWebAPI",
               "properties": {
-                "displayName": "EtailorAPIWebAPI",
+                "displayName": "ETailor API",
                 "apiRevision": "1",
                 "description": null,
                 "subscriptionRequired": true,
-                "serviceUrl": null,
+                "serviceUrl": "https://etailorapi.azurewebsites.net",
                 "path": "",
                 "protocols": [
                   "https"

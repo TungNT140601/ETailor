@@ -13,4 +13,8 @@ namespace Etailor.API.Ultity.CommonValue
         public static string STAFF = "Staff";
         public static string CUSTOMER = "Customer";
     }
+    public static class AppValue
+    {
+        public static string SALT_STRING = "";
+    }
 }

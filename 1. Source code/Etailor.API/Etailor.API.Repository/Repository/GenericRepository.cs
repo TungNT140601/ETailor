@@ -99,6 +99,7 @@ namespace Etailor.API.Repository.Repository
                 }
                 else
                 {
+                    dBContext.Entry(data).State = EntityState.Detached;
                     dbSet.Update(entity);
                     dBContext.SaveChanges();
                     return true;
