@@ -87,6 +87,18 @@ namespace Etailor.API.Ultity
             }
         }
 
+        public static void SendOTPPhone(string phone, string otp)
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
         public static string GetToken(string id, string name, string role, IConfiguration configuration)
         {
             var jwtSettings = configuration.GetSection("JwtSettings");
@@ -114,6 +126,13 @@ namespace Etailor.API.Ultity
             string pattern = @"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$";
 
             return Regex.IsMatch(email, pattern);
+        }
+
+        public static bool IsValidVietnamesePhoneNumber(string phoneNumber)
+        {
+            string pattern = @"^0[3|5|7|8|9][0-9]{8}$";
+
+            return Regex.IsMatch(phoneNumber, pattern);
         }
 
         public static string GenerateRandom6Digits()

@@ -51,6 +51,9 @@ builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+builder.Services.AddScoped<IStaffService, StaffService>();
+
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "demootp-34065-firebase-adminsdk-8mrpy-f121841f4c.json"));
 FirebaseApp.Create(new AppOptions { Credential = credentials });
@@ -69,7 +72,7 @@ app.UseSwaggerUI(c =>
 app.UseCors(option =>
 {
     option.AllowAnyHeader()
-    .WithOrigins("")
+    .WithOrigins("https://demo-notification.vercel.app")
     .AllowAnyMethod();
 });
 
