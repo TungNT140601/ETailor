@@ -10,8 +10,8 @@ namespace Etailor.API.Repository.Interface
     {
         IEnumerable<T> GetAll(Func<T, bool> where);
         T Get(string id);
-        Task<bool> Create(T entity);
-        Task<bool> Update(string id, T entity);
-        Task<bool> Delete(string id);
+        bool Create(T entity);
+        bool Update(string id, T entity);
+        bool Delete(string id);
     }
 }

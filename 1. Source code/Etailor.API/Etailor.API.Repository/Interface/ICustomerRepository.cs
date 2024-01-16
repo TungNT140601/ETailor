@@ -5,11 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Etailor.API.Service.Interface
+namespace Etailor.API.Repository.Interface
 {
-    public interface IRoleService
+    public interface ICustomerRepository : IGenericRepository<Customer>
     {
-        IEnumerable<Role> GetRoles();
-        string GetRoleId(string roleName);
     }
 }
