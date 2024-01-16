@@ -28,7 +28,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if(string.IsNullOrWhiteSpace(loginEmail.Email))
+                if (string.IsNullOrWhiteSpace(loginEmail.Email))
                 {
                     throw new UserException("Không được để trống EMAIL");
                 }
@@ -123,6 +123,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         //[HttpGet("customer/verify-phone")]
         //public IActionResult VerifyPhone(string email)
         //{
@@ -187,59 +188,25 @@ namespace Etailor.API.WebAPI.Controllers
         //    }
         //}
 
-        //[HttpPost("customer/verify-otp")]
-        //public IActionResult VerifyOtp([FromBody] VerifyOtp verifyOtp)
-        //{
-        //    try
-        //    {
-        //        if (Ultils.IsValidEmail(verifyOtp.PhoneOrEmail))
-        //        {
-        //            var customer = customerService.FindEmail(verifyOtp.PhoneOrEmail);
-        //            var otp = Ultils.GenerateRandom6Digits();
-        //            if (customer == null)
-        //            {
-        //                throw new UserException("Email không có trong hệ thống");
-        //            }
-        //            else
-        //            {
-        //                if(customer.Otp == verifyOtp.Otp && customer.OtpexpireTime > DateTime.Now && customer.Otpused == false)
-        //                {
-        //                    var check = customerService.UpdateCustomerEmail(new Customer()
-        //                    {
-        //                        Id = customer.Id,
-        //                        Email = email,
-        //                        Otp = otp,
-        //                        OtpexpireTime = DateTime.Now.AddMinutes(5),
-        //                        Otpused = false
-        //                    });
-        //                }
-                        
-
-        //                if (check)
-        //                {
-        //                    Ultils.SendOTPMail(email, otp);
-        //                }
-
-        //                return Ok();
-        //            }
-        //        }
-        //        else
-        //        {
-        //            throw new UserException("Email không đúng định dạng!!!");
-        //        }
-        //    }
-        //    catch (UserException ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //    catch (SystemsException ex)
-        //    {
-        //        return StatusCode(500, ex.Message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, ex.Message);
-        //    }
-        //}
+        [HttpPost("customer/verify-otp")]
+        public IActionResult VerifyOtp([FromBody] VerifyOtp verifyOtp)
+        {
+            try
+            {
+                return customerService.CheckOTP(verifyOtp.PhoneOrEmail, verifyOtp.Otp) ? Ok() : BadRequest("Sai chỗ nào rồi đó :))))");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }
