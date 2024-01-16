@@ -209,5 +209,36 @@ namespace Etailor.API.Service.Service
                 throw new SystemsException(ex.Message);
             }
         }
+
+        public bool CheckOTP(string emailOrPhone, string otp)
+        {
+            try
+            {
+                var customer = customerRepository.GetAll(x => (x.Email == emailOrPhone || x.Phone == emailOrPhone) && x.Otp == otp && x.OtpexpireTime > DateTime.Now).FirstOrDefault();
+                if (customer == null)
+                {
+                    throw new UserException("Mã xác thực không đúng hoặc hết hạn!!!");
+                }
+                else
+                {
+                    customer.Otpused = true;
+
+                    return customerRepository.Update(customer.Id, customer);
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
     }
 }
