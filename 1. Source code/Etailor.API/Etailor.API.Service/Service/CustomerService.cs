@@ -95,6 +95,26 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        public Customer FindPhone(string phone)
+        {
+            try
+            {
+                return customerRepository.GetAll(x => x.Phone == phone).FirstOrDefault();
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public bool CreateCustomer(Customer customer)
         {
             try
