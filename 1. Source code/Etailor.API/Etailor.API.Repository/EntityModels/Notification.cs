@@ -12,7 +12,7 @@ namespace Etailor.API.Repository.EntityModels
         public DateTime? SendTime { get; set; }
         public DateTime? ReadTime { get; set; }
         public bool? IsRead { get; set; }
-        public bool? IsDelete { get; set; }
+        public bool? IsActive { get; set; }
 
         public virtual Customer? Customer { get; set; }
     }

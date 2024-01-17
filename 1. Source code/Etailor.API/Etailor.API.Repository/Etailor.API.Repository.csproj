@@ -24,4 +24,8 @@
     <ProjectReference Include="..\Etailor.API.Ultity\Etailor.API.Ultity.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DataAccess\" />
+  </ItemGroup>
+
 </Project>

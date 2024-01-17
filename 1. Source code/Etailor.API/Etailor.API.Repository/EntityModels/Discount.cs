@@ -16,14 +16,14 @@ namespace Etailor.API.Repository.EntityModels
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public decimal? DiscountPercent { get; set; }
-        public string? DiscountPrice { get; set; }
+        public decimal? DiscountPrice { get; set; }
         public decimal? ConditionPriceMin { get; set; }
         public decimal? ConditionPriceMax { get; set; }
         public int? ConditionProductMin { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
-        public DateTime? DeletedTime { get; set; }
-        public bool? IsDelete { get; set; }
+        public DateTime? InactiveTime { get; set; }
+        public bool? IsActive { get; set; }
 
         public virtual ICollection<Order> Orders { get; set; }
     }

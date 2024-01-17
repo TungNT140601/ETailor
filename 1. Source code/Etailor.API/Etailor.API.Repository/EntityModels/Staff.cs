@@ -12,11 +12,12 @@ namespace Etailor.API.Repository.EntityModels
             OrderMaterials = new HashSet<OrderMaterial>();
             Orders = new HashSet<Order>();
             ProductStages = new HashSet<ProductStage>();
-            ProfileBodyAttributes = new HashSet<ProfileBodyAttribute>();
+            ProfileBodies = new HashSet<ProfileBody>();
+            SkillOfStaffs = new HashSet<SkillOfStaff>();
         }
 
         public string Id { get; set; } = null!;
-        public string? RoleId { get; set; }
+        public int? Role { get; set; }
         public string? Avatar { get; set; }
         public string? Fullname { get; set; }
         public string? Address { get; set; }
@@ -25,15 +26,15 @@ namespace Etailor.API.Repository.EntityModels
         public string? Password { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
-        public DateTime? DeletedTime { get; set; }
-        public bool? IsDelete { get; set; }
+        public DateTime? InactiveTime { get; set; }
+        public bool? IsActive { get; set; }
 
-        public virtual Role? Role { get; set; }
         public virtual ICollection<Blog> Blogs { get; set; }
         public virtual ICollection<ChatHistory> ChatHistories { get; set; }
         public virtual ICollection<OrderMaterial> OrderMaterials { get; set; }
         public virtual ICollection<Order> Orders { get; set; }
         public virtual ICollection<ProductStage> ProductStages { get; set; }
-        public virtual ICollection<ProfileBodyAttribute> ProfileBodyAttributes { get; set; }
+        public virtual ICollection<ProfileBody> ProfileBodies { get; set; }
+        public virtual ICollection<SkillOfStaff> SkillOfStaffs { get; set; }
     }
 }

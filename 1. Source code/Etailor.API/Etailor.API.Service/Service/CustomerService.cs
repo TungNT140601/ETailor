@@ -177,8 +177,8 @@ namespace Etailor.API.Service.Service
                 dbCustomer.Email = customer.Email;
                 dbCustomer.EmailVerified = customer.EmailVerified;
 
-                dbCustomer.Otp = customer.Otp;
-                dbCustomer.OtpexpireTime = customer.OtpexpireTime;
+                dbCustomer.Otpnumber = customer.Otpnumber;
+                dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
                 dbCustomer.LastestUpdatedTime = DateTime.Now;
@@ -208,8 +208,8 @@ namespace Etailor.API.Service.Service
                 dbCustomer.Phone = customer.Phone;
                 dbCustomer.PhoneVerified = customer.PhoneVerified;
 
-                dbCustomer.Otp = customer.Otp;
-                dbCustomer.OtpexpireTime = customer.OtpexpireTime;
+                dbCustomer.Otpnumber = customer.Otpnumber;
+                dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
                 dbCustomer.LastestUpdatedTime = DateTime.Now;
@@ -234,7 +234,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var customer = customerRepository.GetAll(x => (x.Email == emailOrPhone || x.Phone == emailOrPhone) && x.Otp == otp && x.OtpexpireTime > DateTime.Now).FirstOrDefault();
+                var customer = customerRepository.GetAll(x => (x.Email == emailOrPhone || x.Phone == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.Now).FirstOrDefault();
                 if (customer == null)
                 {
                     throw new UserException("Mã xác thực không đúng hoặc hết hạn!!!");

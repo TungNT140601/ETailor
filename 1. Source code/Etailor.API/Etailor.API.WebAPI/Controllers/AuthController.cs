@@ -76,8 +76,8 @@ namespace Etailor.API.WebAPI.Controllers
                         var check = customerService.CreateCustomer(new Customer()
                         {
                             Email = email,
-                            Otp = otp,
-                            OtpexpireTime = DateTime.Now.AddMinutes(5),
+                            Otpnumber = otp,
+                            OtptimeLimit = DateTime.Now.AddMinutes(5),
                             Otpused = false
                         });
 
@@ -94,8 +94,8 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             Id = customer.Id,
                             Email = email,
-                            Otp = otp,
-                            OtpexpireTime = DateTime.Now.AddMinutes(5),
+                            Otpnumber = otp,
+                            OtptimeLimit = DateTime.Now.AddMinutes(5),
                             Otpused = false
                         });
 

@@ -28,7 +28,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var staff = staffRepository.GetAll(x => x.Username == username && Ultils.VerifyPassword(password, x.Password)).FirstOrDefault();
+                var staff = staffRepository.GetAll(x => x.Username == username && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true).FirstOrDefault();
                 if (staff == null)
                 {
                     throw new UserException("Mật khẩu của bạn không chính xác");
@@ -56,13 +56,13 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                if (staffRepository.GetAll(x => x.Username == staff.Username && x.IsDelete == false).Any())
+                if (staffRepository.GetAll(x => x.Username == staff.Username && x.IsActive == true).Any())
                 {
                     throw new UserException("Tài khoản đã được sử dụng");
                 }
                 staff.Id = Ultils.GenGuidString();
                 staff.CreatedTime = DateTime.Now;
-                staff.IsDelete = false;
+                staff.IsActive = true;
                 staff.Password = Ultils.HashPassword(staff.Password);
 
                 return staffRepository.Create(staff);

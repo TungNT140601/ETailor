@@ -3,22 +3,24 @@ using System.Collections.Generic;
 
 namespace Etailor.API.Repository.EntityModels
 {
-    public partial class MaterialCategory
+    public partial class ComponentType
     {
-        public MaterialCategory()
+        public ComponentType()
         {
-            Materials = new HashSet<Material>();
+            Components = new HashSet<Component>();
         }
 
         public string Id { get; set; } = null!;
-        public string? MaterialTypeId { get; set; }
+        public string? CategoryId { get; set; }
+        public string? CatalogStageId { get; set; }
         public string? Name { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
 
-        public virtual MaterialType? MaterialType { get; set; }
-        public virtual ICollection<Material> Materials { get; set; }
+        public virtual CatalogStage? CatalogStage { get; set; }
+        public virtual Category? Category { get; set; }
+        public virtual ICollection<Component> Components { get; set; }
     }
 }
