@@ -12,7 +12,12 @@
     }
     public class VerifyOtp
     {
-        public string? PhoneOrEmail { get; set; }
-        public string? Otp { get; set; }
+        public string PhoneOrEmail { get; set; }
+        public string Otp { get; set; }
+    }
+    public class ChangePassModel
+    {
+        public string OldPassword { get; set; }
+        public string NewPassword { get; set; }
     }
 }

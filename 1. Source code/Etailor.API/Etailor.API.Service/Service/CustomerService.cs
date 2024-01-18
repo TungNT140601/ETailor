@@ -33,7 +33,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
                     {
-                        customer.SecrectKeyLogin = Ultils.GenerateRandomString();
+                        customer.SecrectKeyLogin = Ultils.GenerateRandomString(20);
                         customerRepository.Update(customer.Id, customer);
                     }
                     return customer;
@@ -66,7 +66,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
                     {
-                        customer.SecrectKeyLogin = Ultils.GenerateRandomString();
+                        customer.SecrectKeyLogin = Ultils.GenerateRandomString(20);
                         customerRepository.Update(customer.Id, customer);
                     }
                     return customer;
@@ -276,10 +276,119 @@ namespace Etailor.API.Service.Service
             try
             {
                 var customer = customerRepository.Get(id);
-                if(customer != null)
+                if (customer != null)
                 {
                     customer.SecrectKeyLogin = null;
                     customerRepository.Update(customer.Id, customer);
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public bool CheckSecerctKey(string id, string key)
+        {
+            try
+            {
+                var customer = customerRepository.Get(id);
+                if (customer != null)
+                {
+                    return customer.SecrectKeyLogin == key;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public bool ChangePassword(string id, string oldPass, string newPass)
+        {
+            try
+            {
+                var customer = customerRepository.Get(id);
+                if (customer != null)
+                {
+                    if (!Ultils.VerifyPassword(oldPass, customer.Password))
+                    {
+                        throw new UserException("Mật khẩu không chính xác!!!");
+                    }
+                    else
+                    {
+                        customer.Password = Ultils.HashPassword(newPass);
+
+                        return customerRepository.Update(id, customer);
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public bool ResetPassword(string email)
+        {
+            try
+            {
+                if (!Ultils.IsValidEmail(email))
+                {
+                    throw new UserException("Email sai định dạng!!!");
+                }
+                var customer = customerRepository.GetAll(x => x.Email == email && x.IsActive == true).FirstOrDefault();
+                if (customer != null)
+                {
+                    var newPassword = Ultils.GenerateRandomString(8);
+
+                    customer.Password = Ultils.HashPassword(newPassword);
+
+                    if (customerRepository.Update(customer.Id, customer))
+                    {
+                        Ultils.SendResetPassMail(email, customer.Password);
+                        return true;
+                    }
+                    else
+                    {
+                        throw new SystemsException("Không thể gửi mail");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Email không tồn tại trong hệ thống");
                 }
             }
             catch (UserException ex)

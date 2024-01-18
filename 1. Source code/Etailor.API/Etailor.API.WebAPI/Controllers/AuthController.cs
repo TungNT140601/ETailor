@@ -251,6 +251,59 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpPost("customer/change-password")]
+        public IActionResult CusChangePass([FromBody] ChangePassModel changePassModel)
+        {
+            try
+            {
+                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                if (id == null || !customerService.CheckSecerctKey(id, secrectKey))
+                {
+                    return Unauthorized();
+                }
+                if (role != RoleName.CUSTOMER)
+                {
+                    return Forbid();
+                }
+                return customerService.ChangePassword(id, changePassModel.OldPassword, changePassModel.NewPassword) ? Ok("Đổi mật khẩu thành công!!!") : BadRequest("Đổi mật khẩu thất bại");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("customer/reset-password")]
+        public IActionResult CusResetPass(string email)
+        {
+            try
+            {
+                return customerService.ResetPassword(email) ? Ok("Đã gửi mail") : BadRequest("Thất bại");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPost("staff/login")]
         public IActionResult CheckLoginStaff([FromBody] StaffLogin staffLogin)
         {
