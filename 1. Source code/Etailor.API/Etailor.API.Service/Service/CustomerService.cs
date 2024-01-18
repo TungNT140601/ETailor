@@ -57,7 +57,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var customer = customerRepository.GetAll(x => x.Username.Trim() == username.Trim() && Ultils.VerifyPassword(password, x.Password)).FirstOrDefault();
+                var customer = customerRepository.GetAll(x => x.Username.Trim() == username.Trim() && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true).FirstOrDefault();
                 if (customer == null)
                 {
                     throw new UserException("Mật khẩu của bạn không chính xác");
@@ -90,7 +90,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                return customerRepository.GetAll(x => x.Email == email).FirstOrDefault();
+                return customerRepository.GetAll(x => x.Email == email && x.IsActive == true).FirstOrDefault();
             }
             catch (UserException ex)
             {
@@ -110,7 +110,27 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                return customerRepository.GetAll(x => x.Phone == phone).FirstOrDefault();
+                return customerRepository.GetAll(x => x.Phone == phone && x.IsActive == true).FirstOrDefault();
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public Customer FindUsername(string username)
+        {
+            try
+            {
+                return customerRepository.GetAll(x => x.Username == username && x.IsActive == true).FirstOrDefault();
             }
             catch (UserException ex)
             {
@@ -131,9 +151,14 @@ namespace Etailor.API.Service.Service
             try
             {
                 customer.Id = Ultils.GenGuidString();
+                customer.Password = Ultils.HashPassword(customer.Password);
+                customer.Phone = null;
+                customer.PhoneVerified = false;
+                customer.IsActive = true;
 
-                customer.CreatedTime = DateTime.Now;
                 customer.LastestUpdatedTime = DateTime.Now;
+                customer.CreatedTime = DateTime.Now;
+
                 return customerRepository.Create(customer);
             }
             catch (UserException ex)
@@ -245,7 +270,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var customer = customerRepository.GetAll(x => (x.Email == emailOrPhone || x.Phone == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.Now).FirstOrDefault();
+                var customer = customerRepository.GetAll(x => (x.Email == emailOrPhone || x.Phone == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.Now && x.IsActive == true).FirstOrDefault();
                 if (customer == null)
                 {
                     throw new UserException("Mã xác thực không đúng hoặc hết hạn!!!");
@@ -369,7 +394,9 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Email sai định dạng!!!");
                 }
-                var customer = customerRepository.GetAll(x => x.Email == email && x.IsActive == true).FirstOrDefault();
+
+                var customer = FindEmail(email);
+
                 if (customer != null)
                 {
                     var newPassword = Ultils.GenerateRandomString(8);
@@ -389,6 +416,106 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     throw new UserException("Email không tồn tại trong hệ thống");
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public bool CusRegis(Customer customer)
+        {
+            try
+            {
+                if (customer.Email != null)
+                {
+                    if (!Ultils.IsValidEmail(customer.Email))
+                    {
+                        throw new UserException("Email sai định dạng!!!");
+                    }
+                    else
+                    {
+                        var existCus = FindEmail(customer.Email);
+                        if (existCus != null)
+                        {
+                            if (existCus.EmailVerified == false)
+                            {
+                                throw new UserException("Email chưa được xác thực!!!");
+                            }
+                            else
+                            {
+                                existCus.Password = Ultils.HashPassword(customer.Password);
+                                existCus.Avatar = customer.Avatar;
+                                existCus.Address = customer.Address;
+                                existCus.Username = customer.Username;
+                                existCus.IsActive = true;
+                                existCus.LastestUpdatedTime = DateTime.Now;
+
+                                return customerRepository.Update(existCus.Id, existCus);
+                            }
+                        }
+                        else
+                        {
+                            throw new UserException("Email không tồn tại trong hệ thống");
+                        }
+                    }
+                }
+                else
+                {
+                    if (FindUsername(customer.Username) != null)
+                    {
+                        throw new UserException("Tên tài khoản đã được sử dụng!!!");
+                    }
+                    else
+                    {
+                        customer.Id = Ultils.GenGuidString();
+                        customer.Password = Ultils.HashPassword(customer.Password);
+                        customer.CreatedTime = DateTime.Now;
+                        customer.EmailVerified = false;
+                        customer.Email = null;
+                        customer.Phone = null;
+                        customer.PhoneVerified = false;
+                        customer.IsActive = true;
+                        customer.LastestUpdatedTime = DateTime.Now;
+
+                        return customerRepository.Create(customer);
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        private bool CheckEmailAndPhoneExist(string? id, string email, string phone)
+        {
+            try
+            {
+                if (id == null)
+                {
+                    return customerRepository.GetAll(x => (x.Email == email || x.Phone == phone) && x.IsActive == true).Any();
+                }
+                else
+                {
+                    return customerRepository.GetAll(x => x.Id != id && (x.Email == email || x.Phone == phone) && x.IsActive == true).Any();
                 }
             }
             catch (UserException ex)

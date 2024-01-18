@@ -12,7 +12,8 @@ namespace Etailor.API.Service.Interface
         Customer LoginWithEmail(string email, string password);
         Customer LoginWithUsername(string username, string password);
         Customer FindEmail(string email);
-        Customer FindPhone(string phơne);
+        Customer FindPhone(string phone);
+        Customer FindUsername(string username);
         bool CreateCustomer(Customer customer);
         bool UpdateCustomerInfo(Customer customer);
         bool UpdateCustomerEmail(Customer customer);
@@ -22,5 +23,6 @@ namespace Etailor.API.Service.Interface
         bool CheckSecerctKey(string id, string key);
         bool ChangePassword(string id, string oldPass, string newPass);
         bool ResetPassword(string email);
+        bool CusRegis(Customer customer);
     }
 }
