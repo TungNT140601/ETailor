@@ -84,7 +84,7 @@ namespace Etailor.API.WebAPI.Controllers
                             Email = email,
                             EmailVerified = false,
                             Otpnumber = otp,
-                            OtptimeLimit = DateTime.Now.AddMinutes(5),
+                            OtptimeLimit = DateTime.UtcNow.AddMinutes(5),
                             Otpused = false,
                             IsActive = true
                         });
