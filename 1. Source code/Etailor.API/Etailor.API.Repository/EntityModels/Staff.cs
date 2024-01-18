@@ -24,6 +24,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? Phone { get; set; }
         public string? Username { get; set; }
         public string? Password { get; set; }
+        public string? SecrectKeyLogin { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }

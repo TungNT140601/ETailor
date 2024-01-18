@@ -6,6 +6,7 @@ using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -35,6 +36,11 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
+                    if (string.IsNullOrEmpty(staff.SecrectKeyLogin))
+                    {
+                        staff.SecrectKeyLogin = Ultils.GenerateRandomString();
+                        staffRepository.Update(staff.Id, staff);
+                    }
                     return staff;
                 }
             }
@@ -60,12 +66,85 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Tài khoản đã được sử dụng");
                 }
+                if (CheckPhoneExist(staff.Phone))
+                {
+                    throw new UserException("Số điện thoại đã được sử dụng");
+                }
                 staff.Id = Ultils.GenGuidString();
+                staff.Role = 2;
                 staff.CreatedTime = DateTime.Now;
                 staff.IsActive = true;
                 staff.Password = Ultils.HashPassword(staff.Password);
 
                 return staffRepository.Create(staff);
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        private bool CheckPhoneExist(string phone)
+        {
+            try
+            {
+                if (!Ultils.IsValidVietnamesePhoneNumber(phone))
+                {
+                    throw new UserException("Số điện thoại không đúng định dạng");
+                }
+                return staffRepository.GetAll(x => x.Phone == phone && x.IsActive == true).Any();
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+        public void Logout(string id)
+        {
+            try
+            {
+                var staff = staffRepository.Get(id);
+                if (staff != null)
+                {
+                    staff.SecrectKeyLogin = null;
+                    staffRepository.Update(staff.Id, staff);
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public Staff GetStaff(string id)
+        {
+            try
+            {
+                return staffRepository.Get(id);
             }
             catch (UserException ex)
             {

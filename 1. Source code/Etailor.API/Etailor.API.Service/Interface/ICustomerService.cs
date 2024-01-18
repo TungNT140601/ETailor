@@ -18,5 +18,6 @@ namespace Etailor.API.Service.Interface
         bool UpdateCustomerEmail(Customer customer);
         bool UpdateCustomerPhone(Customer customer);
         bool CheckOTP(string emailOrPhone, string otp);
+        void Logout(string id);
     }
 }

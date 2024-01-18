@@ -391,6 +391,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
+                entity.Property(e => e.SecrectKeyLogin).HasMaxLength(20);
+
                 entity.Property(e => e.Otpnumber)
                     .HasMaxLength(10)
                     .HasColumnName("OTPNumber");
@@ -949,6 +951,8 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.Role).HasDefaultValueSql("((2))");
 
                 entity.Property(e => e.Username).HasMaxLength(255);
+
+                entity.Property(e => e.SecrectKeyLogin).HasMaxLength(20);
             });
 
             OnModelCreatingPartial(modelBuilder);
