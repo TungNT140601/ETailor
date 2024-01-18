@@ -8,10 +8,13 @@ namespace Etailor.API.Repository.EntityModels
         public BodySize()
         {
             BodyAttributes = new HashSet<BodyAttribute>();
+            CatalogBodySizes = new HashSet<CatalogBodySize>();
             ProductBodySizes = new HashSet<ProductBodySize>();
         }
 
         public string Id { get; set; } = null!;
+        public string? BodyPart { get; set; }
+        public int? BodyIndex { get; set; }
         public string? Name { get; set; }
         public string? Image { get; set; }
         public string? GuideVideoLink { get; set; }
@@ -19,10 +22,11 @@ namespace Etailor.API.Repository.EntityModels
         public decimal? MaxValidValue { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
-        public DateTime? DeletedTime { get; set; }
-        public bool? IsDelete { get; set; }
+        public DateTime? InactiveTime { get; set; }
+        public bool? IsActive { get; set; }
 
         public virtual ICollection<BodyAttribute> BodyAttributes { get; set; }
+        public virtual ICollection<CatalogBodySize> CatalogBodySizes { get; set; }
         public virtual ICollection<ProductBodySize> ProductBodySizes { get; set; }
     }
 }

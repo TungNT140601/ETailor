@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.WebRequestMethods;
 
 namespace Etailor.API.Service.Service
 {
@@ -30,6 +31,11 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
+                    if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
+                    {
+                        customer.SecrectKeyLogin = Ultils.GenerateRandomString();
+                        customerRepository.Update(customer.Id, customer);
+                    }
                     return customer;
                 }
             }
@@ -58,6 +64,11 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
+                    if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
+                    {
+                        customer.SecrectKeyLogin = Ultils.GenerateRandomString();
+                        customerRepository.Update(customer.Id, customer);
+                    }
                     return customer;
                 }
             }
@@ -177,8 +188,8 @@ namespace Etailor.API.Service.Service
                 dbCustomer.Email = customer.Email;
                 dbCustomer.EmailVerified = customer.EmailVerified;
 
-                dbCustomer.Otp = customer.Otp;
-                dbCustomer.OtpexpireTime = customer.OtpexpireTime;
+                dbCustomer.Otpnumber = customer.Otpnumber;
+                dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
                 dbCustomer.LastestUpdatedTime = DateTime.Now;
@@ -208,8 +219,8 @@ namespace Etailor.API.Service.Service
                 dbCustomer.Phone = customer.Phone;
                 dbCustomer.PhoneVerified = customer.PhoneVerified;
 
-                dbCustomer.Otp = customer.Otp;
-                dbCustomer.OtpexpireTime = customer.OtpexpireTime;
+                dbCustomer.Otpnumber = customer.Otpnumber;
+                dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
                 dbCustomer.LastestUpdatedTime = DateTime.Now;
@@ -234,7 +245,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var customer = customerRepository.GetAll(x => (x.Email == emailOrPhone || x.Phone == emailOrPhone) && x.Otp == otp && x.OtpexpireTime > DateTime.Now).FirstOrDefault();
+                var customer = customerRepository.GetAll(x => (x.Email == emailOrPhone || x.Phone == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.Now).FirstOrDefault();
                 if (customer == null)
                 {
                     throw new UserException("Mã xác thực không đúng hoặc hết hạn!!!");
@@ -260,5 +271,29 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        public void Logout(string id)
+        {
+            try
+            {
+                var customer = customerRepository.Get(id);
+                if(customer != null)
+                {
+                    customer.SecrectKeyLogin = null;
+                    customerRepository.Update(customer.Id, customer);
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
     }
 }

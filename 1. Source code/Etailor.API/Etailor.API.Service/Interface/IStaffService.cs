@@ -11,5 +11,7 @@ namespace Etailor.API.Service.Interface
     {
         Staff CheckLogin(string username, string password);
         bool AddNewStaff(Staff staff);
+        void Logout(string id);
+        Staff GetStaff(string id);
     }
 }

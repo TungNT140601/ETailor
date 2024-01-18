@@ -6,16 +6,16 @@ namespace Etailor.API.Repository.EntityModels
     public partial class BodyAttribute
     {
         public string Id { get; set; } = null!;
-        public string? ProfileBodyAttributeId { get; set; }
+        public string? ProfileBodyId { get; set; }
         public string? BodySizeId { get; set; }
         public decimal? Value { get; set; }
-        public string? Measure { get; set; }
+        public string? Unit { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
-        public DateTime? DeletedTime { get; set; }
-        public bool? IsDelete { get; set; }
+        public DateTime? InactiveTime { get; set; }
+        public bool? IsActive { get; set; }
 
         public virtual BodySize? BodySize { get; set; }
-        public virtual ProfileBodyAttribute? ProfileBodyAttribute { get; set; }
+        public virtual ProfileBody? ProfileBody { get; set; }
     }
 }

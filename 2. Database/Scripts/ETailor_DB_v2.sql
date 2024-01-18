@@ -13,7 +13,7 @@ Create Table Skill (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 );
 
 Create Table Staff ( 
@@ -25,10 +25,11 @@ Create Table Staff (
 	Phone nvarchar(10) null,
 	Username nvarchar(255),
 	[Password] nvarchar(255),
+	SecrectKeyLogin nvarchar(20) null,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 );
 
 Create Table SkillOfStaff (
@@ -51,10 +52,11 @@ Create Table Customer (
 	OTPUsed [bit] NULL DEFAULT 0,
 	PhoneVerified [bit] NULL DEFAULT 0,
 	EmailVerified [bit] NULL DEFAULT 0,
+	SecrectKeyLogin nvarchar(20) null,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 );
 
 
@@ -67,7 +69,7 @@ Create Table ProfileBody (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table BodySize (
@@ -82,7 +84,7 @@ Create Table BodySize (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table BodyAttribute (
@@ -94,7 +96,7 @@ Create Table BodyAttribute (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table Category (
@@ -103,7 +105,7 @@ Create Table Category (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0,
+	IsActive [bit] NULL DEFAULT 1,
 )
 
 Create Table [Catalog] (
@@ -117,7 +119,7 @@ Create Table [Catalog] (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table CatalogBodySize (
@@ -135,7 +137,7 @@ Create Table CatalogStage (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table Discount (
@@ -152,7 +154,7 @@ Create Table Discount (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table [Order] (
@@ -176,7 +178,7 @@ Create Table [Order] (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null,
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 
@@ -191,7 +193,7 @@ Create Table Product (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0,
+	IsActive [bit] NULL DEFAULT 1,
 )
 
 Create Table ProductStage (
@@ -219,7 +221,7 @@ Create Table ComponentType (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table Component (
@@ -230,7 +232,7 @@ Create Table Component (
 	[Image] text,
 	CreatedTime datetime Null,
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table MaterialType (
@@ -239,7 +241,7 @@ Create Table MaterialType (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table MaterialCategory (
@@ -249,7 +251,7 @@ Create Table MaterialCategory (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table Material (
@@ -262,7 +264,7 @@ Create Table Material (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table ProductComponent (
@@ -286,7 +288,7 @@ Create Table OrderMaterial (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table [Transaction] (
@@ -305,7 +307,7 @@ Create Table Chat (
 	CustomerId nvarchar(30) FOREIGN KEY REFERENCES Customer(Id),
 	CreatedTime datetime Null,
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table ChatHistory (
@@ -318,7 +320,7 @@ Create Table ChatHistory (
 	IsRead [bit] NULL DEFAULT 0,
 	ReadTime datetime Null,
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table [Notification] (
@@ -329,7 +331,7 @@ Create Table [Notification] (
 	SendTime datetime Null,
 	ReadTime datetime Null,
 	IsRead [bit] NULL DEFAULT 0,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table Blog (
@@ -341,7 +343,7 @@ Create Table Blog (
 	StaffId nvarchar(30) null FOREIGN KEY REFERENCES [Staff](Id),
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table ProductBodySize (
@@ -353,7 +355,7 @@ Create Table ProductBodySize (
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 0
+	IsActive [bit] NULL DEFAULT 1
 )
 
 Create Table CustomerClient (

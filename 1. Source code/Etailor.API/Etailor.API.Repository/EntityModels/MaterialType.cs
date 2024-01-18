@@ -14,8 +14,8 @@ namespace Etailor.API.Repository.EntityModels
         public string? Name { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
-        public DateTime? DeletedTime { get; set; }
-        public bool? IsDelete { get; set; }
+        public DateTime? InactiveTime { get; set; }
+        public bool? IsActive { get; set; }
 
         public virtual ICollection<MaterialCategory> MaterialCategories { get; set; }
     }

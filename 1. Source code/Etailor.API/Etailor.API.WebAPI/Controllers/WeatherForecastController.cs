@@ -370,7 +370,8 @@ namespace Etailor.API.WebAPI.Controllers
                 vnp_SecureHash
             };
 
-            return Ok(responseData);
+            //return Ok(responseData);
+            return Redirect("https://demo-notification.vercel.app");
         }
 
         #endregion

@@ -9,13 +9,12 @@ namespace Etailor.API.Repository.EntityModels
         public string? Title { get; set; }
         public string? UrlPath { get; set; }
         public string? Content { get; set; }
-        public string? Image { get; set; }
         public DateTime? CreatedTime { get; set; }
-        public string? Creater { get; set; }
+        public string? StaffId { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
-        public DateTime? DeletedTime { get; set; }
-        public bool? IsDelete { get; set; }
+        public DateTime? InactiveTime { get; set; }
+        public bool? IsActive { get; set; }
 
-        public virtual Staff? CreaterNavigation { get; set; }
+        public virtual Staff? Staff { get; set; }
     }
 }

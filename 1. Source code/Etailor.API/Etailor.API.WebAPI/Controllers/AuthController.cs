@@ -1,4 +1,5 @@
-﻿using Etailor.API.Repository.EntityModels;
+﻿using AutoMapper;
+using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
@@ -18,11 +19,13 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ICustomerService customerService;
         private readonly IStaffService staffService;
         private readonly IConfiguration configuration;
-        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService)
+        private readonly IMapper mapper;
+        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService, IMapper mapper)
         {
             this.customerService = customerService;
             this.configuration = configuration;
             this.staffService = staffService;
+            this.mapper = mapper;
         }
 
         [HttpPost("customer/login")]
@@ -46,7 +49,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                 return Ok(new
                 {
-                    Token = Ultils.GetToken(customer.Id, customer.Fullname, RoleName.CUSTOMER, configuration)
+                    Token = Ultils.GetToken(customer.Id, customer.Fullname, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration)
                 });
             }
             catch (UserException ex)
@@ -76,8 +79,8 @@ namespace Etailor.API.WebAPI.Controllers
                         var check = customerService.CreateCustomer(new Customer()
                         {
                             Email = email,
-                            Otp = otp,
-                            OtpexpireTime = DateTime.Now.AddMinutes(5),
+                            Otpnumber = otp,
+                            OtptimeLimit = DateTime.Now.AddMinutes(5),
                             Otpused = false
                         });
 
@@ -94,8 +97,8 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             Id = customer.Id,
                             Email = email,
-                            Otp = otp,
-                            OtpexpireTime = DateTime.Now.AddMinutes(5),
+                            Otpnumber = otp,
+                            OtptimeLimit = DateTime.Now.AddMinutes(5),
                             Otpused = false
                         });
 
@@ -211,6 +214,43 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpPost("customer/logout")]
+        public IActionResult CusLogout()
+        {
+            try
+            {
+                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                if (id == null)
+                {
+                    return Unauthorized();
+                }
+                else if (role != RoleName.CUSTOMER)
+                {
+                    return Forbid();
+                }
+                else
+                {
+                    customerService.Logout(id);
+                }
+
+                return Ok();
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPost("staff/login")]
         public IActionResult CheckLoginStaff([FromBody] StaffLogin staffLogin)
         {
@@ -220,8 +260,10 @@ namespace Etailor.API.WebAPI.Controllers
 
                 return Ok(new
                 {
-                    Staff = staff,
-                    Token = Ultils.GetToken(staff.Id, staff.Fullname, RoleName.STAFF, configuration)
+                    Time = DateTime.Now.ToLongTimeString(),
+                    Staff = mapper.Map<StaffVM>(staff),
+                    Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF,
+                    Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration)
                 });
             }
             catch (UserException ex)
@@ -239,11 +281,103 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("staff/add")]
-        public IActionResult AddStaff([FromBody] Staff staff)
+        public IActionResult AddStaff([FromBody] StaffVM staff)
         {
             try
             {
-                return staffService.AddNewStaff(staff) ? Ok() : BadRequest();
+                return staffService.AddNewStaff(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("staff/logout")]
+        public IActionResult StaffLogout()
+        {
+            try
+            {
+                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                if (id == null)
+                {
+                    return Unauthorized();
+                }
+                else if (role == RoleName.CUSTOMER)
+                {
+                    return Forbid();
+                }
+                else
+                {
+                    staffService.Logout(id);
+                }
+
+                return Ok();
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("staff/get-info")]
+        public IActionResult StaffInfo()
+        {
+            try
+            {
+                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                if (id == null)
+                {
+                    return Unauthorized();
+                }
+                else if (role == RoleName.CUSTOMER)
+                {
+                    return Forbid();
+                }
+                else
+                {
+                    staffService.Logout(id);
+                }
+                var expirationClaim = User.FindFirst("exp");
+
+                if (expirationClaim != null && long.TryParse(expirationClaim.Value, out long exp))
+                {
+                    DateTime expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
+
+
+                    return Ok(new
+                    {
+                        ExpirationClaim = expirationTime.ToLongTimeString(),
+                        Time = DateTime.Now.ToLongTimeString(),
+                        Data = mapper.Map<StaffVM>(staffService.GetStaff(id)),
+                    });
+                }
+                else
+                {
+                    // Unable to retrieve expiration claim or parse expiration time
+                    return Unauthorized("Invalid JWT or missing expiration claim.");
+                }
+
             }
             catch (UserException ex)
             {
