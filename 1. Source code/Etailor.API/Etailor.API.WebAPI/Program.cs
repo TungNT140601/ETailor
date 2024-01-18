@@ -12,7 +12,6 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors();
@@ -98,10 +97,13 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1");
 });
 //}
+
+var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();
+
 app.UseCors(option =>
 {
     option.AllowAnyHeader()
-    .WithOrigins("https://demo-notification.vercel.app","http://localhost:3000")
+    .WithOrigins(MyAllowSpecificOrigins)
     .AllowAnyMethod();
 });
 
