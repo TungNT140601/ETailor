@@ -9,6 +9,7 @@ namespace Etailor.API.WebAPI
         public Mapper()
         {
             CreateMap<Staff, StaffVM>().ReverseMap();
+            CreateMap<Customer, CusRegis>().ReverseMap();
         }
     }
 }

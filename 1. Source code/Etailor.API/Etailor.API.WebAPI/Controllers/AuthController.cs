@@ -28,6 +28,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.mapper = mapper;
         }
 
+        #region Customer
         [HttpPost("customer/login")]
         public IActionResult CustomerLoginEmail([FromBody] CusLoginEmail loginEmail)
         {
@@ -35,16 +36,18 @@ namespace Etailor.API.WebAPI.Controllers
             {
                 if (string.IsNullOrWhiteSpace(loginEmail.Email))
                 {
-                    throw new UserException("Không được để trống EMAIL");
+                    throw new UserException("Không được để trống Email");
                 }
+
                 var customer = new Customer();
-                if (Ultils.IsValidEmail(loginEmail.Email))
+
+                if (Ultils.IsValidEmail(loginEmail.Email)) //Check email valid
                 {
-                    customer = customerService.LoginWithEmail(loginEmail.Email, loginEmail.Password);
+                    customer = customerService.LoginWithEmail(loginEmail.Email, loginEmail.Password); //call func LoginWithEmail from service
                 }
                 else
                 {
-                    customer = customerService.LoginWithUsername(loginEmail.Email, loginEmail.Password);
+                    customer = customerService.LoginWithUsername(loginEmail.Email, loginEmail.Password); //call func LoginWithUsername from service
                 }
 
                 return Ok(new
@@ -70,7 +73,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if (Ultils.IsValidEmail(email))
+                if (Ultils.IsValidEmail(email)) //Check email valid
                 {
                     var customer = customerService.FindEmail(email);
                     var otp = Ultils.GenerateRandom6Digits();
@@ -79,9 +82,11 @@ namespace Etailor.API.WebAPI.Controllers
                         var check = customerService.CreateCustomer(new Customer()
                         {
                             Email = email,
+                            EmailVerified = false,
                             Otpnumber = otp,
-                            OtptimeLimit = DateTime.Now.AddMinutes(5),
-                            Otpused = false
+                            OtptimeLimit = DateTime.UtcNow.AddMinutes(5),
+                            Otpused = false,
+                            IsActive = true
                         });
 
                         if (check)
@@ -97,6 +102,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             Id = customer.Id,
                             Email = email,
+                            EmailVerified = false,
                             Otpnumber = otp,
                             OtptimeLimit = DateTime.Now.AddMinutes(5),
                             Otpused = false
@@ -129,69 +135,69 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("customer/verify-phone")]
-        public IActionResult VerifyPhone(string phone)
-        {
-            try
-            {
-                if (Ultils.IsValidVietnamesePhoneNumber(phone))
-                {
-                    var customer = customerService.FindPhone(phone);
-                    var otp = Ultils.GenerateRandom6Digits();
-                    if (customer == null)
-                    {
-                        //var check = customerService.CreateCustomer(new Customer()
-                        //{
-                        //    Phone = phone,
-                        //    Otp = otp,
-                        //    OtpexpireTime = DateTime.Now.AddMinutes(5),
-                        //    Otpused = false
-                        //});
+        //[HttpGet("customer/verify-phone")]
+        //public IActionResult VerifyPhone(string phone)
+        //{
+        //    try
+        //    {
+        //        if (Ultils.IsValidVietnamesePhoneNumber(phone))
+        //        {
+        //            var customer = customerService.FindPhone(phone);
+        //            var otp = Ultils.GenerateRandom6Digits();
+        //            if (customer == null)
+        //            {
+        //                //var check = customerService.CreateCustomer(new Customer()
+        //                //{
+        //                //    Phone = phone,
+        //                //    Otp = otp,
+        //                //    OtpexpireTime = DateTime.Now.AddMinutes(5),
+        //                //    Otpused = false
+        //                //});
 
-                        //if (check)
-                        //{
-                        //    Ultils.SendOTPPhone(phone, otp);
-                        //}
+        //                //if (check)
+        //                //{
+        //                //    Ultils.SendOTPPhone(phone, otp);
+        //                //}
 
-                        return Ok();
-                    }
-                    else
-                    {
-                        //var check = customerService.UpdateCustomerEmail(new Customer()
-                        //{
-                        //    Id = customer.Id,
-                        //    Email = email,
-                        //    Otp = otp,
-                        //    OtpexpireTime = DateTime.Now.AddMinutes(5),
-                        //    Otpused = false
-                        //});
+        //                return Ok();
+        //            }
+        //            else
+        //            {
+        //                //var check = customerService.UpdateCustomerEmail(new Customer()
+        //                //{
+        //                //    Id = customer.Id,
+        //                //    Email = email,
+        //                //    Otp = otp,
+        //                //    OtpexpireTime = DateTime.Now.AddMinutes(5),
+        //                //    Otpused = false
+        //                //});
 
-                        //if (check)
-                        //{
-                        //    Ultils.SendOTPMail(email, otp);
-                        //}
+        //                //if (check)
+        //                //{
+        //                //    Ultils.SendOTPMail(email, otp);
+        //                //}
 
-                        return Ok();
-                    }
-                }
-                else
-                {
-                    throw new UserException("Số điện thoại không đúng định dạng!!!");
-                }
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
+        //                return Ok();
+        //            }
+        //        }
+        //        else
+        //        {
+        //            throw new UserException("Số điện thoại không đúng định dạng!!!");
+        //        }
+        //    }
+        //    catch (UserException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (SystemsException ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //}
 
         [HttpPost("customer/verify-otp")]
         public IActionResult VerifyOtp([FromBody] VerifyOtp verifyOtp)
@@ -283,7 +289,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost("customer/reset-password")]
+        [HttpPost("customer/reset-password/{email}")]
         public IActionResult CusResetPass(string email)
         {
             try
@@ -304,6 +310,29 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpPost("customer/regis")]
+        public IActionResult CustomerRegis([FromBody] CusRegis cus)
+        {
+            try
+            {
+                return customerService.CusRegis(mapper.Map<Customer>(cus)) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        #endregion
+
+        #region Staff
         [HttpPost("staff/login")]
         public IActionResult CheckLoginStaff([FromBody] StaffLogin staffLogin)
         {
@@ -445,5 +474,6 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        #endregion
     }
 }
