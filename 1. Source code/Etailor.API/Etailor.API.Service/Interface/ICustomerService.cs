@@ -14,7 +14,12 @@ namespace Etailor.API.Service.Interface
         Customer FindEmail(string email);
         Customer FindPhone(string phone);
         Customer FindUsername(string username);
+
+        Customer FindById(string id);
+
         bool CreateCustomer(Customer customer);
+
+        bool UpdatePersonalProfileCustomer(Customer customer);
         bool UpdateCustomerInfo(Customer customer);
         bool UpdateCustomerEmail(Customer customer);
         bool UpdateCustomerPhone(Customer customer);
