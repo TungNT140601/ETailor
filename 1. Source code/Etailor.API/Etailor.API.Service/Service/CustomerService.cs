@@ -24,7 +24,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var customer = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && x.EmailVerified == true && Ultils.VerifyPassword(password, x.Password) == true).FirstOrDefault();
+                var customer = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.EmailVerified != null && x.EmailVerified == true) && Ultils.VerifyPassword(password, x.Password) == true).FirstOrDefault();
                 if (customer == null)
                 {
                     throw new UserException("Mật khẩu của bạn không chính xác");
@@ -90,7 +90,8 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                return customerRepository.GetAll(x => x.Email != null && x.Email == email && x.IsActive == true).FirstOrDefault();
+                var cuss = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.IsActive != null && x.IsActive == true)).FirstOrDefault();
+                return cuss;
             }
             catch (UserException ex)
             {
@@ -110,7 +111,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                return customerRepository.GetAll(x => x.Phone != null && x.Phone == phone && x.IsActive == true).FirstOrDefault();
+                return customerRepository.GetAll(x => x.Phone != null && x.Phone == phone && x.IsActive != null && x.IsActive == true).FirstOrDefault();
             }
             catch (UserException ex)
             {
@@ -130,7 +131,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                return customerRepository.GetAll(x => x.Username != null && x.Username == username && x.IsActive == true).FirstOrDefault();
+                return customerRepository.GetAll(x => x.Username != null && x.Username == username && x.IsActive != null && x.IsActive == true).FirstOrDefault();
             }
             catch (UserException ex)
             {
@@ -177,7 +178,7 @@ namespace Etailor.API.Service.Service
                 customer.IsActive = true;
 
                 customer.LastestUpdatedTime = DateTime.Now;
-                customer.CreatedTime = DateTime.Now;
+                customer.CreatedTime = null;
 
                 return customerRepository.Create(customer);
             }
@@ -319,7 +320,15 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var customer = customerRepository.GetAll(x => ((x.Email != null && x.Email == emailOrPhone) || (x.Phone != null && x.Phone == emailOrPhone)) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.UtcNow && x.IsActive == true).FirstOrDefault();
+                var customer = new Customer();
+                if (Ultils.IsValidEmail(emailOrPhone))
+                {
+                    customer = customerRepository.GetAll(x => (x.Email != null && x.Email == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.UtcNow && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+                }
+                else
+                {
+                    customer = customerRepository.GetAll(x => (x.Phone != null && x.Phone == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.UtcNow && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+                }
                 if (customer == null)
                 {
                     throw new UserException("Mã xác thực không đúng hoặc hết hạn!!!");
@@ -509,14 +518,29 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
-                                existCus.Password = Ultils.HashPassword(customer.Password);
-                                existCus.Avatar = customer.Avatar;
-                                existCus.Address = customer.Address;
-                                existCus.Username = customer.Username;
-                                existCus.IsActive = true;
-                                existCus.LastestUpdatedTime = DateTime.Now;
+                                if (existCus.CreatedTime == null)
+                                {
+                                    existCus.Password = Ultils.HashPassword(customer.Password);
+                                    existCus.Avatar = customer.Avatar;
+                                    existCus.Address = customer.Address;
+                                    if (customerRepository.GetAll(c => c.Id != existCus.Id && c.Username == existCus.Username).Any())
+                                    {
+                                        throw new UserException("Tên tài khoản đã được sử dụng!!!");
+                                    }
+                                    else
+                                    {
+                                        existCus.Username = customer.Username;
+                                    }
+                                    existCus.IsActive = true;
+                                    existCus.CreatedTime = DateTime.Now;
+                                    existCus.LastestUpdatedTime = DateTime.Now;
 
-                                return customerRepository.Update(existCus.Id, existCus);
+                                    return customerRepository.Update(existCus.Id, existCus);
+                                }
+                                else
+                                {
+                                    throw new UserException("Email đã được sử dụng!!!");
+                                }
                             }
                         }
                         else
@@ -567,11 +591,11 @@ namespace Etailor.API.Service.Service
             {
                 if (id == null)
                 {
-                    return customerRepository.GetAll(x => ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive == true).Any();
+                    return customerRepository.GetAll(x => ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive != null && x.IsActive == true).Any();
                 }
                 else
                 {
-                    return customerRepository.GetAll(x => x.Id != id && ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive == true).Any();
+                    return customerRepository.GetAll(x => x.Id != id && ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive != null && x.IsActive == true).Any();
                 }
             }
             catch (UserException ex)

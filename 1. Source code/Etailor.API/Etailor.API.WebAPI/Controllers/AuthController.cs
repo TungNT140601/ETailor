@@ -52,7 +52,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                 return Ok(new
                 {
-                    Token = Ultils.GetToken(customer.Id, customer.Fullname, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration)
+                    Token = Ultils.GetToken(customer.Id, customer.Fullname ?? string.Empty, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration)
                 });
             }
             catch (UserException ex)
@@ -342,32 +342,9 @@ namespace Etailor.API.WebAPI.Controllers
 
                 return Ok(new
                 {
-                    Time = DateTime.Now.ToLongTimeString(),
-                    Staff = mapper.Map<StaffVM>(staff),
                     Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF,
                     Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration)
                 });
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpPost("staff/add")]
-        public IActionResult AddStaff([FromBody] StaffVM staff)
-        {
-            try
-            {
-                return staffService.AddNewStaff(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
             }
             catch (UserException ex)
             {
@@ -420,60 +397,6 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("staff/get-info")]
-        public IActionResult StaffInfo()
-        {
-            try
-            {
-                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                if (id == null)
-                {
-                    return Unauthorized();
-                }
-                else if (role == RoleName.CUSTOMER)
-                {
-                    return Forbid();
-                }
-                else
-                {
-                    staffService.Logout(id);
-                }
-                var expirationClaim = User.FindFirst("exp");
-
-                if (expirationClaim != null && long.TryParse(expirationClaim.Value, out long exp))
-                {
-                    DateTime expirationTime = DateTimeOffset.FromUnixTimeSeconds(exp).UtcDateTime;
-
-
-                    return Ok(new
-                    {
-                        ExpirationClaim = expirationTime.ToLongTimeString(),
-                        Time = DateTime.Now.ToLongTimeString(),
-                        Data = mapper.Map<StaffVM>(staffService.GetStaff(id)),
-                    });
-                }
-                else
-                {
-                    // Unable to retrieve expiration claim or parse expiration time
-                    return Unauthorized("Invalid JWT or missing expiration claim.");
-                }
-
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
         #endregion
     }
 }
