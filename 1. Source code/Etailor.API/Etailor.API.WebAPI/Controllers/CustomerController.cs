@@ -7,6 +7,7 @@ using Etailor.API.Ultity;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Etailor.API.Service.Service;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -35,16 +36,19 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized();
                 }
-                else if (role == RoleName.ADMIN || role == RoleName.MANAGER || role == RoleName.STAFF)
+                else if (role != RoleName.CUSTOMER)
                 {
                     return Forbid();
                 }
                 else
                 {
                     var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!string.IsNullOrEmpty(customerId))
+                    if (!customerService.CheckSecerctKey(customerId, secrectKey))
+                    {
+                        return Unauthorized();
+                    }
+                    else if (!string.IsNullOrEmpty(customerId))
                     {
                         var userInfo = customerService.FindById(customerId);
                         if (userInfo == null)
@@ -95,7 +99,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return Unauthorized();
+                        throw new Exception("Something went wrong");
                     }
                 }            
             }
