@@ -3,12 +3,15 @@ using Etailor.API.Repository.Interface;
 using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
+using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -91,6 +94,93 @@ namespace Etailor.API.Service.Service
                 throw new SystemsException(ex.Message);
             }
         }
+        public bool UpdateInfo(Staff staff)
+        {
+            try
+            {
+                var dbStaff = GetStaff(staff.Id);
+                if (dbStaff != null)
+                {
+                    if (staffRepository.GetAll(x => x.Id != staff.Id && x.Phone != null && x.Phone == staff.Phone).Any())
+                    {
+                        throw new UserException("Số điện thoại đã được sử dụng");
+                    }
+                    else
+                    {
+                        dbStaff.Phone = staff.Phone;
+                    }
+                    dbStaff.Avatar = staff.Avatar;
+                    dbStaff.Fullname = staff.Fullname;
+                    dbStaff.Address = staff.Address;
+                    dbStaff.Avatar = staff.Avatar;
+
+                    dbStaff.LastestUpdatedTime = DateTime.Now;
+
+                    return staffRepository.Update(dbStaff.Id, dbStaff);
+                }
+                else
+                {
+                    throw new UserException("Staff không tồn tại");
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public bool ChangePass(string id, string? oldPassword, string newPassword, string role)
+        {
+            try
+            {
+                var dbStaff = GetStaff(id);
+                if (dbStaff != null)
+                {
+                    if (role == RoleName.MANAGER)
+                    {
+                        dbStaff.Password = Ultils.HashPassword(newPassword);
+                    }
+                    else if (role == RoleName.STAFF)
+                    {
+                        if (Ultils.VerifyPassword(oldPassword, dbStaff.Password))
+                        {
+                            dbStaff.Password = Ultils.HashPassword(newPassword);
+                        }
+                        else
+                        {
+                            throw new UserException("Mật khẩu không chính xác");
+                        }
+                    }
+                    dbStaff.LastestUpdatedTime = DateTime.Now;
+
+                    return staffRepository.Update(dbStaff.Id, dbStaff);
+                }
+                else
+                {
+                    throw new UserException("Staff không tồn tại");
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
 
         private bool CheckPhoneExist(string phone)
         {
@@ -145,6 +235,58 @@ namespace Etailor.API.Service.Service
             try
             {
                 return staffRepository.Get(id);
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public bool CheckSecrectKey(string id, string key)
+        {
+            try
+            {
+                var staff = staffRepository.Get(id);
+                if (staff != null)
+                {
+                    return staff.SecrectKeyLogin == key;
+                }
+                return false;
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public IEnumerable<Staff> GetAll(string? search)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(search))
+                {
+                    return staffRepository.GetAll(x => x.IsActive == true && (x.Role == 1 || x.Role == 2));
+                }
+                else
+                {
+                    return staffRepository.GetAll(x => ((x.Fullname != null && x.Fullname.Trim().ToLower().Contains(search.Trim().ToLower())) || (x.Phone != null && x.Phone.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true && (x.Role == 1 || x.Role == 2));
+                }
             }
             catch (UserException ex)
             {
