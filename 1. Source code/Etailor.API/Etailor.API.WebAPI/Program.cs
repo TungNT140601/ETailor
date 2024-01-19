@@ -76,9 +76,11 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
+builder.Services.AddScoped<ISkillRepository, SkillRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
+builder.Services.AddScoped<ISkillRepository, SkillRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 
