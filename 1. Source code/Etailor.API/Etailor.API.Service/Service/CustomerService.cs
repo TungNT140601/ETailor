@@ -146,6 +146,26 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        public Customer FindById(string id)
+        {
+            try
+            {
+                return customerRepository.Get(id);
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public bool CreateCustomer(Customer customer)
         {
             try
@@ -175,6 +195,35 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        public bool UpdatePersonalProfileCustomer(Customer customer)
+        {
+            try
+            {
+                var dbCustomer = customerRepository.Get(customer.Id);
+
+                dbCustomer.Avatar = customer.Avatar;
+                dbCustomer.Fullname = customer.Fullname;
+                dbCustomer.Address = customer.Address;
+                dbCustomer.Username = customer.Username;
+
+                dbCustomer.LastestUpdatedTime = DateTime.Now;
+
+                return customerRepository.Update(dbCustomer.Id, dbCustomer);
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public bool UpdateCustomerInfo(Customer customer)
         {
             try
@@ -188,7 +237,7 @@ namespace Etailor.API.Service.Service
 
                 dbCustomer.LastestUpdatedTime = DateTime.Now;
 
-                return customerRepository.Update(customer.Id, customer);
+                return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
             catch (UserException ex)
             {
@@ -219,7 +268,7 @@ namespace Etailor.API.Service.Service
 
                 dbCustomer.LastestUpdatedTime = DateTime.Now;
 
-                return customerRepository.Update(customer.Id, customer);
+                return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
             catch (UserException ex)
             {
@@ -250,7 +299,7 @@ namespace Etailor.API.Service.Service
 
                 dbCustomer.LastestUpdatedTime = DateTime.Now;
 
-                return customerRepository.Update(customer.Id, customer);
+                return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
             catch (UserException ex)
             {

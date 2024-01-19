@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Etailor.API.Repository.EntityModels
 {
@@ -16,7 +17,11 @@ namespace Etailor.API.Repository.EntityModels
 
         public string Id { get; set; } = null!;
         public string? Avatar { get; set; }
+
+        [Required]
         public string? Fullname { get; set; }
+
+        [Required]
         public string? Address { get; set; }
         public string? Phone { get; set; }
         public string? Email { get; set; }
