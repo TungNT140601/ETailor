@@ -40,11 +40,18 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Skill GetAllSkill(string id)
+        public IEnumerable<Skill> GetAllSkill(string? search)
         {
             try
             {
-                return skillRepository.GetAll(x => x.IsActive == true).FirstOrDefault();
+                if (string.IsNullOrEmpty(search))
+                {
+                    return skillRepository.GetAll(x => x.IsActive == true);
+                }
+                else
+                {
+                    return skillRepository.GetAll(x => ((x.Name != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+                }
             }
             catch (UserException ex)
             {
@@ -65,7 +72,6 @@ namespace Etailor.API.Service.Service
             try
             {
                 skill.Id = Ultils.GenGuidString();
-                skill.Name = skill.Name;
 
                 skill.IsActive = true;
 
@@ -116,11 +122,11 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool DeactiveSkill(Skill skill)
+        public bool DeactiveSkill(string id)
         {
             try
             {
-                var dbSkill = skillRepository.Get(skill.Id);
+                var dbSkill = skillRepository.Get(id);
 
                 dbSkill.IsActive = false;
 
@@ -144,11 +150,11 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool ActiveSkill(Skill skill)
+        public bool ActiveSkill(string id)
         {
             try
             {
-                var dbSkill = skillRepository.Get(skill.Id);
+                var dbSkill = skillRepository.Get(id);
 
                 dbSkill.IsActive = true;
 
