@@ -106,9 +106,19 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else if (role == RoleName.MANAGER)
                     {
-                        var staffUpdate = mapper.Map<Staff>(staff);
-                        staffUpdate.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "StaffAvatar", staff.AvatarImage);
-                        return staffService.UpdateInfo(staffUpdate) ? Ok() : BadRequest();
+                        if (id == null)
+                        {
+                            staff.Id = staffId;
+                            return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                        }
+                        else
+                        {
+                            if (staff.Id != id)
+                            {
+                                throw new UserException("Không tìm thấy nhân viên");
+                            }
+                            return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                        }
                     }
                     else
                     {
