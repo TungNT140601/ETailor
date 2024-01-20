@@ -30,25 +30,19 @@ namespace Etailor.API.WebAPI.Controllers
 
         #region Customer
         [HttpPost("customer/login")]
-        public IActionResult CustomerLoginEmail([FromBody] CusLoginEmail loginEmail)
+        public async Task<IActionResult> CustomerLoginEmail([FromBody] CusLoginEmail loginEmail)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(loginEmail.Email))
+                if (string.IsNullOrWhiteSpace(loginEmail.EmailOrUsername))
                 {
                     throw new UserException("Không được để trống Email");
                 }
-
-                var customer = new Customer();
-
-                if (Ultils.IsValidEmail(loginEmail.Email)) //Check email valid
+                if (string.IsNullOrEmpty(loginEmail.ClientToken))
                 {
-                    customer = customerService.LoginWithEmail(loginEmail.Email, loginEmail.Password); //call func LoginWithEmail from service
+                    loginEmail.ClientToken = string.Empty;
                 }
-                else
-                {
-                    customer = customerService.LoginWithUsername(loginEmail.Email, loginEmail.Password); //call func LoginWithUsername from service
-                }
+                var customer = await customerService.Login(loginEmail.EmailOrUsername, loginEmail.Password, HttpContext.Connection.RemoteIpAddress.ToString(), loginEmail.ClientToken);
 
                 return Ok(new
                 {

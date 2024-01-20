@@ -297,7 +297,7 @@ namespace Etailor.API.WebAPI.Controllers
         [HttpGet]
         public string GetIpAddress()
         {
-            return HttpContext.Connection.RemoteIpAddress.ToString(); ;
+            return HttpContext.Connection.RemoteIpAddress.ToString();
         }
 
         [HttpGet]

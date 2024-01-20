@@ -41,7 +41,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (string.IsNullOrEmpty(staff.SecrectKeyLogin))
                     {
-                        staff.SecrectKeyLogin = Ultils.GenerateRandomString(20);
+                        staff.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
                         staffRepository.Update(staff.Id, staff);
                     }
                     return staff;
