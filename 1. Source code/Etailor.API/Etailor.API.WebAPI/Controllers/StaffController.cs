@@ -2,9 +2,13 @@
 using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
+using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Storage.V1;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -18,15 +22,24 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly IConfiguration configuration;
         private readonly IMapper mapper;
-        public StaffController(IStaffService staffService, IConfiguration configuration, IMapper mapper)
+        private readonly StorageClient _storage;
+        private readonly string _wwwrootPath;
+        public StaffController(IStaffService staffService, IConfiguration configuration, IMapper mapper, IWebHostEnvironment webHost)
         {
             this.staffService = staffService;
             this.configuration = configuration;
             this.mapper = mapper;
+            // Load Firebase credentials
+            var credential = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
+
+            // Initialize StorageClient with Firebase credentials
+            _storage = StorageClient.Create(credential);
+
+            _wwwrootPath = webHost.WebRootPath;
         }
 
         [HttpPost()]
-        public IActionResult AddStaff([FromBody] StaffCreateVM staff)
+        public async Task<IActionResult> AddStaff([FromBody] StaffCreateVM staff)
         {
             try
             {
@@ -49,7 +62,9 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return staffService.AddNewStaff(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                        var staffCreate = mapper.Map<Staff>(staff);
+                        staffCreate.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "StaffAvatar", staff.AvatarImage);
+                        return staffService.AddNewStaff(staffCreate) ? Ok() : BadRequest();
                     }
                 }
             }
@@ -68,7 +83,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut()]
-        public IActionResult UpdateStaffInfo(string? id, [FromBody] StaffUpdateVM staff)
+        public async Task<IActionResult> UpdateStaffInfo(string? id, [FromBody] StaffUpdateVM staff)
         {
             try
             {
@@ -91,12 +106,16 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else if (role == RoleName.MANAGER)
                     {
-                        return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                        var staffUpdate = mapper.Map<Staff>(staff);
+                        staffUpdate.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "StaffAvatar", staff.AvatarImage);
+                        return staffService.UpdateInfo(staffUpdate) ? Ok() : BadRequest();
                     }
                     else
                     {
                         staff.Id = staffId;
-                        return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                        var staffUpdate = mapper.Map<Staff>(staff);
+                        staffUpdate.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "StaffAvatar", staff.AvatarImage);
+                        return staffService.UpdateInfo(staffUpdate) ? Ok() : BadRequest();
                     }
                 }
             }

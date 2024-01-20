@@ -5,6 +5,8 @@ using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
@@ -20,12 +22,21 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly IConfiguration configuration;
         private readonly IMapper mapper;
-        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService, IMapper mapper)
+        private readonly StorageClient _storage;
+        private readonly string _wwwrootPath;
+        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost)
         {
             this.customerService = customerService;
             this.configuration = configuration;
             this.staffService = staffService;
             this.mapper = mapper;
+            // Load Firebase credentials
+            var credential = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
+
+            // Initialize StorageClient with Firebase credentials
+            _storage = StorageClient.Create(credential);
+
+            _wwwrootPath = webHost.WebRootPath;
         }
 
         #region Customer
@@ -305,11 +316,13 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("customer/regis")]
-        public IActionResult CustomerRegis([FromBody] CusRegis cus)
+        public async Task<IActionResult> CustomerRegis([FromBody] CusRegis cus)
         {
             try
             {
-                return customerService.CusRegis(mapper.Map<Customer>(cus)) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
+                var customer = mapper.Map<Customer>(cus);
+                customer.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "CustomerAvatar", cus.AvatarImage);
+                return customerService.CusRegis(customer) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
             }
             catch (UserException ex)
             {
@@ -337,6 +350,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return Ok(new
                 {
                     Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF,
+                    Name = staff.Fullname ?? string.Empty,
                     Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration)
                 });
             }

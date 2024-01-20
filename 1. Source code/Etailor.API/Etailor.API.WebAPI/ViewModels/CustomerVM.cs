@@ -4,7 +4,7 @@ namespace Etailor.API.WebAPI.ViewModels
 {
     public class CustomerVM
     {
-        public string? Avatar { get; set; }
+        public IFormFile? AvatarImage { get; set; }
 
         [Required]
         public string? Fullname { get; set; }

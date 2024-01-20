@@ -23,7 +23,7 @@
     }
     public class CusRegis
     {
-        public string? Avatar { get; set; }
+        public IFormFile? AvatarImage { get; set; }
         public string? Fullname { get; set; }
         public string? Address { get; set; }
         public string? Username { get; set; }
