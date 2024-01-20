@@ -11,14 +11,14 @@ namespace Etailor.API.Service.Interface
     {
         Skill FindById(string id);
 
-        Skill GetAllSkill(string id);
+        IEnumerable<Skill> GetAllSkill(string? search);
 
         bool CreateSkill (Skill skill);
 
         bool UpdateSkill(Skill skill);
 
-        bool DeactiveSkill(Skill skill);
+        bool DeactiveSkill(string id);
 
-        bool ActiveSkill(Skill skill);
+        bool ActiveSkill(string id);
     }
 }

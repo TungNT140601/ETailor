@@ -80,7 +80,10 @@ builder.Services.AddAuthentication(option =>
 });
 
 builder.Services.AddScoped<ISkillRepository, SkillRepository>();
+builder.Services.AddScoped<ISkillService, SkillService>();
+
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
 
