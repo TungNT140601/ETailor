@@ -2,8 +2,9 @@
 {
     public class CusLoginEmail
     {
-        public string? Email { get; set; }
+        public string? EmailOrUsername { get; set; }
         public string? Password { get; set; }
+        public string? ClientToken { get; set; }
     }
     public class StaffLogin
     {

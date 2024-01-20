@@ -9,8 +9,7 @@ namespace Etailor.API.Service.Interface
 {
     public interface ICustomerService
     {
-        Customer LoginWithEmail(string email, string password);
-        Customer LoginWithUsername(string username, string password);
+        Task<Customer> Login(string emailOrUsername, string password, string ip, string clientToken);
         Customer FindEmail(string email);
         Customer FindPhone(string phone);
         Customer FindUsername(string username);

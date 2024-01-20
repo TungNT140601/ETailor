@@ -15,27 +15,49 @@ namespace Etailor.API.Service.Service
     public class CustomerService : ICustomerService
     {
         private readonly ICustomerRepository customerRepository;
-        public CustomerService(ICustomerRepository customerRepository)
+        private readonly ICustomerClientRepository customerClientRepository;
+        public CustomerService(ICustomerRepository customerRepository, ICustomerClientRepository customerClientRepository)
         {
             this.customerRepository = customerRepository;
+            this.customerClientRepository = customerClientRepository;
         }
 
-        public Customer LoginWithEmail(string email, string password)
+        public async Task<Customer> Login(string emailOrUsername, string password, string ip, string clientToken)
         {
             try
             {
-                var customer = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.EmailVerified != null && x.EmailVerified == true) && Ultils.VerifyPassword(password, x.Password) == true).FirstOrDefault();
+                var customer = await Task.Run(() =>
+                {
+                    if (Ultils.IsValidEmail(emailOrUsername))
+                    {
+                        return customerRepository.GetAll(x => (x.Email != null && x.Email == emailOrUsername) && (x.EmailVerified != null && x.EmailVerified == true) && Ultils.VerifyPassword(password, x.Password) == true).FirstOrDefault();
+                    }
+                    else
+                    {
+                        return customerRepository.GetAll(x => (x.Username != null && x.Username.Trim() == emailOrUsername.Trim()) && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true).FirstOrDefault();
+                    }
+                });
+
                 if (customer == null)
                 {
                     throw new UserException("Mật khẩu của bạn không chính xác");
                 }
                 else
                 {
-                    if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
+                    var updateSecretKeyTask = Task.Run(() =>
                     {
-                        customer.SecrectKeyLogin = Ultils.GenerateRandomString(20);
-                        customerRepository.Update(customer.Id, customer);
-                    }
+                        //Thread1
+                        if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
+                        {
+                            customer.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
+                            customerRepository.Update(customer.Id, customer);
+                        }
+                    });
+
+                    var addCustomerClientTask = Task.Run(() => AddCustomerClient(customer.Id, clientToken, ip));
+
+                    await Task.WhenAll(updateSecretKeyTask, addCustomerClientTask);
+
                     return customer;
                 }
             }
@@ -53,36 +75,33 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Customer LoginWithUsername(string username, string password)
+        private void AddCustomerClient(string id, string token, string ip)
         {
-            try
+            var clients = customerClientRepository.GetAll(x => x.Id == id).ToList();
+            var client = clients.FirstOrDefault(c => c.IpAddress == ip);
+            if (client == null)
             {
-                var customer = customerRepository.GetAll(x => (x.Username != null && x.Username.Trim() == username.Trim()) && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true).FirstOrDefault();
-                if (customer == null)
+                customerClientRepository.Create(new CustomerClient()
                 {
-                    throw new UserException("Mật khẩu của bạn không chính xác");
+                    Id = Ultils.GenGuidString(),
+                    IpAddress = ip,
+                    ClientToken = token,
+                    CustomerId = id,
+                    LastLogin = DateTime.Now,
+                });
+            }
+            else
+            {
+                if (client.ClientToken != token)
+                {
+                    client.ClientToken = token;
+                    client.LastLogin = DateTime.Now;
                 }
                 else
                 {
-                    if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
-                    {
-                        customer.SecrectKeyLogin = Ultils.GenerateRandomString(20);
-                        customerRepository.Update(customer.Id, customer);
-                    }
-                    return customer;
+                    client.LastLogin = DateTime.Now;
                 }
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                customerClientRepository.Update(client.Id, client);
             }
         }
 
