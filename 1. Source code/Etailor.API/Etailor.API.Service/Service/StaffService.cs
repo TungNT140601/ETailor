@@ -5,6 +5,7 @@ using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -61,7 +62,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool AddNewStaff(Staff staff)
+        public bool AddNewStaff(Staff staff, string wwwroot, IFormFile avatar)
         {
             try
             {
@@ -69,7 +70,7 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Tài khoản đã được sử dụng");
                 }
-                if (CheckPhoneExist(staff.Phone))
+                if (staff.Phone != null && CheckPhoneExist(staff.Phone))
                 {
                     throw new UserException("Số điện thoại đã được sử dụng");
                 }
@@ -94,7 +95,7 @@ namespace Etailor.API.Service.Service
                 throw new SystemsException(ex.Message);
             }
         }
-        public bool UpdateInfo(Staff staff)
+        public bool UpdateInfo(Staff staff, string wwwroot, IFormFile avatar)
         {
             try
             {

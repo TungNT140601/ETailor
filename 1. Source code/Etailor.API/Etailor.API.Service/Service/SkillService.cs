@@ -22,112 +22,68 @@ namespace Etailor.API.Service.Service
 
         public Skill FindById(string id)
         {
-            try
-            {
-                return skillRepository.Get(id);
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
+            return skillRepository.Get(id);
         }
 
         public IEnumerable<Skill> GetAllSkill(string? search)
         {
-            try
+            if (string.IsNullOrEmpty(search))
             {
-                if (string.IsNullOrEmpty(search))
-                {
-                    return skillRepository.GetAll(x => x.IsActive == true);
-                }
-                else
-                {
-                    return skillRepository.GetAll(x => ((x.Name != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
-                }
+                return skillRepository.GetAll(x => x.IsActive == true);
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                return skillRepository.GetAll(x => ((x.Name != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
             }
         }
 
         public bool CreateSkill(Skill skill)
         {
-            try
+            if (skillRepository.GetAll(x => x.Name == skill.Name && x.IsActive == true).Any())
             {
-                skill.Id = Ultils.GenGuidString();
-
-                skill.IsActive = true;
-
-                skill.CreatedTime = DateTime.Now;
-
-                skill.LastestUpdatedTime = DateTime.Now;
- 
-
-                return skillRepository.Create(skill);
+                throw new UserException("Tên kỹ năng đã được sử dụng");
             }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
+            skill.Id = Ultils.GenGuidString();
+
+            skill.IsActive = true;
+
+            skill.CreatedTime = DateTime.Now;
+
+            skill.LastestUpdatedTime = DateTime.Now;
+
+
+            return skillRepository.Create(skill);
         }
 
         public bool UpdateSkill(Skill skill)
         {
-            try
+            var dbSkill = skillRepository.Get(skill.Id);
+            if (dbSkill != null)
             {
-                var dbSkill = skillRepository.Get(skill.Id);
-
-                dbSkill.Name = skill.Name;
+                if (skillRepository.GetAll(x => x.Id != dbSkill.Id && x.Name == skill.Name && x.IsActive == true).Any())
+                {
+                    throw new UserException("Tên kỹ năng đã được sử dụng");
+                }
+                else
+                {
+                    dbSkill.Name = skill.Name;
+                }
 
                 dbSkill.LastestUpdatedTime = DateTime.Now;
 
                 return skillRepository.Update(dbSkill.Id, dbSkill);
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                throw new UserException("Không tìm thấy kỹ năng");
             }
         }
 
         public bool DeactiveSkill(string id)
         {
-            try
+            var dbSkill = skillRepository.Get(id);
+            if (dbSkill != null)
             {
-                var dbSkill = skillRepository.Get(id);
-
                 dbSkill.IsActive = false;
 
                 dbSkill.InactiveTime = DateTime.Now;
@@ -136,26 +92,17 @@ namespace Etailor.API.Service.Service
 
                 return skillRepository.Update(dbSkill.Id, dbSkill);
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                throw new UserException("Không tìm thấy kỹ năng");
             }
         }
 
         public bool ActiveSkill(string id)
         {
-            try
+            var dbSkill = skillRepository.Get(id);
+            if (dbSkill != null)
             {
-                var dbSkill = skillRepository.Get(id);
-
                 dbSkill.IsActive = true;
 
                 dbSkill.InactiveTime = null;
@@ -164,17 +111,9 @@ namespace Etailor.API.Service.Service
 
                 return skillRepository.Update(dbSkill.Id, dbSkill);
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                throw new UserException("Không tìm thấy kỹ năng");
             }
         }
     }

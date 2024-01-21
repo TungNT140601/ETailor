@@ -21,8 +21,4 @@
     <ProjectReference Include="..\Etailor.API.Service\Etailor.API.Service.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\Upload\" />
-  </ItemGroup>
-
 </Project>

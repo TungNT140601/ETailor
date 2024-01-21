@@ -12,16 +12,38 @@ using System.Text.RegularExpressions;
 using Firebase.Storage;
 using Microsoft.AspNetCore.Http;
 using Google.Cloud.Storage.V1;
+using Google.Apis.Auth.OAuth2;
 
 namespace Etailor.API.Ultity
 {
     public static class Ultils
     {
+        private static StorageClient _storage = StorageClient.Create(GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY)));
+
+        #region GenerateString
         public static string GenGuidString()
         {
             Guid guid = Guid.NewGuid();
             return guid.ToString().Substring(0, 30);
         }
+        public static string GenerateRandomOTP()
+        {
+            Random random = new Random();
+            int randomNumber = random.Next(0, 1000000);
+
+            return randomNumber.ToString("D6");
+        }
+
+        public static string GenerateRandomString(int length)
+        {
+            const string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            Random random = new Random();
+            return new string(Enumerable.Repeat(characters, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+        #endregion
+
+        #region HashPassword
         public static String HmacSHA512(string key, String inputData)
         {
             var hash = new StringBuilder();
@@ -50,7 +72,9 @@ namespace Etailor.API.Ultity
         {
             return BCrypt.Net.BCrypt.Verify(enteredPassword + AppValue.SALT_STRING, hashedPassword);
         }
+        #endregion
 
+        #region SendMail
         public static void SendOTPMail(string email, string otp)
         {
             try
@@ -128,6 +152,7 @@ namespace Etailor.API.Ultity
                 throw new Exception(ex.Message);
             }
         }
+        #endregion
 
         public static void SendOTPPhone(string phone, string otp)
         {
@@ -141,6 +166,23 @@ namespace Etailor.API.Ultity
             }
         }
 
+        #region Validate
+        public static bool IsValidEmail(string email)
+        {
+            string pattern = @"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$";
+
+            return Regex.IsMatch(email, pattern);
+        }
+
+        public static bool IsValidVietnamesePhoneNumber(string phoneNumber)
+        {
+            string pattern = @"^0[3|5|7|8|9][0-9]{8}$";
+
+            return Regex.IsMatch(phoneNumber, pattern);
+        }
+        #endregion
+
+        #region JWT
         public static string GetToken(string id, string name, string role, string secrectKey, IConfiguration configuration)
         {
             var jwtSettings = configuration.GetSection("JwtSettings");
@@ -163,76 +205,15 @@ namespace Etailor.API.Ultity
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+        #endregion
 
-        public static bool IsValidEmail(string email)
-        {
-            string pattern = @"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$";
-
-            return Regex.IsMatch(email, pattern);
-        }
-
-        public static bool IsValidVietnamesePhoneNumber(string phoneNumber)
-        {
-            string pattern = @"^0[3|5|7|8|9][0-9]{8}$";
-
-            return Regex.IsMatch(phoneNumber, pattern);
-        }
-
-        public static string GenerateRandom6Digits()
-        {
-            Random random = new Random();
-            int randomNumber = random.Next(0, 1000000);
-
-            return randomNumber.ToString("D6");
-        }
-
-        public static string GenerateRandomString(int length)
-        {
-            const string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            Random random = new Random();
-            return new string(Enumerable.Repeat(characters, length)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
-        }
-
-        public static async Task<string> UploadImage(StorageClient _storage, string wwwrootPath, string generalPath, IFormFile file)
-        {
-            // Process the file
-            var fileName = Path.GetFileName(file.FileName);
-            var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            // Upload to Firebase Storage
-            var bucketName = AppValue.BUCKET_NAME;
-            var objectName = $"Uploads/{generalPath}/{fileName}";
-
-            Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
-
-            using (var fileStream = System.IO.File.OpenRead(filePath))
-            {
-                uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
-            }
-
-            // Clean up: delete the local file
-            System.IO.File.Delete(filePath);
-
-            // Get the view link
-            FirebaseStorage storage = new FirebaseStorage(AppValue.BUCKET_NAME);
-            var starsRef = storage.Child(objectName);
-            string link = await starsRef.GetDownloadUrlAsync();
-            return link;
-        }
-
-        public static async Task<List<string>> UploadImages(StorageClient _storage, string wwwrootPath, string generalPath, List<IFormFile> files)
+        public static async Task<List<string>> UploadImages(string wwwrootPath, string generalPath, List<IFormFile> files) // Upload list images
         {
             List<Task<string>> uploadTasks = new List<Task<string>>();
 
             foreach (var file in files)
             {
-                uploadTasks.Add(UploadImage(_storage, wwwrootPath, generalPath, file));
+                uploadTasks.Add(UploadImage(wwwrootPath, generalPath, file));
             }
 
             // Wait for all tasks to complete
@@ -241,5 +222,62 @@ namespace Etailor.API.Ultity
             return links.ToList();
         }
 
+        public static async Task<string> UploadImage(string wwwrootPath, string generalPath, IFormFile file) // Upload 1 image
+        {
+            //Check if file exist
+            if (!ObjectExistsInStorage($"Uploads/{generalPath}/{file.FileName}"))
+            {
+                var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
+
+                var filePath = Path.Combine(wwwrootPath, "Upload", file.FileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Upload to Firebase Storage
+                var bucketName = AppValue.BUCKET_NAME;
+                var objectName = $"Uploads/{generalPath}/{fileName}";
+
+                Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+                using (var fileStream = System.IO.File.OpenRead(filePath))
+                {
+                    uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
+                }
+
+                // Clean up: delete the local file
+                System.IO.File.Delete(filePath);
+
+                return objectName;
+            }
+            else
+            {
+                return $"Uploads/{generalPath}/{file.FileName}";
+            }
+        }
+
+        public static async Task<string> GetUrlImage(string objectName) // Get image url
+        {
+            FirebaseStorage storage = new FirebaseStorage(AppValue.BUCKET_NAME);
+
+            var starsRef = storage.Child(objectName);
+
+            return await starsRef.GetDownloadUrlAsync();
+        }
+
+        private static bool ObjectExistsInStorage(string objectName) // Check if image exist in storage
+        {
+            try
+            {
+                _storage.GetObject(AppValue.BUCKET_NAME, objectName);
+                return true;
+            }
+            catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
+            {
+                return false;
+            }
+        }
     }
 }
