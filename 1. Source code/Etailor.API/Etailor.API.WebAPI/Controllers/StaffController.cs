@@ -20,20 +20,12 @@ namespace Etailor.API.WebAPI.Controllers
     public class StaffController : ControllerBase
     {
         private readonly IStaffService staffService;
-        private readonly IConfiguration configuration;
         private readonly IMapper mapper;
-        private readonly StorageClient _storage;
         private readonly string _wwwrootPath;
-        public StaffController(IStaffService staffService, IConfiguration configuration, IMapper mapper, IWebHostEnvironment webHost)
+        public StaffController(IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost)
         {
             this.staffService = staffService;
-            this.configuration = configuration;
             this.mapper = mapper;
-            // Load Firebase credentials
-            var credential = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
-
-            // Initialize StorageClient with Firebase credentials
-            _storage = StorageClient.Create(credential);
 
             _wwwrootPath = webHost.WebRootPath;
         }
@@ -63,8 +55,7 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var staffCreate = mapper.Map<Staff>(staff);
-                        staffCreate.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "StaffAvatar", staff.AvatarImage);
-                        return staffService.AddNewStaff(staffCreate) ? Ok() : BadRequest();
+                        return staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage) ? Ok() : BadRequest();
                     }
                 }
             }
@@ -109,7 +100,7 @@ namespace Etailor.API.WebAPI.Controllers
                         if (id == null)
                         {
                             staff.Id = staffId;
-                            return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                            return staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage) ? Ok() : BadRequest();
                         }
                         else
                         {
@@ -117,15 +108,15 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 throw new UserException("Không tìm thấy nhân viên");
                             }
-                            return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                            return staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage) ? Ok() : BadRequest();
                         }
                     }
                     else
                     {
                         staff.Id = staffId;
                         var staffUpdate = mapper.Map<Staff>(staff);
-                        staffUpdate.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "StaffAvatar", staff.AvatarImage);
-                        return staffService.UpdateInfo(staffUpdate) ? Ok() : BadRequest();
+                        staffUpdate.Avatar = await Ultils.UploadImage(_wwwrootPath, "StaffAvatar", staff.AvatarImage);
+                        return staffService.UpdateInfo(staffUpdate, _wwwrootPath, staff.AvatarImage) ? Ok() : BadRequest();
                     }
                 }
             }

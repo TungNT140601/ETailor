@@ -81,7 +81,7 @@ namespace Etailor.API.WebAPI.Controllers
                 if (Ultils.IsValidEmail(email)) //Check email valid
                 {
                     var customer = customerService.FindEmail(email);
-                    var otp = Ultils.GenerateRandom6Digits();
+                    var otp = Ultils.GenerateRandomOTP();
                     if (customer == null)
                     {
                         var check = customerService.CreateCustomer(new Customer()
@@ -321,7 +321,7 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var customer = mapper.Map<Customer>(cus);
-                customer.Avatar = await Ultils.UploadImage(_storage, _wwwrootPath, "CustomerAvatar", cus.AvatarImage);
+                customer.Avatar = await Ultils.UploadImage(_wwwrootPath, "CustomerAvatar", cus.AvatarImage);
                 return customerService.CusRegis(customer) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
             }
             catch (UserException ex)

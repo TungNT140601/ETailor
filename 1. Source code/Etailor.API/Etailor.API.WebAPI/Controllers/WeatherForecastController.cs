@@ -25,7 +25,6 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private string FilePath = "";
         private IConfiguration _configuration;
-        private readonly StorageClient _storage;
         private readonly string _wwwrootPath;
 
         public WeatherForecastController(IConfiguration configuration, IWebHostEnvironment webHost)
@@ -33,10 +32,6 @@ namespace Etailor.API.WebAPI.Controllers
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
             // Load Firebase credentials
-            var credential = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
-
-            // Initialize StorageClient with Firebase credentials
-            _storage = StorageClient.Create(credential);
 
             _wwwrootPath = webHost.WebRootPath;
         }
@@ -411,9 +406,13 @@ namespace Etailor.API.WebAPI.Controllers
                 if (file == null || file.Length == 0)
                     return BadRequest("Invalid file");
 
-                var viewLink = await Ultils.UploadImage(_storage, _wwwrootPath, "TestImage", file);
-
-                return Ok(viewLink);
+                var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestImage", file);
+                var url = await Ultils.GetUrlImage(viewLink);
+                return Ok(new
+                {
+                    Name = viewLink,
+                    Url = url
+                });
             }
             catch (Exception ex)
             {
@@ -427,7 +426,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var viewLink = await Ultils.UploadImages(_storage, _wwwrootPath, "TestImage", files);
+                var viewLink = await Ultils.UploadImages(_wwwrootPath, "TestImage", files);
 
                 return Ok(viewLink);
             }
