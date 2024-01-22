@@ -3,6 +3,7 @@ using Etailor.API.Repository.Interface;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -215,70 +216,91 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool UpdatePersonalProfileCustomer(Customer customer)
+        public async Task<bool> UpdatePersonalProfileCustomer(Customer customer, IFormFile? avatar, string wwwroot)
         {
-            try
+            var dbCustomer = customerRepository.Get(customer.Id);
+            if (dbCustomer != null)
             {
-                var dbCustomer = customerRepository.Get(customer.Id);
+                var checkFullname = Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(customer.Fullname))
+                    {
+                        throw new UserException("Vui lòng nhập tên");
+                    }
+                    else
+                    {
+                        dbCustomer.Fullname = customer.Fullname;
+                    }
+                });
 
-                dbCustomer.Avatar = customer.Avatar;
-                dbCustomer.Fullname = customer.Fullname;
-                dbCustomer.Address = customer.Address;
-                dbCustomer.Username = customer.Username;
+                var checkAddress = Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(customer.Address))
+                    {
+                        throw new UserException("Vui lòng nhập địa chỉ");
+                    }
+                    else
+                    {
+                        dbCustomer.Address = customer.Address;
+                    }
+                });
 
-                dbCustomer.LastestUpdatedTime = DateTime.Now;
+                var checkUsername = Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(customer.Username))
+                    {
+                        throw new UserException("Vui lòng nhập tên đăng nhập");
+                    }
+                    else
+                    {
+                        if (customerRepository.GetAll(x => x.Id != dbCustomer.Id && (x.Username != null && x.Username.Trim().ToLower() == customer.Username.Trim().ToLower()) && x.IsActive == true).Any())
+                        {
+                            throw new UserException("Tên đăng nhập đã được sử dụng");
+                        }
+                        dbCustomer.Username = customer.Username;
+                    }
+                });
+
+                var checkEmail = Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(customer.Email))
+                    {
+                        throw new UserException("Vui lòng nhập địa chỉ email");
+                    }
+                    else
+                    {
+                        dbCustomer.Email = customer.Email;
+                    }
+                });
+
+                var addAvatar = Task.Run(async () =>
+                {
+                    if (avatar != null)
+                    {
+                        dbCustomer.Avatar = await Ultils.UploadImage(wwwroot, "CustomerAvatar", avatar, dbCustomer.Avatar);
+                    }
+                });
+
+                var setUpdateTime = Task.Run(() =>
+                {
+                    dbCustomer.LastestUpdatedTime = DateTime.Now;
+                });
+
+                await Task.WhenAll(checkAddress, checkEmail, checkFullname, checkUsername, setUpdateTime, addAvatar);
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-        }
-
-        public bool UpdateCustomerInfo(Customer customer)
-        {
-            try
-            {
-                var dbCustomer = customerRepository.Get(customer.Id);
-
-                dbCustomer.Avatar = customer.Avatar;
-                dbCustomer.Fullname = customer.Fullname;
-                dbCustomer.Address = customer.Address;
-                dbCustomer.Username = customer.Username;
-
-                dbCustomer.LastestUpdatedTime = DateTime.Now;
-
-                return customerRepository.Update(dbCustomer.Id, dbCustomer);
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                throw new UserException("Không tìm thấy người dùng");
             }
         }
 
         public bool UpdateCustomerEmail(Customer customer)
         {
-            try
+            var dbCustomer = customerRepository.Get(customer.Id);
+            if (dbCustomer != null)
             {
-                var dbCustomer = customerRepository.Get(customer.Id);
-
                 dbCustomer.Email = customer.Email;
                 dbCustomer.EmailVerified = customer.EmailVerified;
 
@@ -290,26 +312,17 @@ namespace Etailor.API.Service.Service
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                throw new UserException("Không tìm thấy người dùng");
             }
         }
 
         public bool UpdateCustomerPhone(Customer customer)
         {
-            try
+            var dbCustomer = customerRepository.Get(customer.Id);
+            if (dbCustomer != null)
             {
-                var dbCustomer = customerRepository.Get(customer.Id);
-
                 dbCustomer.Phone = customer.Phone;
                 dbCustomer.PhoneVerified = customer.PhoneVerified;
 
@@ -321,164 +334,95 @@ namespace Etailor.API.Service.Service
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                throw new UserException("Không tìm thấy người dùng");
             }
         }
 
         public bool CheckOTP(string emailOrPhone, string otp)
         {
-            try
+            var customer = new Customer();
+            if (Ultils.IsValidEmail(emailOrPhone))
             {
-                var customer = new Customer();
+                customer = customerRepository.GetAll(x => (x.Email != null && x.Email == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.UtcNow && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+            }
+            else
+            {
+                customer = customerRepository.GetAll(x => (x.Phone != null && x.Phone == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.UtcNow && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+            }
+            if (customer == null)
+            {
+                throw new UserException("Mã xác thực không đúng hoặc hết hạn!!!");
+            }
+            else
+            {
+                customer.Otpused = true;
                 if (Ultils.IsValidEmail(emailOrPhone))
                 {
-                    customer = customerRepository.GetAll(x => (x.Email != null && x.Email == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.UtcNow && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+                    customer.EmailVerified = true;
                 }
                 else
                 {
-                    customer = customerRepository.GetAll(x => (x.Phone != null && x.Phone == emailOrPhone) && x.Otpnumber == otp && x.OtptimeLimit > DateTime.UtcNow && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+                    customer.PhoneVerified = true;
                 }
-                if (customer == null)
-                {
-                    throw new UserException("Mã xác thực không đúng hoặc hết hạn!!!");
-                }
-                else
-                {
-                    customer.Otpused = true;
-                    if (Ultils.IsValidEmail(emailOrPhone))
-                    {
-                        customer.EmailVerified = true;
-                    }
-                    else
-                    {
-                        customer.PhoneVerified = true;
-                    }
-                    return customerRepository.Update(customer.Id, customer);
-                }
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                return customerRepository.Update(customer.Id, customer);
             }
         }
 
         public void Logout(string id)
         {
-            try
+            var customer = customerRepository.Get(id);
+            if (customer != null)
             {
-                var customer = customerRepository.Get(id);
-                if (customer != null)
-                {
-                    customer.SecrectKeyLogin = null;
-                    customerRepository.Update(customer.Id, customer);
-                }
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                customer.SecrectKeyLogin = null;
+                customerRepository.Update(customer.Id, customer);
             }
         }
 
         public bool CheckSecerctKey(string id, string key)
         {
-            try
+            var customer = customerRepository.Get(id);
+            if (customer != null)
             {
-                var customer = customerRepository.Get(id);
-                if (customer != null)
-                {
-                    return customer.SecrectKeyLogin == key;
-                }
-                else
-                {
-                    return false;
-                }
+                return customer.SecrectKeyLogin == key;
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                return false;
             }
         }
 
         public bool ChangePassword(string id, string oldPass, string newPass)
         {
-            try
+            var customer = customerRepository.Get(id);
+            if (customer != null)
             {
-                var customer = customerRepository.Get(id);
-                if (customer != null)
+                if (!Ultils.VerifyPassword(oldPass, customer.Password))
                 {
-                    if (!Ultils.VerifyPassword(oldPass, customer.Password))
-                    {
-                        throw new UserException("Mật khẩu không chính xác!!!");
-                    }
-                    else
-                    {
-                        customer.Password = Ultils.HashPassword(newPass);
-
-                        return customerRepository.Update(id, customer);
-                    }
+                    throw new UserException("Mật khẩu không chính xác!!!");
                 }
                 else
                 {
-                    return false;
+                    customer.Password = Ultils.HashPassword(newPass);
+
+                    return customerRepository.Update(id, customer);
                 }
             }
-            catch (UserException ex)
+            else
             {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
+                return false;
             }
         }
 
         public bool ResetPassword(string email)
         {
-            try
+            if (!Ultils.IsValidEmail(email))
             {
-                if (!Ultils.IsValidEmail(email))
-                {
-                    throw new UserException("Email sai định dạng!!!");
-                }
-
+                throw new UserException("Email sai định dạng!!!");
+            }
+            else
+            {
                 var customer = FindEmail(email);
 
                 if (customer != null)
@@ -502,105 +446,114 @@ namespace Etailor.API.Service.Service
                     throw new UserException("Email không tồn tại trong hệ thống");
                 }
             }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
         }
 
-        public bool CusRegis(Customer customer)
+        public async Task<bool> CusRegis(Customer customer, IFormFile? avatar, string wwwroot)
         {
-            try
+            if (customer.Email != null)
             {
-                if (customer.Email != null)
+                if (!Ultils.IsValidEmail(customer.Email))
                 {
-                    if (!Ultils.IsValidEmail(customer.Email))
-                    {
-                        throw new UserException("Email sai định dạng!!!");
-                    }
-                    else
-                    {
-                        var existCus = FindEmail(customer.Email);
-                        if (existCus != null)
-                        {
-                            if (existCus.EmailVerified == false)
-                            {
-                                throw new UserException("Email chưa được xác thực!!!");
-                            }
-                            else
-                            {
-                                if (existCus.CreatedTime == null)
-                                {
-                                    existCus.Password = Ultils.HashPassword(customer.Password);
-                                    existCus.Avatar = customer.Avatar;
-                                    existCus.Address = customer.Address;
-                                    if (customerRepository.GetAll(c => c.Id != existCus.Id && c.Username == existCus.Username).Any())
-                                    {
-                                        throw new UserException("Tên tài khoản đã được sử dụng!!!");
-                                    }
-                                    else
-                                    {
-                                        existCus.Username = customer.Username;
-                                    }
-                                    existCus.IsActive = true;
-                                    existCus.CreatedTime = DateTime.Now;
-                                    existCus.LastestUpdatedTime = DateTime.Now;
-
-                                    return customerRepository.Update(existCus.Id, existCus);
-                                }
-                                else
-                                {
-                                    throw new UserException("Email đã được sử dụng!!!");
-                                }
-                            }
-                        }
-                        else
-                        {
-                            throw new UserException("Email không tồn tại trong hệ thống");
-                        }
-                    }
+                    throw new UserException("Email sai định dạng!!!");
                 }
                 else
                 {
-                    if (FindUsername(customer.Username) != null)
+                    var existCus = FindEmail(customer.Email);
+                    if (existCus != null)
                     {
-                        throw new UserException("Tên tài khoản đã được sử dụng!!!");
+                        if (existCus.EmailVerified == false)
+                        {
+                            throw new UserException("Email chưa được xác thực!!!");
+                        }
+                        else
+                        {
+                            if (existCus.CreatedTime == null)
+                            {
+                                var hashPass = Task.Run(() =>
+                                {
+                                    if (string.IsNullOrEmpty(customer.Password))
+                                    {
+                                        throw new UserException("Vui lòng nhập mật khẩu");
+                                    }
+                                    existCus.Password = Ultils.HashPassword(customer.Password);
+                                });
+                                var uploadAvatar = Task.Run(async () =>
+                                {
+                                    if (avatar != null)
+                                    {
+                                        existCus.Avatar = await Ultils.UploadImage(wwwroot, "CustomerAvatar", avatar, null);
+                                    }
+                                });
+                                var setAddress = Task.Run(() =>
+                                {
+                                    existCus.Address = customer.Address;
+                                });
+                                var checkUsername = Task.Run(() =>
+                                {
+                                    if (customer.Username != null)
+                                    {
+                                        if (customerRepository.GetAll(c => c.Id != existCus.Id && c.Username != null && c.Username == customer.Username).Any())
+                                        {
+                                            throw new UserException("Tên tài khoản đã được sử dụng!!!");
+                                        }
+                                        else
+                                        {
+                                            existCus.Username = customer.Username;
+                                        }
+                                    }
+                                });
+                                var setValue = Task.Run(() =>
+                                {
+                                    existCus.IsActive = true;
+                                    existCus.CreatedTime = DateTime.Now;
+                                    existCus.LastestUpdatedTime = DateTime.Now;
+                                });
+
+                                await Task.WhenAll(hashPass, uploadAvatar, setAddress, checkUsername, setValue);
+
+                                return customerRepository.Update(existCus.Id, existCus);
+                            }
+                            else
+                            {
+                                throw new UserException("Email đã được sử dụng!!!");
+                            }
+                        }
                     }
                     else
                     {
-                        customer.Id = Ultils.GenGuidString();
+                        throw new UserException("Email không tồn tại trong hệ thống");
+                    }
+                }
+            }
+            else
+            {
+                if (FindUsername(customer.Username) != null)
+                {
+                    throw new UserException("Tên tài khoản đã được sử dụng!!!");
+                }
+                else
+                {
+                    var hashPassword = Task.Run(() =>
+                    {
                         customer.Password = Ultils.HashPassword(customer.Password);
-                        customer.CreatedTime = DateTime.Now;
+                    });
+                    var setId = Task.Run(() =>
+                    {
+                        customer.Id = Ultils.GenGuidString();
+                    });
+                    var setValue = Task.Run(() =>
+                    {
                         customer.EmailVerified = false;
                         customer.Email = null;
                         customer.Phone = null;
                         customer.PhoneVerified = false;
                         customer.IsActive = true;
+                        customer.CreatedTime = DateTime.Now;
                         customer.LastestUpdatedTime = DateTime.Now;
+                    });
 
-                        return customerRepository.Create(customer);
-                    }
+                    return customerRepository.Create(customer);
                 }
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message);
             }
         }
 

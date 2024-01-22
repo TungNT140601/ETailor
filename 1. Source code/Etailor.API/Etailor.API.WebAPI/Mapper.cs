@@ -17,6 +17,10 @@ namespace Etailor.API.WebAPI
             CreateMap<Skill, SkillUpdateVM>().ReverseMap();
 
             CreateMap<Customer, CusRegis>().ReverseMap();
+            CreateMap<Customer, CustomerVM>().ReverseMap();
+
+            CreateMap<MaterialType, MaterialTypeVM>().ReverseMap();
+            CreateMap<MaterialType, MaterialTypeAllVM>().ReverseMap();
         }
     }
 }

@@ -16,5 +16,7 @@ namespace Etailor.API.Ultity.CommonValue
     public static class AppValue
     {
         public static string SALT_STRING = "";
+        public static string BUCKET_NAME = "etailor-21a50.appspot.com";
+        public static string FIREBASE_KEY = "etailor-21a50-firebase-adminsdk-badmt-5e743a2d8e.json";
     }
 }

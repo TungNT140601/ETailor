@@ -4,12 +4,19 @@ namespace Etailor.API.WebAPI.ViewModels
 {
     public class CustomerVM
     {
-        public string? Avatar { get; set; }
-
-        [Required]
+        public IFormFile? AvatarImage { get; set; }
         public string? Fullname { get; set; }
-
-        [Required]
         public string? Address { get; set; }
+        public string? Username { get; set; }
+        public string? Email { get; set; }
+    }
+    public class CusRegis
+    {
+        public IFormFile? AvatarImage { get; set; }
+        public string? Fullname { get; set; }
+        public string? Address { get; set; }
+        public string? Username { get; set; }
+        public string? Email { get; set; }
+        public string? Password { get; set; }
     }
 }

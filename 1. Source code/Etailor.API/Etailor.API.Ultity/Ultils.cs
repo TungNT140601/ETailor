@@ -9,16 +9,41 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using Firebase.Storage;
+using Microsoft.AspNetCore.Http;
+using Google.Cloud.Storage.V1;
+using Google.Apis.Auth.OAuth2;
 
 namespace Etailor.API.Ultity
 {
     public static class Ultils
     {
+        private static StorageClient _storage = StorageClient.Create(GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY)));
+
+        #region GenerateString
         public static string GenGuidString()
         {
             Guid guid = Guid.NewGuid();
             return guid.ToString().Substring(0, 30);
         }
+        public static string GenerateRandomOTP()
+        {
+            Random random = new Random();
+            int randomNumber = random.Next(0, 1000000);
+
+            return randomNumber.ToString("D6");
+        }
+
+        public static string GenerateRandomString(int length)
+        {
+            const string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            Random random = new Random();
+            return new string(Enumerable.Repeat(characters, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+        #endregion
+
+        #region HashPassword
         public static String HmacSHA512(string key, String inputData)
         {
             var hash = new StringBuilder();
@@ -47,7 +72,9 @@ namespace Etailor.API.Ultity
         {
             return BCrypt.Net.BCrypt.Verify(enteredPassword + AppValue.SALT_STRING, hashedPassword);
         }
+        #endregion
 
+        #region SendMail
         public static void SendOTPMail(string email, string otp)
         {
             try
@@ -63,7 +90,7 @@ namespace Etailor.API.Ultity
 
                 MailMessage message = new MailMessage();
                 message.From = new MailAddress(fromMail);
-                message.Subject = "Mã xác thực cho Tuệ Tailor";
+                message.Subject = "Mã xác thực cho [Tuệ Tailor]";
                 message.To.Add(new MailAddress(email));
                 message.Body = "<!DOCTYPE html>\r\n<html lang=\"en\">\r\n<head>\r\n  <meta charset=\"UTF-8\">\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n  <title>Your Email Title</title>\r\n         <style>\r\n           body {\r\n      background-color: #f4f4f4;\r\n      margin: 0;\r\n      padding: 0;\r\n    }\r\n\r\n    .container {\r\n      max-width: 600px;\r\n      height: 460px;\r\n      margin: 20px auto;\r\n      background-color: #fff;\r\n      border-radius: 8px;\r\n      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);\r\n      overflow: hidden;\r\n    }\r\n\r\n    header {\r\n      color: #000;\r\n      text-align: center;\r\n      position: relative;\r\n    }\r\n\r\n    h1 {\r\n      margin: 0;\r\n      font-size: 35px;\r\n      font-family: 'Agbalumo', system-ui;\r\n    }\r\n\r\n    .content {\r\n      padding: 20px 40px;\r\n      padding-bottom: 0;\r\n      font-size: 16px;\r\n      line-height: 1.6;\r\n      z-index: 1000;\r\n    }\r\n\r\n    footer {\r\n      text-align: center;\r\n      padding: 10px 0;\r\n      background-color: #3498db;\r\n      color: #fff;\r\n    }\r\n.logo-image{\r\n  width: 130px;\r\n  height: 130px;\r\n  border-radius: 50%;\r\n\r\n}\r\n\r\n.code{\r\n  background-color: rgba(217, 217, 217, 0.2);\r\n  padding: 20px 60px;\r\n  border: 1px solid #000;\r\n  border-radius: 10px;\r\n  text-align: center;\r\n  letter-spacing: 20px;\r\n  font-size: 30px;\r\n  font-height: bold;\r\n}\r\nh3 {\r\n  text-align: center;\r\n  margin-bottom: 30px;\r\n}\r\n.verify-code{\r\n  text-align: center;\r\n}\r\n@media only screen and (max-width: 600px){\r\n  .code{\r\npadding: 20px 40px;\r\npadding-right: 20px;\r\nletter-spacing: 20px;\r\n\r\n}\r\n}\r\n  </style>\r\n</head>\r\n<body>\r\n  <div class=\"container\">\r\n        \r\n    <div style=\"text-align: center\">\r\n      <img src=\"https://drive.google.com/uc?export=view&id=1wT0wV5tdvkVM9L9gkKKddlgbrQggITYn\"\r\n             class=\"logo-image\" />\r\n    </div>\r\n  \r\n      \r\n   \r\n    <hr style=\"width: 500px; margin: 0 auto\">\r\n    <div class=\"content\">\r\n      <p>Xin chào <b>";
                 message.Body += email.Replace("@gmail.com", "");
@@ -102,13 +129,13 @@ namespace Etailor.API.Ultity
 
                 MailMessage message = new MailMessage();
                 message.From = new MailAddress(fromMail);
-                message.Subject = "Mã xác thực cho Tuệ Tailor";
+                message.Subject = "Xác nhận quên mật khẩu [Tuệ Tailor]";
                 message.To.Add(new MailAddress(email));
-                message.Body = "<!DOCTYPE html>\r\n<html lang=\"en\">\r\n<head>\r\n  <meta charset=\"UTF-8\">\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n  <title>Your Email Title</title>\r\n         <style>\r\n           body {\r\n      background-color: #f4f4f4;\r\n      margin: 0;\r\n      padding: 0;\r\n    }\r\n\r\n    .container {\r\n      max-width: 600px;\r\n      height: 460px;\r\n      margin: 20px auto;\r\n      background-color: #fff;\r\n      border-radius: 8px;\r\n      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);\r\n      overflow: hidden;\r\n    }\r\n\r\n    header {\r\n      color: #000;\r\n      text-align: center;\r\n      position: relative;\r\n    }\r\n\r\n    h1 {\r\n      margin: 0;\r\n      font-size: 35px;\r\n      font-family: 'Agbalumo', system-ui;\r\n    }\r\n\r\n    .content {\r\n      padding: 20px 40px;\r\n      padding-bottom: 0;\r\n      font-size: 16px;\r\n      line-height: 1.6;\r\n      z-index: 1000;\r\n    }\r\n\r\n    footer {\r\n      text-align: center;\r\n      padding: 10px 0;\r\n      background-color: #3498db;\r\n      color: #fff;\r\n    }\r\n.logo-image{\r\n  width: 130px;\r\n  height: 130px;\r\n  border-radius: 50%;\r\n\r\n}\r\n\r\n.code{\r\n  background-color: rgba(217, 217, 217, 0.2);\r\n  padding: 20px 60px;\r\n  border: 1px solid #000;\r\n  border-radius: 10px;\r\n  text-align: center;\r\n  letter-spacing: 20px;\r\n  font-size: 30px;\r\n  font-height: bold;\r\n}\r\nh3 {\r\n  text-align: center;\r\n  margin-bottom: 30px;\r\n}\r\n.verify-code{\r\n  text-align: center;\r\n}\r\n@media only screen and (max-width: 600px){\r\n  .code{\r\npadding: 20px 40px;\r\npadding-right: 20px;\r\nletter-spacing: 20px;\r\n\r\n}\r\n}\r\n  </style>\r\n</head>\r\n<body>\r\n  <div class=\"container\">\r\n        \r\n    <div style=\"text-align: center\">\r\n      <img src=\"https://drive.google.com/uc?export=view&id=1wT0wV5tdvkVM9L9gkKKddlgbrQggITYn\"\r\n             class=\"logo-image\" />\r\n    </div>\r\n  \r\n      \r\n   \r\n    <hr style=\"width: 500px; margin: 0 auto\">\r\n    <div class=\"content\">\r\n      <p>Xin chào <b>";
+                message.Body = "<!DOCTYPE html>\r\n<html lang=\"en\">\r\n<head>\r\n  <meta charset=\"UTF-8\">\r\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\r\n  <title>Your Email Title</title>\r\n         <style>\r\n           body {\r\n      background-color: #f4f4f4;\r\n      margin: 0;\r\n      padding: 0;\r\n    }\r\n\r\n    .container {\r\n      max-width: 600px;\r\n      height: 350px;\r\n      margin: 20px auto;\r\n      background-color: #fff;\r\n      border-radius: 8px;\r\n      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);\r\n      overflow: hidden;\r\n    }\r\n\r\n    header {\r\n      color: #000;\r\n      text-align: center;\r\n      position: relative;\r\n    }\r\n\r\n    h1 {\r\n      margin: 0;\r\n      font-size: 35px;\r\n      font-family: 'Agbalumo', system-ui;\r\n    }\r\n\r\n    .content {\r\n      padding: 20px 40px;\r\n      padding-bottom: 0;\r\n      font-size: 16px;\r\n      line-height: 1.6;\r\n      z-index: 1000;\r\n    }\r\n\r\n    footer {\r\n      text-align: center;\r\n      padding: 10px 0;\r\n      background-color: #3498db;\r\n      color: #fff;\r\n    }\r\n.logo-image{\r\n  width: 130px;\r\n  height: 130px;\r\n  border-radius: 50%;\r\n\r\n}\r\n\r\n.code{\r\n  background-color: rgba(217, 217, 217, 0.2);\r\n  padding: 20px 60px;\r\n  border: 1px solid #000;\r\n  border-radius: 10px;\r\n  text-align: center;\r\n  letter-spacing: 20px;\r\n  font-size: 30px;\r\n  font-height: bold;\r\n}\r\nh3 {\r\n  text-align: center;\r\n  margin-bottom: 30px;\r\n}\r\n.verify-code{\r\n  text-align: center;\r\n}\r\n@media only screen and (max-width: 600px){\r\n  .code{\r\npadding: 20px 40px;\r\npadding-right: 20px;\r\nletter-spacing: 20px;\r\n\r\n}\r\n}\r\n  </style>\r\n</head>\r\n<body>\r\n  <div class=\"container\">\r\n        \r\n    <div style=\"text-align: center\">\r\n      <img src=\"https://drive.google.com/uc?export=view&id=1wT0wV5tdvkVM9L9gkKKddlgbrQggITYn\"\r\n             class=\"logo-image\" />\r\n    </div>\r\n  \r\n      \r\n   \r\n    <hr style=\"width: 500px; margin: 0 auto\">\r\n    <div class=\"content\">\r\n      <p>Xin chào <b>";
                 message.Body += email.Replace("@gmail.com", "");
-                message.Body += "</b>,</p>\r\n      <p>Để đảm bảo an toàn cho tài khoản của <b>Quý Khách</b>, vui lòng không chia sẻ mã xác thực này với bất kì ai.</p>\r\n      \r\n    </div>\r\n    \r\n       <h3>Mã xác thực là:</h3>\r\n    <div class=\"verify-code\">\r\n    <span class=\"code\"><b>";
+                message.Body += "</b>,</p>\r\n      <p>Mật khẩu mới để truy cập vào website của quý khách là <b>";
                 message.Body += newPass;
-                message.Body += "</b></span>\r\n    </div>\r\n  </div>\r\n</body>\r\n</html>";
+                message.Body += "</b>.</p>\r\n      <p>Để đảm bảo an toàn cho tài khoản của quý khách, vui lòng không chia sẻ <b>Mật Khẩu</b> này với bất kì ai.</p>\r\n    </div>\r\n  </div>\r\n</body>\r\n</html>";
                 message.IsBodyHtml = true;
 
                 var smtpClient = new SmtpClient("smtp.gmail.com")
@@ -125,6 +152,7 @@ namespace Etailor.API.Ultity
                 throw new Exception(ex.Message);
             }
         }
+        #endregion
 
         public static void SendOTPPhone(string phone, string otp)
         {
@@ -138,6 +166,23 @@ namespace Etailor.API.Ultity
             }
         }
 
+        #region Validate
+        public static bool IsValidEmail(string email)
+        {
+            string pattern = @"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$";
+
+            return Regex.IsMatch(email, pattern);
+        }
+
+        public static bool IsValidVietnamesePhoneNumber(string phoneNumber)
+        {
+            string pattern = @"^0[3|5|7|8|9][0-9]{8}$";
+
+            return Regex.IsMatch(phoneNumber, pattern);
+        }
+        #endregion
+
+        #region JWT
         public static string GetToken(string id, string name, string role, string secrectKey, IConfiguration configuration)
         {
             var jwtSettings = configuration.GetSection("JwtSettings");
@@ -160,35 +205,108 @@ namespace Etailor.API.Ultity
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+        #endregion
 
-        public static bool IsValidEmail(string email)
+        public static async Task<List<string>> UploadImages(string wwwrootPath, string generalPath, List<IFormFile> files) // Upload list images
         {
-            string pattern = @"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$";
+            List<Task<string>> uploadTasks = new List<Task<string>>();
 
-            return Regex.IsMatch(email, pattern);
+            foreach (var file in files)
+            {
+                uploadTasks.Add(UploadImage(wwwrootPath, generalPath, file, null));
+            }
+
+            // Wait for all tasks to complete
+            var links = await Task.WhenAll(uploadTasks);
+
+            return links.ToList();
         }
 
-        public static bool IsValidVietnamesePhoneNumber(string phoneNumber)
+        public static async Task<string> UploadImage(string wwwrootPath, string generalPath, IFormFile file, string? oldName) // Upload 1 image
         {
-            string pattern = @"^0[3|5|7|8|9][0-9]{8}$";
+            if (oldName != null && ObjectExistsInStorage(oldName))
+            {
+                DeleteObject(oldName);
+            }
+            //Check if file exist
+            if (!ObjectExistsInStorage($"Uploads/{generalPath}/{file.FileName}"))
+            {
+                var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
 
-            return Regex.IsMatch(phoneNumber, pattern);
+                var filePath = Path.Combine(wwwrootPath, "Upload", file.FileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Upload to Firebase Storage
+                var bucketName = AppValue.BUCKET_NAME;
+                var objectName = $"Uploads/{generalPath}/{fileName}";
+
+                Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+                using (var fileStream = System.IO.File.OpenRead(filePath))
+                {
+                    uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
+                }
+
+                // Clean up: delete the local file
+                System.IO.File.Delete(filePath);
+
+                return objectName;
+            }
+            else
+            {
+                return $"Uploads/{generalPath}/{file.FileName}";
+            }
         }
 
-        public static string GenerateRandom6Digits()
+        public static async Task<string> GetUrlImage(string? objectName) // Get image url
         {
-            Random random = new Random();
-            int randomNumber = random.Next(0, 1000000);
+            try
+            {
+                if (!string.IsNullOrEmpty(objectName))
+                {
+                    FirebaseStorage storage = new FirebaseStorage(AppValue.BUCKET_NAME);
 
-            return randomNumber.ToString("D6");
+                    var starsRef = storage.Child(objectName);
+
+                    return await starsRef.GetDownloadUrlAsync();
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            catch (FirebaseStorageException ex)
+            {
+                return "";
+            }
         }
 
-        public static string GenerateRandomString(int length)
+        private static bool ObjectExistsInStorage(string objectName) // Check if image exist in storage
         {
-            const string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            Random random = new Random();
-            return new string(Enumerable.Repeat(characters, length)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
+            try
+            {
+                _storage.GetObject(AppValue.BUCKET_NAME, objectName);
+                return true;
+            }
+            catch (Google.GoogleApiException ex)
+            {
+                return false;
+            }
+        }
+
+        private static void DeleteObject(string objectName)
+        {
+            try
+            {
+                _storage.DeleteObject(AppValue.BUCKET_NAME, objectName);
+            }
+            catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
+            {
+            }
         }
     }
 }

@@ -11,6 +11,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Hosting;
+using Etailor.API.Ultity;
+using Etailor.API.Ultity.CommonValue;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,14 +89,22 @@ builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
+builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
+builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
+builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
+builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 
 
 builder.Services.AddScoped<ISkillService, SkillService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
+builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 
-var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "demootp-34065-firebase-adminsdk-8mrpy-f121841f4c.json"));
+var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
 FirebaseApp.Create(new AppOptions { Credential = credentials });
 
 var app = builder.Build();

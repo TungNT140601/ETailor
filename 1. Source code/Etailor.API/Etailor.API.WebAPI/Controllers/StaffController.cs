@@ -2,9 +2,13 @@
 using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
+using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Storage.V1;
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -16,17 +20,18 @@ namespace Etailor.API.WebAPI.Controllers
     public class StaffController : ControllerBase
     {
         private readonly IStaffService staffService;
-        private readonly IConfiguration configuration;
         private readonly IMapper mapper;
-        public StaffController(IStaffService staffService, IConfiguration configuration, IMapper mapper)
+        private readonly string _wwwrootPath;
+        public StaffController(IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost)
         {
             this.staffService = staffService;
-            this.configuration = configuration;
             this.mapper = mapper;
+
+            _wwwrootPath = webHost.WebRootPath;
         }
 
         [HttpPost()]
-        public IActionResult AddStaff([FromBody] StaffCreateVM staff)
+        public async Task<IActionResult> AddStaff([FromForm] StaffCreateVM staff)
         {
             try
             {
@@ -35,7 +40,8 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized();
                 }
-                else if (role != RoleName.MANAGER)
+                //else if (role != RoleName.MANAGER)
+                else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
                 {
                     return Forbid();
                 }
@@ -49,7 +55,8 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return staffService.AddNewStaff(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                        var staffCreate = mapper.Map<Staff>(staff);
+                        return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
                     }
                 }
             }
@@ -68,7 +75,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut()]
-        public IActionResult UpdateStaffInfo(string? id, [FromBody] StaffUpdateVM staff)
+        public async Task<IActionResult> UpdateStaffInfo(string? id, [FromForm] StaffUpdateVM staff)
         {
             try
             {
@@ -77,7 +84,8 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized();
                 }
-                else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
+                //else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
+                else if (role == RoleName.CUSTOMER)
                 {
                     return Forbid();
                 }
@@ -89,12 +97,13 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         return Unauthorized();
                     }
-                    else if (role == RoleName.MANAGER)
+                    //else if (role == RoleName.MANAGER)
+                    else if (role == RoleName.MANAGER || role == RoleName.ADMIN)
                     {
                         if (id == null)
                         {
                             staff.Id = staffId;
-                            return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
                         }
                         else
                         {
@@ -102,13 +111,14 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 throw new UserException("Không tìm thấy nhân viên");
                             }
-                            return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
                         }
                     }
                     else
                     {
                         staff.Id = staffId;
-                        return staffService.UpdateInfo(mapper.Map<Staff>(staff)) ? Ok() : BadRequest();
+                        var staffUpdate = mapper.Map<Staff>(staff);
+                        return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
                     }
                 }
             }
@@ -275,7 +285,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet()]
-        public IActionResult GetAllStaff(string? search)
+        public async Task<IActionResult> GetAllStaff(string? search)
         {
             try
             {
@@ -299,10 +309,26 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var staffs = staffService.GetAll(search).ToList();
+
+                        var listTask = new List<Task>();
+
+                        var staffVMs = new List<StaffListVM>();
+                        int stt = 1;
+                        foreach (var staff in staffs)
+                        {
+                            var staffVM = mapper.Map<StaffListVM>(staff);
+                            staffVM.STT = stt;
+                            stt++;
+                            listTask.Add(GetUrlImageAsync(staffVM));
+                            staffVMs.Add(staffVM);
+                        }
+
+                        await Task.WhenAll(listTask);
+
                         return Ok(new
                         {
                             TotalData = staffs.Count(),
-                            Data = mapper.Map<List<StaffListVM>>(staffs)
+                            Data = staffVMs
                         });
                     }
                 }
@@ -318,6 +344,14 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        private async Task GetUrlImageAsync(StaffListVM staff)
+        {
+            if (!string.IsNullOrEmpty(staff.Avatar))
+            {
+                staff.Avatar = await Ultils.GetUrlImage(staff.Avatar);
             }
         }
     }
