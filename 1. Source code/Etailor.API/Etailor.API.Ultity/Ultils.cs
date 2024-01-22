@@ -213,7 +213,7 @@ namespace Etailor.API.Ultity
 
             foreach (var file in files)
             {
-                uploadTasks.Add(UploadImage(wwwrootPath, generalPath, file));
+                uploadTasks.Add(UploadImage(wwwrootPath, generalPath, file, null));
             }
 
             // Wait for all tasks to complete
@@ -222,8 +222,12 @@ namespace Etailor.API.Ultity
             return links.ToList();
         }
 
-        public static async Task<string> UploadImage(string wwwrootPath, string generalPath, IFormFile file) // Upload 1 image
+        public static async Task<string> UploadImage(string wwwrootPath, string generalPath, IFormFile file, string? oldName) // Upload 1 image
         {
+            if (oldName != null && ObjectExistsInStorage(oldName))
+            {
+                DeleteObject(oldName);
+            }
             //Check if file exist
             if (!ObjectExistsInStorage($"Uploads/{generalPath}/{file.FileName}"))
             {
@@ -258,13 +262,27 @@ namespace Etailor.API.Ultity
             }
         }
 
-        public static async Task<string> GetUrlImage(string objectName) // Get image url
+        public static async Task<string> GetUrlImage(string? objectName) // Get image url
         {
-            FirebaseStorage storage = new FirebaseStorage(AppValue.BUCKET_NAME);
+            try
+            {
+                if (!string.IsNullOrEmpty(objectName))
+                {
+                    FirebaseStorage storage = new FirebaseStorage(AppValue.BUCKET_NAME);
 
-            var starsRef = storage.Child(objectName);
+                    var starsRef = storage.Child(objectName);
 
-            return await starsRef.GetDownloadUrlAsync();
+                    return await starsRef.GetDownloadUrlAsync();
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            catch (FirebaseStorageException ex)
+            {
+                return "";
+            }
         }
 
         private static bool ObjectExistsInStorage(string objectName) // Check if image exist in storage
@@ -274,9 +292,20 @@ namespace Etailor.API.Ultity
                 _storage.GetObject(AppValue.BUCKET_NAME, objectName);
                 return true;
             }
-            catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
+            catch (Google.GoogleApiException ex)
             {
                 return false;
+            }
+        }
+
+        private static void DeleteObject(string objectName)
+        {
+            try
+            {
+                _storage.DeleteObject(AppValue.BUCKET_NAME, objectName);
+            }
+            catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
+            {
             }
         }
     }

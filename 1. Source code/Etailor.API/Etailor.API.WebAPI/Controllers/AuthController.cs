@@ -314,29 +314,6 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-
-        [HttpPost("customer/regis")]
-        public async Task<IActionResult> CustomerRegis([FromBody] CusRegis cus)
-        {
-            try
-            {
-                var customer = mapper.Map<Customer>(cus);
-                customer.Avatar = await Ultils.UploadImage(_wwwrootPath, "CustomerAvatar", cus.AvatarImage);
-                return customerService.CusRegis(customer) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
         #endregion
 
         #region Staff

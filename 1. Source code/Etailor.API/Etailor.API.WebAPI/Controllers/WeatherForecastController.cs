@@ -406,7 +406,7 @@ namespace Etailor.API.WebAPI.Controllers
                 if (file == null || file.Length == 0)
                     return BadRequest("Invalid file");
 
-                var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestImage", file);
+                var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
                 var url = await Ultils.GetUrlImage(viewLink);
                 return Ok(new
                 {

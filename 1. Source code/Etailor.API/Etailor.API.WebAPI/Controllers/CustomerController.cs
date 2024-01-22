@@ -18,16 +18,18 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ICustomerService customerService;
         private readonly IConfiguration configuration;
         private readonly IMapper mapper;
+        private readonly string _wwwrootPath;
 
-        public CustomerController(ICustomerService customerService, IConfiguration configuration, IMapper mapper)
+        public CustomerController(ICustomerService customerService, IConfiguration configuration, IMapper mapper, IWebHostEnvironment webHost)
         {
             this.customerService = customerService;
             this.configuration = configuration;
             this.mapper = mapper;
+            this._wwwrootPath = webHost.WebRootPath;
         }
 
-        [HttpPut("managed-personal-profile")]
-        public IActionResult UpdatePersonalProfile([FromBody] CustomerVM customerVM)
+        [HttpPut()]
+        public async Task<IActionResult> UpdatePersonalProfile([FromForm] CustomerVM customerVM)
         {
             try
             {
@@ -44,64 +46,38 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!customerService.CheckSecerctKey(customerId, secrectKey))
+                    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
                     {
                         return Unauthorized();
                     }
-                    else if (!string.IsNullOrEmpty(customerId))
-                    {
-                        var userInfo = customerService.FindById(customerId);
-                        if (userInfo == null)
-                        {
-                            return Ok(new
-                            {
-                                Status = 0,
-                                Message = "Tài khoản không có trong hệ thống!!!"
-                            });
-                        }
-                        else
-                        {
-                            if (string.IsNullOrEmpty(customerVM.Fullname))
-                            {
-                                return Ok(new
-                                {
-                                    Status = 0,
-                                    Message = "Vui lòng nhập tên"
-                                });
-                            }
-                            else
-                            {
-                                userInfo.Fullname = customerVM.Fullname;
-                            }
-
-                            if (string.IsNullOrEmpty(customerVM.Address))
-                            {
-                                return Ok(new
-                                {
-                                    Status = 0,
-                                    Message = "Vui lòng nhập địa chỉ"
-                                });
-                            }
-                            else
-                            {
-                                userInfo.Address = customerVM.Address;
-                            }
-                            return customerService.UpdatePersonalProfileCustomer(userInfo) ? Ok(new
-                            {
-                                Status = 1,
-                                Message = "Success"
-                            }) : Ok(new
-                            {
-                                Status = 0,
-                                Message = "Fail"
-                            });
-                        }
-                    }
                     else
                     {
-                        throw new Exception("Something went wrong");
+                        var cus = mapper.Map<Customer>(customerVM);
+                        cus.Id = customerId;
+                        return (await customerService.UpdatePersonalProfileCustomer(cus, customerVM.AvatarImage, _wwwrootPath)) ? Ok() : BadRequest();
                     }
-                }            
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("regis")]
+        public async Task<IActionResult> CustomerRegis([FromForm] CusRegis cus)
+        {
+            try
+            {
+                return (await customerService.CusRegis(mapper.Map<Customer>(cus), cus.AvatarImage, _wwwrootPath)) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
             }
             catch (UserException ex)
             {

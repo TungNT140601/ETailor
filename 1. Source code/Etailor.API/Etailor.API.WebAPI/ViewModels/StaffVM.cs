@@ -20,6 +20,7 @@
     }
     public class StaffListVM
     {
+        public int? STT { get; set; }
         public string? Id { get; set; }
         public string? Avatar { get; set; }
         public string? Fullname { get; set; }
