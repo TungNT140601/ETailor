@@ -40,7 +40,8 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized();
                 }
-                else if (role != RoleName.MANAGER)
+                //else if (role != RoleName.MANAGER)
+                else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
                 {
                     return Forbid();
                 }
@@ -83,7 +84,8 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized();
                 }
-                else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
+                //else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
+                else if (role == RoleName.CUSTOMER)
                 {
                     return Forbid();
                 }
@@ -95,7 +97,8 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         return Unauthorized();
                     }
-                    else if (role == RoleName.MANAGER)
+                    //else if (role == RoleName.MANAGER)
+                    else if (role == RoleName.MANAGER || role == RoleName.ADMIN)
                     {
                         if (id == null)
                         {
