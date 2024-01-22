@@ -62,7 +62,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool AddNewStaff(Staff staff, string wwwroot, IFormFile avatar)
+        public async Task<bool> AddNewStaff(Staff staff, string wwwroot, IFormFile? avatar)
         {
             try
             {
@@ -74,11 +74,39 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Số điện thoại đã được sử dụng");
                 }
-                staff.Id = Ultils.GenGuidString();
-                staff.Role = 2;
-                staff.CreatedTime = DateTime.Now;
-                staff.IsActive = true;
-                staff.Password = Ultils.HashPassword(staff.Password);
+                var setAvatar = Task.Run(async () =>
+                {
+                    if (avatar != null)
+                    {
+                        staff.Avatar = await Ultils.UploadImage(wwwroot, "StaffAvatar", avatar, null);
+                    }
+                    else
+                    {
+                        staff.Avatar = string.Empty;
+                    }
+                });
+                var setId = Task.Run(() =>
+                {
+                    staff.Id = Ultils.GenGuidString();
+                });
+                var setRole = Task.Run(() =>
+                {
+                    staff.Role = 2;
+                });
+                var setCreateTime = Task.Run(() =>
+                {
+                    staff.CreatedTime = DateTime.Now;
+                });
+                var setIsActive = Task.Run(() =>
+                {
+                    staff.IsActive = true;
+                });
+                var hashPassword = Task.Run(() =>
+                {
+                    staff.Password = Ultils.HashPassword(staff.Password);
+                });
+
+                await Task.WhenAll(setAvatar, setId, setRole, setCreateTime, setIsActive, hashPassword);
 
                 return staffRepository.Create(staff);
             }
@@ -95,27 +123,48 @@ namespace Etailor.API.Service.Service
                 throw new SystemsException(ex.Message);
             }
         }
-        public bool UpdateInfo(Staff staff, string wwwroot, IFormFile avatar)
+        public async Task<bool> UpdateInfo(Staff staff, string wwwroot, IFormFile? avatar)
         {
             try
             {
                 var dbStaff = GetStaff(staff.Id);
                 if (dbStaff != null)
                 {
-                    if (staffRepository.GetAll(x => x.Id != staff.Id && x.Phone != null && x.Phone == staff.Phone).Any())
+                    var checkPhoneTask = Task.Run(() =>
                     {
-                        throw new UserException("Số điện thoại đã được sử dụng");
-                    }
-                    else
+                        if (staffRepository.GetAll(x => x.Id != staff.Id && x.Phone != null && x.Phone == staff.Phone).Any())
+                        {
+                            throw new UserException("Số điện thoại đã được sử dụng");
+                        }
+                        else
+                        {
+                            dbStaff.Phone = staff.Phone;
+                        }
+                    });
+                    var checkAvatarTask = Task.Run(() =>
                     {
-                        dbStaff.Phone = staff.Phone;
-                    }
-                    dbStaff.Avatar = staff.Avatar;
-                    dbStaff.Fullname = staff.Fullname;
-                    dbStaff.Address = staff.Address;
-                    dbStaff.Avatar = staff.Avatar;
+                        if (avatar != null)
+                        {
+                            dbStaff.Avatar = Ultils.UploadImage(wwwroot, "StaffAvatar", avatar, dbStaff.Avatar).Result;
+                        }
+                    });
 
-                    dbStaff.LastestUpdatedTime = DateTime.Now;
+                    var updateFullnameTask = Task.Run(() =>
+                    {
+                        dbStaff.Fullname = staff.Fullname;
+                    });
+
+                    var updateAddressTask = Task.Run(() =>
+                    {
+                        dbStaff.Address = staff.Address;
+                    });
+
+                    var updateUpdateTimeTask = Task.Run(() =>
+                    {
+                        dbStaff.LastestUpdatedTime = DateTime.Now;
+                    });
+
+                    await Task.WhenAll(checkPhoneTask, checkAvatarTask, updateFullnameTask, updateAddressTask, updateUpdateTimeTask);
 
                     return staffRepository.Update(dbStaff.Id, dbStaff);
                 }

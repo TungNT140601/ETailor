@@ -321,7 +321,7 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var customer = mapper.Map<Customer>(cus);
-                customer.Avatar = await Ultils.UploadImage(_wwwrootPath, "CustomerAvatar", cus.AvatarImage);
+                customer.Avatar = await Ultils.UploadImage(_wwwrootPath, "CustomerAvatar", cus.AvatarImage, null);
                 return customerService.CusRegis(customer) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
             }
             catch (UserException ex)
