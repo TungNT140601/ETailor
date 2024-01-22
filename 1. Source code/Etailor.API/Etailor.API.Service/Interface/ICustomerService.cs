@@ -1,4 +1,5 @@
 ﻿using Etailor.API.Repository.EntityModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,8 +19,7 @@ namespace Etailor.API.Service.Interface
 
         bool CreateCustomer(Customer customer);
 
-        bool UpdatePersonalProfileCustomer(Customer customer);
-        bool UpdateCustomerInfo(Customer customer);
+        Task<bool> UpdatePersonalProfileCustomer(Customer customer, IFormFile? avatar, string wwwroot);
         bool UpdateCustomerEmail(Customer customer);
         bool UpdateCustomerPhone(Customer customer);
         bool CheckOTP(string emailOrPhone, string otp);
@@ -27,6 +27,6 @@ namespace Etailor.API.Service.Interface
         bool CheckSecerctKey(string id, string key);
         bool ChangePassword(string id, string oldPass, string newPass);
         bool ResetPassword(string email);
-        bool CusRegis(Customer customer);
+        Task<bool> CusRegis(Customer customer, IFormFile? avatar, string wwwroot);
     }
 }
