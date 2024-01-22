@@ -31,7 +31,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost()]
-        public async Task<IActionResult> AddStaff([FromForm] StaffCreateVM staff)
+        public async Task<IActionResult> AddStaff([FromBody] StaffCreateVM staff)
         {
             try
             {
@@ -56,7 +56,7 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var staffCreate = mapper.Map<Staff>(staff);
-                        return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
+                        return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, Ultils.ConvertBase64ToIFormFile(staff.ImageBase64, staff.ImageName))) ? Ok() : BadRequest();
                     }
                 }
             }
@@ -75,7 +75,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut()]
-        public async Task<IActionResult> UpdateStaffInfo(string? id, [FromForm] StaffUpdateVM staff)
+        public async Task<IActionResult> UpdateStaffInfo(string? id, [FromBody] StaffUpdateVM staff)
         {
             try
             {
@@ -103,7 +103,7 @@ namespace Etailor.API.WebAPI.Controllers
                         if (id == null)
                         {
                             staff.Id = staffId;
-                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
+                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, Ultils.ConvertBase64ToIFormFile(staff.ImageBase64,staff.ImageName))) ? Ok() : BadRequest();
                         }
                         else
                         {
@@ -111,14 +111,14 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 throw new UserException("Không tìm thấy nhân viên");
                             }
-                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
+                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, Ultils.ConvertBase64ToIFormFile(staff.ImageBase64, staff.ImageName))) ? Ok() : BadRequest();
                         }
                     }
                     else
                     {
                         staff.Id = staffId;
                         var staffUpdate = mapper.Map<Staff>(staff);
-                        return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
+                        return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, Ultils.ConvertBase64ToIFormFile(staff.ImageBase64, staff.ImageName))) ? Ok() : BadRequest();
                     }
                 }
             }

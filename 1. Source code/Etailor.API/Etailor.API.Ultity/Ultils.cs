@@ -13,6 +13,8 @@ using Firebase.Storage;
 using Microsoft.AspNetCore.Http;
 using Google.Cloud.Storage.V1;
 using Google.Apis.Auth.OAuth2;
+using Microsoft.AspNetCore.Http.Internal;
+using Etailor.API.Ultity.CustomException;
 
 namespace Etailor.API.Ultity
 {
@@ -308,5 +310,47 @@ namespace Etailor.API.Ultity
             {
             }
         }
+        public static IFormFile ConvertBase64ToIFormFile(string? base64String, string? fileName)
+        {
+            if (base64String == null || fileName == null)
+            {
+                return null;
+            }
+            else
+            {
+                if (IsValidFileName(fileName))
+                {
+                    // Convert Base64 string to byte array
+                    byte[] bytes = Convert.FromBase64String(base64String);
+
+                    // Create a MemoryStream from the byte array
+                    using (MemoryStream memoryStream = new MemoryStream(bytes))
+                    {
+                        // Create an instance of IFormFile
+                        var formFile = new FormFile(memoryStream, 0, bytes.Length, null, fileName)
+                        {
+                            Headers = new HeaderDictionary(),
+                            ContentType = "application/octet-stream" // Set the content type appropriately
+                        };
+
+                        return formFile;
+                    }
+                }
+                else
+                {
+                    throw new SystemException("Invalid File Name");
+                }
+            }
+        }
+
+        private static bool IsValidFileName(string fileName)
+        {
+            // Define the pattern for a valid file name
+            string pattern = @"^[a-zA-Z0-9_\-]+(\.[a-zA-Z]{1,4})?$";
+
+            // Use Regex.IsMatch to check if the file name matches the pattern
+            return Regex.IsMatch(fileName, pattern);
+        }
+
     }
 }

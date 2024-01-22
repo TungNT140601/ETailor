@@ -2,7 +2,8 @@
 {
     public class StaffCreateVM
     {
-        public IFormFile? AvatarImage { get; set; }
+        public string? ImageBase64 { get; set; }
+        public string? ImageName { get; set; }
         public string? Fullname { get; set; }
         public string? Address { get; set; }
         public string? Phone { get; set; }
@@ -12,7 +13,8 @@
     public class StaffUpdateVM
     {
         public string? Id { get; set; }
-        public IFormFile? AvatarImage { get; set; }
+        public string? ImageBase64 { get; set; }
+        public string? ImageName { get; set; }
         public string? Fullname { get; set; }
         public string? Address { get; set; }
         public string? Phone { get; set; }
