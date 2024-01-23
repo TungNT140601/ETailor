@@ -11,7 +11,7 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
     DECLARE @sql NVARCHAR(MAX)
     SET @sql = 'DROP TABLE ' + @tableName
-    EXEC sp_executesql @sql
+    PRINT @sql
 
     FETCH NEXT FROM tableCursor INTO @tableName
 END

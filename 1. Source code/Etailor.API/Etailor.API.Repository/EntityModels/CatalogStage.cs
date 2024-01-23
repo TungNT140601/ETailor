@@ -7,7 +7,7 @@ namespace Etailor.API.Repository.EntityModels
     {
         public CatalogStage()
         {
-            ComponentTypes = new HashSet<ComponentType>();
+            ComponentStages = new HashSet<ComponentStage>();
             InverseCatalogStageNavigation = new HashSet<CatalogStage>();
             ProductStages = new HashSet<ProductStage>();
         }
@@ -24,7 +24,7 @@ namespace Etailor.API.Repository.EntityModels
 
         public virtual Catalog? Catalog { get; set; }
         public virtual CatalogStage? CatalogStageNavigation { get; set; }
-        public virtual ICollection<ComponentType> ComponentTypes { get; set; }
+        public virtual ICollection<ComponentStage> ComponentStages { get; set; }
         public virtual ICollection<CatalogStage> InverseCatalogStageNavigation { get; set; }
         public virtual ICollection<ProductStage> ProductStages { get; set; }
     }
