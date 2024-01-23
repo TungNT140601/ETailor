@@ -16,18 +16,16 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private readonly ISkillService skillService;
         private readonly IStaffService staffService;
-        private readonly IConfiguration configuration;
         private readonly IMapper mapper;
 
-        public SkillController(ISkillService skillService, IStaffService staffService, IConfiguration configuration, IMapper mapper)
+        public SkillController(ISkillService skillService, IStaffService staffService, IMapper mapper)
         {
             this.skillService = skillService;
             this.staffService = staffService;
-            this.configuration = configuration;
             this.mapper = mapper;
         }
 
-        [HttpGet()]
+        [HttpGet]
         public IActionResult GetAllSkill(string? search)
         {
             try
