@@ -472,6 +472,23 @@ namespace Etailor.API.WebAPI.Controllers
             }
 
         }
+
+        [HttpPost("upload-base64")]
+        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 imageBase64)
+        {
+            try
+            {
+                var file = Ultils.ConvertBase64ToIFormFile(imageBase64.Base64String, imageBase64.FileName);
+                var objectName = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
+                return Ok(Ultils.GetUrlImage(objectName));
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
     }
     public class Notify
     {
@@ -483,5 +500,10 @@ namespace Etailor.API.WebAPI.Controllers
     {
         public string Name { get; set; }
         public List<string> Tokens { get; set; }
+    }
+    public class ImageBase64
+    {
+        public string Base64String { get; set; }
+        public string FileName { get; set; }
     }
 }
