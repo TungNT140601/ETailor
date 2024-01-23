@@ -85,8 +85,18 @@ builder.Services.AddAuthentication(option =>
 builder.Services.AddScoped<ISkillRepository, SkillRepository>();
 builder.Services.AddScoped<ISkillService, SkillService>();
 
-builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
+builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+
+builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
+//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
 builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
