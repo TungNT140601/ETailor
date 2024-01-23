@@ -13,8 +13,8 @@ namespace Etailor.API.Repository.EntityModels
         public string Id { get; set; } = null!;
         public string? CustomerId { get; set; }
         public DateTime? CreatedTime { get; set; }
-        public DateTime? DeletedTime { get; set; }
-        public bool? IsDelete { get; set; }
+        public DateTime? InactiveTime { get; set; }
+        public bool? IsActive { get; set; }
 
         public virtual Customer? Customer { get; set; }
         public virtual ICollection<ChatHistory> ChatHistories { get; set; }

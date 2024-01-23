@@ -13,6 +13,9 @@ using Microsoft.Extensions.Configuration;
 using Etailor.API.Ultity.PaymentConfig;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Google.Cloud.Storage.V1;
+using Google.Apis.Storage.v1.Data;
+using Firebase.Storage;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -22,10 +25,15 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private string FilePath = "";
         private IConfiguration _configuration;
-        public WeatherForecastController(IConfiguration configuration)
+        private readonly string _wwwrootPath;
+
+        public WeatherForecastController(IConfiguration configuration, IWebHostEnvironment webHost)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
+            // Load Firebase credentials
+
+            _wwwrootPath = webHost.WebRootPath;
         }
 
         #region SendMail
@@ -297,7 +305,7 @@ namespace Etailor.API.WebAPI.Controllers
         [HttpGet]
         public string GetIpAddress()
         {
-            return HttpContext.Connection.RemoteIpAddress.ToString(); ;
+            return HttpContext.Connection.RemoteIpAddress.ToString();
         }
 
         [HttpGet]
@@ -370,7 +378,8 @@ namespace Etailor.API.WebAPI.Controllers
                 vnp_SecureHash
             };
 
-            return Ok(responseData);
+            //return Ok(responseData);
+            return Redirect("https://demo-notification.vercel.app");
         }
 
         #endregion
@@ -388,6 +397,98 @@ namespace Etailor.API.WebAPI.Controllers
             byte[] fileBytes = System.IO.File.ReadAllBytes(FilePath);
             return File(fileBytes, "application/octet-stream", Path.GetFileName(FilePath));
         }
+
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("Invalid file");
+
+                var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
+                var url = await Ultils.GetUrlImage(viewLink);
+                return Ok(new
+                {
+                    Name = viewLink,
+                    Url = url
+                });
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+        [HttpPost("upload-images")]
+        public async Task<IActionResult> UploadImages(List<IFormFile> files)
+        {
+            try
+            {
+                var viewLink = await Ultils.UploadImages(_wwwrootPath, "TestImage", files);
+
+                return Ok(viewLink);
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("change-image")]
+        public async Task<IActionResult> ChangeImage(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+
+                // Read the content of the file into a byte array
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    byte[] fileBytes1 = ms.ToArray();
+
+                    // Convert the byte array to a base64-encoded string
+                    string binaryString = Convert.ToBase64String(fileBytes1);
+
+                    // Convert the base64-encoded string to a byte array
+                    byte[] fileBytes2 = Convert.FromBase64String(binaryString);
+
+                    string filePath = file.FileName.Split(".").Last();
+
+                    // Return the file in the response
+                    return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
+
+        [HttpPost("upload-base64")]
+        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 imageBase64)
+        {
+            try
+            {
+                var file = Ultils.ConvertBase64ToIFormFile(imageBase64.Base64String, imageBase64.FileName);
+                var objectName = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
+                return Ok(Ultils.GetUrlImage(objectName));
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+
+        }
     }
     public class Notify
     {
@@ -399,5 +500,10 @@ namespace Etailor.API.WebAPI.Controllers
     {
         public string Name { get; set; }
         public List<string> Tokens { get; set; }
+    }
+    public class ImageBase64
+    {
+        public string Base64String { get; set; }
+        public string FileName { get; set; }
     }
 }

@@ -10,14 +10,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Hosting;
+using Etailor.API.Ultity;
+using Etailor.API.Ultity.CommonValue;
 
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors();
 // Add services to the container.
 
+//builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true).AddJsonOptions(options =>
+//{
+//    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+//});
+
 builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
@@ -51,6 +60,8 @@ builder.Services.AddSwaggerGen(
                 }
 );
 
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 builder.Services.AddDbContext<ETailor_DBContext>(c => c.UseSqlServer(builder.Configuration.GetConnectionString("ETailor_DB")));
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -71,17 +82,39 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
-builder.Services.AddScoped<IRoleRepository, RoleRepository>();
-builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<ISkillRepository, SkillRepository>();
+builder.Services.AddScoped<ISkillService, SkillService>();
+
+
+builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+
+builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
+//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
+builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
+builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
+builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
+builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
+builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+
+
+builder.Services.AddScoped<ISkillService, SkillService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IStaffService, StaffService>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
+builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 
-var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), "demootp-34065-firebase-adminsdk-8mrpy-f121841f4c.json"));
+var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
 FirebaseApp.Create(new AppOptions { Credential = credentials });
 
 var app = builder.Build();
@@ -95,10 +128,13 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1");
 });
 //}
+
+var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();
+
 app.UseCors(option =>
 {
     option.AllowAnyHeader()
-    .WithOrigins("https://demo-notification.vercel.app")
+    .WithOrigins(MyAllowSpecificOrigins)
     .AllowAnyMethod();
 });
 

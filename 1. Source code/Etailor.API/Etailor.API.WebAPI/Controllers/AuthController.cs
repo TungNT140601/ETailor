@@ -1,9 +1,12 @@
-﻿using Etailor.API.Repository.EntityModels;
+﻿using AutoMapper;
+using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
@@ -18,35 +21,43 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ICustomerService customerService;
         private readonly IStaffService staffService;
         private readonly IConfiguration configuration;
-        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService)
+        private readonly IMapper mapper;
+        private readonly StorageClient _storage;
+        private readonly string _wwwrootPath;
+        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost)
         {
             this.customerService = customerService;
             this.configuration = configuration;
             this.staffService = staffService;
+            this.mapper = mapper;
+            // Load Firebase credentials
+            var credential = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
+
+            // Initialize StorageClient with Firebase credentials
+            _storage = StorageClient.Create(credential);
+
+            _wwwrootPath = webHost.WebRootPath;
         }
 
+        #region Customer
         [HttpPost("customer/login")]
-        public IActionResult CustomerLoginEmail([FromBody] CusLoginEmail loginEmail)
+        public async Task<IActionResult> CustomerLoginEmail([FromBody] CusLoginEmail loginEmail)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(loginEmail.Email))
+                if (string.IsNullOrWhiteSpace(loginEmail.EmailOrUsername))
                 {
-                    throw new UserException("Không được để trống EMAIL");
+                    throw new UserException("Không được để trống Email");
                 }
-                var customer = new Customer();
-                if (Ultils.IsValidEmail(loginEmail.Email))
+                if (string.IsNullOrEmpty(loginEmail.ClientToken))
                 {
-                    customer = customerService.LoginWithEmail(loginEmail.Email, loginEmail.Password);
+                    loginEmail.ClientToken = string.Empty;
                 }
-                else
-                {
-                    customer = customerService.LoginWithUsername(loginEmail.Email, loginEmail.Password);
-                }
+                var customer = await customerService.Login(loginEmail.EmailOrUsername, loginEmail.Password, HttpContext.Connection.RemoteIpAddress.ToString(), loginEmail.ClientToken);
 
                 return Ok(new
                 {
-                    Token = Ultils.GetToken(customer.Id, customer.Fullname, RoleName.CUSTOMER, configuration)
+                    Token = Ultils.GetToken(customer.Id, customer.Fullname ?? string.Empty, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration)
                 });
             }
             catch (UserException ex)
@@ -67,18 +78,20 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if (Ultils.IsValidEmail(email))
+                if (Ultils.IsValidEmail(email)) //Check email valid
                 {
                     var customer = customerService.FindEmail(email);
-                    var otp = Ultils.GenerateRandom6Digits();
+                    var otp = Ultils.GenerateRandomOTP();
                     if (customer == null)
                     {
                         var check = customerService.CreateCustomer(new Customer()
                         {
                             Email = email,
-                            Otp = otp,
-                            OtpexpireTime = DateTime.Now.AddMinutes(5),
-                            Otpused = false
+                            EmailVerified = false,
+                            Otpnumber = otp,
+                            OtptimeLimit = DateTime.UtcNow.AddMinutes(5),
+                            Otpused = false,
+                            IsActive = true
                         });
 
                         if (check)
@@ -94,8 +107,9 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             Id = customer.Id,
                             Email = email,
-                            Otp = otp,
-                            OtpexpireTime = DateTime.Now.AddMinutes(5),
+                            EmailVerified = false,
+                            Otpnumber = otp,
+                            OtptimeLimit = DateTime.Now.AddMinutes(5),
                             Otpused = false
                         });
 
@@ -126,69 +140,69 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("customer/verify-phone")]
-        public IActionResult VerifyPhone(string phone)
-        {
-            try
-            {
-                if (Ultils.IsValidVietnamesePhoneNumber(phone))
-                {
-                    var customer = customerService.FindPhone(phone);
-                    var otp = Ultils.GenerateRandom6Digits();
-                    if (customer == null)
-                    {
-                        //var check = customerService.CreateCustomer(new Customer()
-                        //{
-                        //    Phone = phone,
-                        //    Otp = otp,
-                        //    OtpexpireTime = DateTime.Now.AddMinutes(5),
-                        //    Otpused = false
-                        //});
+        //[HttpGet("customer/verify-phone")]
+        //public IActionResult VerifyPhone(string phone)
+        //{
+        //    try
+        //    {
+        //        if (Ultils.IsValidVietnamesePhoneNumber(phone))
+        //        {
+        //            var customer = customerService.FindPhone(phone);
+        //            var otp = Ultils.GenerateRandom6Digits();
+        //            if (customer == null)
+        //            {
+        //                //var check = customerService.CreateCustomer(new Customer()
+        //                //{
+        //                //    Phone = phone,
+        //                //    Otp = otp,
+        //                //    OtpexpireTime = DateTime.Now.AddMinutes(5),
+        //                //    Otpused = false
+        //                //});
 
-                        //if (check)
-                        //{
-                        //    Ultils.SendOTPPhone(phone, otp);
-                        //}
+        //                //if (check)
+        //                //{
+        //                //    Ultils.SendOTPPhone(phone, otp);
+        //                //}
 
-                        return Ok();
-                    }
-                    else
-                    {
-                        //var check = customerService.UpdateCustomerEmail(new Customer()
-                        //{
-                        //    Id = customer.Id,
-                        //    Email = email,
-                        //    Otp = otp,
-                        //    OtpexpireTime = DateTime.Now.AddMinutes(5),
-                        //    Otpused = false
-                        //});
+        //                return Ok();
+        //            }
+        //            else
+        //            {
+        //                //var check = customerService.UpdateCustomerEmail(new Customer()
+        //                //{
+        //                //    Id = customer.Id,
+        //                //    Email = email,
+        //                //    Otp = otp,
+        //                //    OtpexpireTime = DateTime.Now.AddMinutes(5),
+        //                //    Otpused = false
+        //                //});
 
-                        //if (check)
-                        //{
-                        //    Ultils.SendOTPMail(email, otp);
-                        //}
+        //                //if (check)
+        //                //{
+        //                //    Ultils.SendOTPMail(email, otp);
+        //                //}
 
-                        return Ok();
-                    }
-                }
-                else
-                {
-                    throw new UserException("Số điện thoại không đúng định dạng!!!");
-                }
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
+        //                return Ok();
+        //            }
+        //        }
+        //        else
+        //        {
+        //            throw new UserException("Số điện thoại không đúng định dạng!!!");
+        //        }
+        //    }
+        //    catch (UserException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (SystemsException ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //}
 
         [HttpPost("customer/verify-otp")]
         public IActionResult VerifyOtp([FromBody] VerifyOtp verifyOtp)
@@ -211,6 +225,98 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpPost("customer/logout")]
+        public IActionResult CusLogout()
+        {
+            try
+            {
+                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                if (id == null)
+                {
+                    return Unauthorized();
+                }
+                else if (role != RoleName.CUSTOMER)
+                {
+                    return Forbid();
+                }
+                else
+                {
+                    customerService.Logout(id);
+                }
+
+                return Ok();
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("customer/change-password")]
+        public IActionResult CusChangePass([FromBody] ChangePassModel changePassModel)
+        {
+            try
+            {
+                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                if (id == null || !customerService.CheckSecerctKey(id, secrectKey))
+                {
+                    return Unauthorized();
+                }
+                if (role != RoleName.CUSTOMER)
+                {
+                    return Forbid();
+                }
+                return customerService.ChangePassword(id, changePassModel.OldPassword, changePassModel.NewPassword) ? Ok("Đổi mật khẩu thành công!!!") : BadRequest("Đổi mật khẩu thất bại");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("customer/reset-password/{email}")]
+        public IActionResult CusResetPass(string email)
+        {
+            try
+            {
+                return customerService.ResetPassword(email) ? Ok("Đã gửi mail") : BadRequest("Thất bại");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        #endregion
+
+        #region Staff
         [HttpPost("staff/login")]
         public IActionResult CheckLoginStaff([FromBody] StaffLogin staffLogin)
         {
@@ -220,8 +326,9 @@ namespace Etailor.API.WebAPI.Controllers
 
                 return Ok(new
                 {
-                    Staff = staff,
-                    Token = Ultils.GetToken(staff.Id, staff.Fullname, RoleName.STAFF, configuration)
+                    Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF,
+                    Name = staff.Fullname ?? string.Empty,
+                    Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration)
                 });
             }
             catch (UserException ex)
@@ -238,12 +345,28 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost("staff/add")]
-        public IActionResult AddStaff([FromBody] Staff staff)
+        [HttpPost("staff/logout")]
+        public IActionResult StaffLogout()
         {
             try
             {
-                return staffService.AddNewStaff(staff) ? Ok() : BadRequest();
+                var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                if (id == null)
+                {
+                    return Unauthorized();
+                }
+                else if (role == RoleName.CUSTOMER)
+                {
+                    return Forbid();
+                }
+                else
+                {
+                    staffService.Logout(id);
+                }
+
+                return Ok();
             }
             catch (UserException ex)
             {
@@ -258,5 +381,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        #endregion
     }
 }

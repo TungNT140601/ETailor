@@ -2,8 +2,9 @@
 {
     public class CusLoginEmail
     {
-        public string? Email { get; set; }
+        public string? EmailOrUsername { get; set; }
         public string? Password { get; set; }
+        public string? ClientToken { get; set; }
     }
     public class StaffLogin
     {
@@ -12,7 +13,12 @@
     }
     public class VerifyOtp
     {
-        public string? PhoneOrEmail { get; set; }
-        public string? Otp { get; set; }
+        public string PhoneOrEmail { get; set; }
+        public string Otp { get; set; }
+    }
+    public class ChangePassModel
+    {
+        public string OldPassword { get; set; }
+        public string NewPassword { get; set; }
     }
 }
