@@ -90,7 +90,10 @@ builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 //builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
 
 builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
-//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+builder.Services.AddScoped<IComponentTypeService, ComponentTypeService>();
+
+builder.Services.AddScoped<IComponentRepository, ComponentRepository>();
+//builder.Services.AddScoped<IComponentTypeService, ComponentTypeService>();
 
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
