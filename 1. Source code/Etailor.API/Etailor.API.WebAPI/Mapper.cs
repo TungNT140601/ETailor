@@ -21,6 +21,9 @@ namespace Etailor.API.WebAPI
 
             CreateMap<MaterialType, MaterialTypeVM>().ReverseMap();
             CreateMap<MaterialType, MaterialTypeAllVM>().ReverseMap();
+
+
+            CreateMap<Category, CategoryVM>().ReverseMap();
         }
     }
 }
