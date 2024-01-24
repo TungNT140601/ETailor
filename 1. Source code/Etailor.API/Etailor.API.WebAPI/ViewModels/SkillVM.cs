@@ -2,6 +2,15 @@
 
 namespace Etailor.API.WebAPI.ViewModels
 {
+    public class SkillVM
+    {
+        public string Id { get; set; }
+
+        public string? Name { get; set; }
+
+        public bool? IsActive { get; set; }
+    }
+
     public class SkillListVM
     {
         [Required]

@@ -95,6 +95,9 @@ builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
+builder.Services.AddScoped<ISkillOfStaffRepository, SkillOfStaffRepository>();
+builder.Services.AddScoped<ISkillOfStaffService, SkillOfStaffService>();
+
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
