@@ -23,76 +23,85 @@ namespace Etailor.API.Service.Service
             this.catalogRepository = catalogRepository;
         }
 
-        public bool AddCategory(Category category)
+        public async Task<bool> AddCategory(Category category)
         {
-            if (string.IsNullOrWhiteSpace(category.Name))
+            var checkName = Task.Run(() =>
             {
-                throw new Exception("Tên danh mục sản phẩm không được để trống");
-            }
-            else
-            {
-                if (categoryRepository.GetAll(x => x.Name == category.Name && x.IsActive == true).Any())
+                if (string.IsNullOrWhiteSpace(category.Name))
                 {
-                    throw new UserException("Tên danh mục sản phầm đã được sử dụng");
+                    throw new Exception("Tên danh mục sản phẩm không được để trống");
                 }
                 else
                 {
-                    category.Id = Ultils.GenGuidString();
-                    category.CreatedTime = DateTime.Now;
-                    category.LastestUpdatedTime = DateTime.Now;
-
-                    return categoryRepository.Create(category);
+                    if (categoryRepository.GetAll(x => x.Name == category.Name && x.IsActive == true).Any())
+                    {
+                        throw new UserException("Tên danh mục sản phầm đã được sử dụng");
+                    }
                 }
-            }
+            });
+            var setValue = Task.Run(() =>
+            {
+                category.Id = Ultils.GenGuidString();
+                category.CreatedTime = DateTime.Now;
+                category.LastestUpdatedTime = DateTime.Now;
+            });
+
+            await Task.WhenAll(checkName, setValue);
+
+            return categoryRepository.Create(category);
         }
 
-        public bool UpdateCategory(Category category)
+        public async Task<bool> UpdateCategory(Category category)
         {
-            if (string.IsNullOrWhiteSpace(category.Name))
+            var dbCategory = categoryRepository.Get(category.Id);
+            if (dbCategory != null && dbCategory.IsActive == true)
             {
-                throw new Exception("Tên danh mục sản phẩm không được để trống");
-            }
-            else
-            {
-                var dbCategory = categoryRepository.Get(category.Id);
-                if (dbCategory != null && dbCategory.IsActive == true)
+                var checkName = Task.Run(() =>
                 {
                     if (categoryRepository.GetAll(x => dbCategory.Id != x.Id && x.Name == category.Name && x.IsActive == true).Any())
                     {
                         throw new UserException("Tên danh mục sản phầm đã được sử dụng");
                     }
-                    else
-                    {
-                        dbCategory.Name = category.Name;
-                        dbCategory.LastestUpdatedTime = DateTime.Now;
+                });
 
-                        return categoryRepository.Update(category.Id, category);
-                    }
-                }
-                else
+                var setValue = Task.Run(() =>
                 {
-                    throw new UserException("Không tìm thấy danh mục sản phầm");
-                }
+                    dbCategory.Name = category.Name;
+                    dbCategory.LastestUpdatedTime = DateTime.Now;
+                });
+
+                await Task.WhenAll(checkName, setValue);
+
+                return categoryRepository.Update(dbCategory.Id, dbCategory);
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy danh mục sản phầm");
             }
         }
 
-        public bool DeleteCategory(string id)
+        public async Task<bool> DeleteCategory(string id)
         {
             var dbCategory = categoryRepository.Get(id);
             if (dbCategory != null && dbCategory.IsActive == true)
             {
-                if (catalogRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
+                var checkChild = Task.Run(() =>
                 {
-                    throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
-                }
-                else
+                    if (catalogRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
+                    {
+                        throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
+                    }
+                });
+                var setValue = Task.Run(() =>
                 {
                     dbCategory.LastestUpdatedTime = DateTime.Now;
                     dbCategory.IsActive = false;
                     dbCategory.InactiveTime = DateTime.Now;
+                });
 
-                    return categoryRepository.Update(dbCategory.Id, dbCategory);
-                }
+                await Task.WhenAll(checkChild, setValue);
+
+                return categoryRepository.Update(dbCategory.Id, dbCategory);
             }
             else
             {

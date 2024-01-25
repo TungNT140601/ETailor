@@ -37,7 +37,7 @@ namespace Etailor.API.WebAPI.Controllers
                 var materialType = materialTypeService.GetMaterialType(id);
                 if (materialType == null)
                 {
-                    return NotFound();
+                    return NotFound("không tìm thấy loại nguyên liệu");
                 }
                 else
                 {
@@ -88,11 +88,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid();
+                     return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -100,7 +100,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
@@ -110,7 +110,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            return materialTypeService.CreateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok() : BadRequest();
+                            return materialTypeService.CreateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok("Tạo mới loại nguyên liệu thành công") : BadRequest("Tạo mới loại nguyên liệu thất bại");
                         }
                     }
                 }
@@ -137,11 +137,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid();
+                     return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -149,7 +149,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
@@ -165,11 +165,11 @@ namespace Etailor.API.WebAPI.Controllers
                             }
                             else if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(materialType.Id) || id != materialType.Id)
                             {
-                                return NotFound();
+                                return NotFound("Không tìm thấy loại nguyên liệu");
                             }
                             else
                             {
-                                return materialTypeService.UpdateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok() : BadRequest();
+                                return materialTypeService.UpdateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok("Cập nhật loại nguyên liệu thành công") : BadRequest("Cập nhật loại nguyên liệu thất bại");
                             }
                         }
                     }
@@ -197,11 +197,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid();
+                     return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -209,17 +209,17 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
                         if (string.IsNullOrEmpty(id))
                         {
-                            return NotFound();
+                            return NotFound("Không tìm thấy loại nguyên liệu");
                         }
                         else
                         {
-                            return materialTypeService.DeleteMaterialType(id) ? Ok() : BadRequest();
+                            return materialTypeService.DeleteMaterialType(id) ? Ok("Xóa loại nguyên liệu thành công") : BadRequest("Xóa loại nguyên liệu thất bại");
                         }
                     }
                 }

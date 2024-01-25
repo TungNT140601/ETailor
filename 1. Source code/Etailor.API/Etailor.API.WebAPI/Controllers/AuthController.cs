@@ -99,7 +99,7 @@ namespace Etailor.API.WebAPI.Controllers
                             Ultils.SendOTPMail(email, otp);
                         }
 
-                        return Ok();
+                        return Ok("Đã gửi mail");
                     }
                     else
                     {
@@ -118,7 +118,7 @@ namespace Etailor.API.WebAPI.Controllers
                             Ultils.SendOTPMail(email, otp);
                         }
 
-                        return Ok();
+                        return Ok("Đã gửi mail");
                     }
                 }
                 else
@@ -235,18 +235,18 @@ namespace Etailor.API.WebAPI.Controllers
                 var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                 if (id == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role != RoleName.CUSTOMER)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
                     customerService.Logout(id);
                 }
 
-                return Ok();
+                return Ok("Đăng xuất thành công");
             }
             catch (UserException ex)
             {
@@ -272,11 +272,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                 if (id == null || !customerService.CheckSecerctKey(id, secrectKey))
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 if (role != RoleName.CUSTOMER)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 return customerService.ChangePassword(id, changePassModel.OldPassword, changePassModel.NewPassword) ? Ok("Đổi mật khẩu thành công!!!") : BadRequest("Đổi mật khẩu thất bại");
             }
@@ -355,18 +355,18 @@ namespace Etailor.API.WebAPI.Controllers
                 var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                 if (id == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role == RoleName.CUSTOMER)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
                     staffService.Logout(id);
                 }
 
-                return Ok();
+                return Ok("Đăng xuất thành công");
             }
             catch (UserException ex)
             {

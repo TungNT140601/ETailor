@@ -9,9 +9,9 @@ namespace Etailor.API.Service.Interface
 {
     public interface ICategoryService
     {
-        bool AddCategory(Category category);
-        bool UpdateCategory(Category category);
-        bool DeleteCategory(string id);
+        Task<bool> AddCategory(Category category);
+        Task<bool> UpdateCategory(Category category);
+        Task<bool> DeleteCategory(string id);
         Category GetCategory(string id);
         IEnumerable<Category> GetCategorys(string? search);
     }
