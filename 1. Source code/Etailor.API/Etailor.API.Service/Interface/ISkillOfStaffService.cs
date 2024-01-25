@@ -9,16 +9,12 @@ namespace Etailor.API.Service.Interface
 {
     public interface ISkillOfStaffService
     {
-        bool CreateSkillOfStaff(SkillOfStaff skillOfStaff);
+        IEnumerable<SkillOfStaff> GetAllSkillOfStaffByStaffId(string? search);
 
-        bool UpdateSkillOfStaff(SkillOfStaff skillOfStaff);
+        IEnumerable<SkillOfStaff> GetAllSkillOfStaffBySkillId(string? search);
+
+        bool CreateSkillOfStaff(string skillId, string staffId);
 
         bool DeleteSkillOfStaff(string id);
-
-        bool ActiveSkillOfStaff(string id);
-
-        SkillOfStaff GetSkillOfStaff(string id);
-
-        IEnumerable<SkillOfStaff> GetSkillOfStaffs(string? search);    
     }
 }
