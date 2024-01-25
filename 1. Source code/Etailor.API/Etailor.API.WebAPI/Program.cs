@@ -82,13 +82,6 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
-builder.Services.AddScoped<ISkillRepository, SkillRepository>();
-builder.Services.AddScoped<ISkillService, SkillService>();
-
-
-builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
-//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
-
 builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
 builder.Services.AddScoped<IComponentTypeService, ComponentTypeService>();
 
@@ -98,26 +91,29 @@ builder.Services.AddScoped<IComponentRepository, ComponentRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
-builder.Services.AddScoped<ISkillOfStaffRepository, SkillOfStaffRepository>();
-builder.Services.AddScoped<ISkillOfStaffService, SkillOfStaffService>();
-
+builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
+//builder.Services.AddScoped<>();
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<IStaffRepository, StaffRepository>();
-builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
-builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
-builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
-builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
-builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
-
-
-builder.Services.AddScoped<ISkillService, SkillService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
+
+builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
+
+
+builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
+
+builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
 builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
-builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
-builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
+//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));

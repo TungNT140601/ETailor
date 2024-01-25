@@ -7,8 +7,8 @@ namespace Etailor.API.Repository.EntityModels
     {
         public Category()
         {
-            Catalogs = new HashSet<Catalog>();
             ComponentTypes = new HashSet<ComponentType>();
+            ProductTemplates = new HashSet<ProductTemplate>();
         }
 
         public string Id { get; set; } = null!;
@@ -18,7 +18,7 @@ namespace Etailor.API.Repository.EntityModels
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
 
-        public virtual ICollection<Catalog> Catalogs { get; set; }
         public virtual ICollection<ComponentType> ComponentTypes { get; set; }
+        public virtual ICollection<ProductTemplate> ProductTemplates { get; set; }
     }
 }

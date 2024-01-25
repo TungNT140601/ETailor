@@ -7,9 +7,9 @@ namespace Etailor.API.Repository.EntityModels
     {
         public string Id { get; set; } = null!;
         public string? ComponentTypeId { get; set; }
-        public string? CatalogStageId { get; set; }
+        public string? TemplateStageId { get; set; }
 
-        public virtual CatalogStage? CatalogStage { get; set; }
         public virtual ComponentType? ComponentType { get; set; }
+        public virtual TemplateStage? TemplateStage { get; set; }
     }
 }

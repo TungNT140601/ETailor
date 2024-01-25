@@ -7,7 +7,7 @@ namespace Etailor.API.Repository.EntityModels
     {
         public string Id { get; set; } = null!;
         public string? ChatId { get; set; }
-        public string? StaffReply { get; set; }
+        public string? ReplierId { get; set; }
         public string? Message { get; set; }
         public bool? FromCus { get; set; }
         public DateTime? SendTime { get; set; }
@@ -17,6 +17,6 @@ namespace Etailor.API.Repository.EntityModels
         public bool? IsActive { get; set; }
 
         public virtual Chat? Chat { get; set; }
-        public virtual Staff? StaffReplyNavigation { get; set; }
+        public virtual Staff? Replier { get; set; }
     }
 }

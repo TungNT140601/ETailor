@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Etailor.API.Repository.Interface
 {
-    public interface ICatalogRepository : IGenericRepository<Catalog>
+    public interface IProductTemplateRepository : IGenericRepository<ProductTemplate>
     {
     }
 }
