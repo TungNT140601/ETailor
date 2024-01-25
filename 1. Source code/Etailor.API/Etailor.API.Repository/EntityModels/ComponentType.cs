@@ -7,20 +7,20 @@ namespace Etailor.API.Repository.EntityModels
     {
         public ComponentType()
         {
+            ComponentStages = new HashSet<ComponentStage>();
             Components = new HashSet<Component>();
         }
 
         public string Id { get; set; } = null!;
         public string? CategoryId { get; set; }
-        public string? CatalogStageId { get; set; }
         public string? Name { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
 
-        public virtual CatalogStage? CatalogStage { get; set; }
         public virtual Category? Category { get; set; }
+        public virtual ICollection<ComponentStage> ComponentStages { get; set; }
         public virtual ICollection<Component> Components { get; set; }
     }
 }

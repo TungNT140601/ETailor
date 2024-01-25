@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace Etailor.API.Repository.Repository
 {
-    public class CatalogRepository : GenericRepository<Catalog>, ICatalogRepository
+    public class ProductTemplateRepository : GenericRepository<ProductTemplate>, IProductTemplateRepository
     {
-        public CatalogRepository(ETailor_DBContext dBContext) : base(dBContext)
+        public ProductTemplateRepository(ETailor_DBContext dBContext) : base(dBContext)
         {
         }
     }

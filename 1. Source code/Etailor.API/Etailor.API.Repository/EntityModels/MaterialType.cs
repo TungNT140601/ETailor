@@ -12,6 +12,7 @@ namespace Etailor.API.Repository.EntityModels
 
         public string Id { get; set; } = null!;
         public string? Name { get; set; }
+        public string? Unit { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }

@@ -3,30 +3,29 @@ using System.Collections.Generic;
 
 namespace Etailor.API.Repository.EntityModels
 {
-    public partial class Product
+    public partial class TemplateStage
     {
-        public Product()
+        public TemplateStage()
         {
-            ProductBodySizes = new HashSet<ProductBodySize>();
+            ComponentStages = new HashSet<ComponentStage>();
+            InverseTemplateStageNavigation = new HashSet<TemplateStage>();
             ProductStages = new HashSet<ProductStage>();
         }
 
         public string Id { get; set; } = null!;
-        public string? OrderId { get; set; }
         public string? ProductTemplateId { get; set; }
+        public string? TemplateStageId { get; set; }
         public string? Name { get; set; }
-        public string? Note { get; set; }
-        public int? Status { get; set; }
-        public string? EvidenceImage { get; set; }
-        public DateTime? FinishTime { get; set; }
+        public int? StageNum { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
 
-        public virtual Order? Order { get; set; }
         public virtual ProductTemplate? ProductTemplate { get; set; }
-        public virtual ICollection<ProductBodySize> ProductBodySizes { get; set; }
+        public virtual TemplateStage? TemplateStageNavigation { get; set; }
+        public virtual ICollection<ComponentStage> ComponentStages { get; set; }
+        public virtual ICollection<TemplateStage> InverseTemplateStageNavigation { get; set; }
         public virtual ICollection<ProductStage> ProductStages { get; set; }
     }
 }

@@ -35,30 +35,31 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized();
-                }
-                //else if (role != RoleName.MANAGER)
-                else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
-                {
-                    return Forbid();
-                }
-                else
-                {
-                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
-                    {
-                        return Unauthorized();
-                    }
-                    else
-                    {
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                ////else if (role != RoleName.MANAGER)
+                //else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
+                //{
+                //    return Forbid("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(id, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
                         var staffCreate = mapper.Map<Staff>(staff);
                         return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
-                    }
-                }
+                        //return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage)) ? Ok("Tạo mới nhân viên thành công") : BadRequest("Tạo mới nhân viên thất bại");
+                //    }
+                //}
             }
             catch (UserException ex)
             {
@@ -82,12 +83,12 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 //else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
                 else if (role == RoleName.CUSTOMER)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -95,7 +96,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     //else if (role == RoleName.MANAGER)
                     else if (role == RoleName.MANAGER || role == RoleName.ADMIN)
@@ -103,7 +104,7 @@ namespace Etailor.API.WebAPI.Controllers
                         if (id == null)
                         {
                             staff.Id = staffId;
-                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
+                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok("Cập nhật thông tin thành công") : BadRequest("Cập nhật thông tin thất bại");
                         }
                         else
                         {
@@ -111,14 +112,14 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 throw new UserException("Không tìm thấy nhân viên");
                             }
-                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
+                            return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok("Cập nhật thông tin thành công") : BadRequest("Cập nhật thông tin thất bại");
                         }
                     }
                     else
                     {
                         staff.Id = staffId;
                         var staffUpdate = mapper.Map<Staff>(staff);
-                        return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok() : BadRequest();
+                        return (await staffService.UpdateInfo(mapper.Map<Staff>(staff), _wwwrootPath, staff.AvatarImage)) ? Ok("Cập nhật thông tin thành công") : BadRequest("Cập nhật thông tin thất bại");
                     }
                 }
             }
@@ -144,11 +145,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -156,7 +157,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(id, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
@@ -166,7 +167,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            return staffService.ChangePass(id, staff.OldPassword, staff.NewPassword, role) ? Ok() : BadRequest();
+                            return staffService.ChangePass(id, staff.OldPassword, staff.NewPassword, role) ? Ok("Thay đổi mật khẩu thành công") : BadRequest("Thay đổi mật khẩu thất bại");
                         }
                     }
                 }
@@ -193,11 +194,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -205,7 +206,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(id, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
@@ -235,11 +236,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role == RoleName.CUSTOMER)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -247,7 +248,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
@@ -292,11 +293,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role == RoleName.CUSTOMER || role == RoleName.STAFF)
                 {
-                    return Forbid();
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -304,7 +305,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
