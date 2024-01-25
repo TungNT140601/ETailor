@@ -15,12 +15,12 @@ namespace Etailor.API.Service.Service
     {
         private readonly ICategoryRepository categoryRepository;
         private readonly IComponentTypeRepository componentTypeRepository;
-        private readonly ICatalogRepository catalogRepository;
-        public CategoryService(ICategoryRepository categoryRepository, IComponentTypeRepository componentTypeRepository, ICatalogRepository catalogRepository)
+        private readonly IProductTemplateRepository productTemplateRepository;
+        public CategoryService(ICategoryRepository categoryRepository, IComponentTypeRepository componentTypeRepository, IProductTemplateRepository productTemplateRepository)
         {
             this.categoryRepository = categoryRepository;
             this.componentTypeRepository = componentTypeRepository;
-            this.catalogRepository = catalogRepository;
+            this.productTemplateRepository = productTemplateRepository;
         }
 
         public async Task<bool> AddCategory(Category category)
@@ -87,7 +87,7 @@ namespace Etailor.API.Service.Service
             {
                 var checkChild = Task.Run(() =>
                 {
-                    if (catalogRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
+                    if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
                     {
                         throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
                     }

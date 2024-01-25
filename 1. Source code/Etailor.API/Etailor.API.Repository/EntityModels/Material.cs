@@ -14,7 +14,6 @@ namespace Etailor.API.Repository.EntityModels
         public string Id { get; set; } = null!;
         public string? MaterialCategoryId { get; set; }
         public string? Name { get; set; }
-        public string? Unit { get; set; }
         public string? Image { get; set; }
         public decimal? Quantity { get; set; }
         public DateTime? CreatedTime { get; set; }

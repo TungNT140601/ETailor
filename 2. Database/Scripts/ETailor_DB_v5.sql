@@ -16,6 +16,7 @@ Create Table Staff (
 	Username nvarchar(255),
 	[Password] nvarchar(255),
 	SecrectKeyLogin nvarchar(20) null,
+	LastLoginDeviceToken NVARCHAR(255) NULL,
 	[Role] int null default 2,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
@@ -30,6 +31,7 @@ Create Table Customer (
 	[Address] nvarchar(255) null,
 	Phone nvarchar(10) null,
 	Email nvarchar(255) null,
+	Gender INT NULL DEFAULT 0,
 	Username nvarchar(255) null,
 	[Password] nvarchar(255) null,
 	OTPNumber nvarchar(10) null, 
@@ -60,7 +62,7 @@ Create Table BodySize (
 	Id nvarchar(30) Primary Key,
 	BodyPart nvarchar(50) null,
 	BodyIndex int null default 0,
-	[Name] nvarchar(100),
+	[Name] nvarchar(100) null,
 	[Image] text null, 
 	GuideVideoLink text null,
 	MinValidValue decimal null,
@@ -76,7 +78,6 @@ Create Table BodyAttribute (
 	ProfileBodyId nvarchar(30) FOREIGN KEY REFERENCES ProfileBody(Id),
 	BodySizeId nvarchar (30) FOREIGN KEY REFERENCES BodySize(Id),
 	[Value] decimal null,
-	Unit nvarchar (10) null,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
@@ -85,20 +86,21 @@ Create Table BodyAttribute (
 
 Create Table Category (
 	Id nvarchar(30) Primary Key,
-	[Name] nvarchar(100),
+	[Name] nvarchar(100) null,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
 	IsActive [bit] NULL DEFAULT 1,
 )
 
-Create Table [Catalog] (
+Create Table ProductTemplate (
 	Id nvarchar(30) Primary Key,
-	CategoryId nvarchar(30) FOREIGN KEY REFERENCES Category(Id),
+	CategoryId nvarchar(30) FOREIGN KEY REFERENCES Category(Id) NOT NULL,
 	[Name] nvarchar(255) null,
 	[Description] nvarchar(2550) null,
 	Price decimal null default 0,
 	[Image] text null,
+	CollectionImage TEXT NULL,
 	UrlPath nvarchar(255) null,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
@@ -106,16 +108,16 @@ Create Table [Catalog] (
 	IsActive [bit] NULL DEFAULT 1
 )
 
-Create Table CatalogBodySize (
+Create Table TemplateBodySize (
 	Id nvarchar(30) Primary Key,
-	CatalogId nvarchar(30) FOREIGN KEY REFERENCES [Catalog](Id),
+	ProductTemplateId nvarchar(30) FOREIGN KEY REFERENCES ProductTemplate(Id),
 	BodySizeId nvarchar(30) FOREIGN KEY REFERENCES BodySize(Id)
 )
 
-Create Table CatalogStage (
+Create Table TemplateStage (
 	Id nvarchar(30) Primary Key,
-	CatalogId nvarchar(30) FOREIGN KEY REFERENCES [Catalog](Id),
-	CatalogStageId nvarchar(30) null FOREIGN KEY REFERENCES CatalogStage(Id),
+	ProductTemplateId nvarchar(30) FOREIGN KEY REFERENCES ProductTemplate(Id),
+	TemplateStageId nvarchar(30) null FOREIGN KEY REFERENCES TemplateStage(Id),
 	[Name] nvarchar(155) null,
 	StageNum int null default 0,
 	CreatedTime datetime Null,
@@ -123,6 +125,34 @@ Create Table CatalogStage (
 	InactiveTime datetime Null,
 	IsActive [bit] NULL DEFAULT 1
 )
+
+Create Table ComponentType (
+	Id nvarchar(30) Primary Key,
+	CategoryId nvarchar(30) FOREIGN KEY REFERENCES Category(Id),
+	[Name] nvarchar(100) null,
+	CreatedTime datetime Null,
+	LastestUpdatedTime datetime Null, 
+	InactiveTime datetime Null,
+	IsActive [bit] NULL DEFAULT 1
+)
+
+Create Table ComponentStage (
+	Id nvarchar(30) Primary Key,
+	ComponentTypeId nvarchar(30) FOREIGN KEY REFERENCES ComponentType(Id),
+	TemplateStageId nvarchar(30) FOREIGN KEY REFERENCES TemplateStage(Id),
+)
+
+Create Table Component (
+	Id nvarchar(30) Primary Key,
+	ComponentTypeId nvarchar(30) FOREIGN KEY REFERENCES ComponentType(Id),
+	ProductTemplateId nvarchar(30) FOREIGN KEY REFERENCES ProductTemplate(Id),
+	[Name] nvarchar(100),
+	[Image] text,
+	CreatedTime datetime Null,
+	InactiveTime datetime Null,
+	IsActive [bit] NULL DEFAULT 1
+)
+
 
 Create Table Discount (
 	Id nvarchar(30) Primary Key,
@@ -144,7 +174,7 @@ Create Table Discount (
 Create Table [Order] (
 	Id nvarchar(30) Primary Key,
 	CustomerId nvarchar(30) FOREIGN KEY REFERENCES Customer(Id),
-	Approver nvarchar(30) FOREIGN KEY REFERENCES Staff(Id),
+	CreaterId nvarchar(30) FOREIGN KEY REFERENCES Staff(Id),
 	DiscountId nvarchar(30) null FOREIGN KEY REFERENCES Discount(Id),
 	TotalProduct int null default 0,
 	TotalPrice decimal null default 0,
@@ -155,8 +185,6 @@ Create Table [Order] (
 	Deposit decimal null,
 	PaidMoney decimal null,
 	UnPaidMoney decimal null,
-	IsApproved [bit] NULL DEFAULT 0,
-	ApproveTime datetime Null,
 	[Status] int default 1,
 	CancelTime datetime Null,
 	CreatedTime datetime Null,
@@ -169,11 +197,12 @@ Create Table [Order] (
 Create Table Product (
 	Id nvarchar(30) Primary Key,
 	OrderId nvarchar(30) FOREIGN KEY REFERENCES [Order](Id),
-	CatalogId nvarchar(30) FOREIGN KEY REFERENCES [Catalog](Id),
+	ProductTemplateId nvarchar(30) FOREIGN KEY REFERENCES ProductTemplate(Id),
 	[Name] nvarchar(255) null,
 	Note nvarchar(255) null,
 	[Status] int null default 1,
-	StatusPercent decimal null default 0,
+	EvidenceImage TEXT NULL,
+	FinishTime DATETIME NULL,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
@@ -183,44 +212,23 @@ Create Table Product (
 Create Table ProductStage (
 	Id nvarchar(30) Primary Key,
 	StaffId nvarchar(30) FOREIGN KEY REFERENCES [Staff](Id),
-	CatalogStageId nvarchar(30) FOREIGN KEY REFERENCES CatalogStage(Id),
+	TemplateStageId nvarchar(30) FOREIGN KEY REFERENCES TemplateStage(Id),
 	ProductId nvarchar(30) FOREIGN KEY REFERENCES [Product](Id),
-	StageNum int,
+	StageNum INT NULL DEFAULT 0,
+	TaskIndex INT NULL DEFAULT 0,
 	StartTime datetime Null,
 	FinishTime datetime Null,
-	Deadline datetime Null
-)
-
-Create Table ComponentType (
-	Id nvarchar(30) Primary Key,
-	CategoryId nvarchar(30) FOREIGN KEY REFERENCES Category(Id),
-	[Name] nvarchar(100) null,
-	CreatedTime datetime Null,
-	LastestUpdatedTime datetime Null, 
+	Deadline datetime NULL,
+	[Status] INT NULL DEFAULT 0,
 	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 1
+	IsActive [bit] NULL DEFAULT 1,
 )
 
-Create Table ComponentStage (
-	Id nvarchar(30) Primary Key,
-	ComponentTypeId nvarchar(30) FOREIGN KEY REFERENCES ComponentType(Id),
-	CatalogStageId nvarchar(30) FOREIGN KEY REFERENCES CatalogStage(Id),
-)
-
-Create Table Component (
-	Id nvarchar(30) Primary Key,
-	ComponentTypeId nvarchar(30) FOREIGN KEY REFERENCES ComponentType(Id),
-	CatalogId nvarchar(30) FOREIGN KEY REFERENCES [Catalog](Id),
-	[Name] nvarchar(100),
-	[Image] text,
-	CreatedTime datetime Null,
-	InactiveTime datetime Null,
-	IsActive [bit] NULL DEFAULT 1
-)
 
 Create Table MaterialType (
 	Id nvarchar(30) Primary Key,
 	[Name] nvarchar(100),
+	Unit nvarchar(10),
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
@@ -241,7 +249,6 @@ Create Table Material (
 	Id nvarchar(30) Primary Key,
 	MaterialCategoryId nvarchar(30) FOREIGN KEY REFERENCES MaterialCategory(Id),
 	[Name] nvarchar(100),
-	Unit nvarchar(10),
 	[Image] text null,
 	Quantity decimal null,
 	CreatedTime datetime Null,
@@ -264,23 +271,20 @@ Create Table OrderMaterial (
 	Id nvarchar(30) Primary Key,
 	MaterialId nvarchar(30) FOREIGN KEY REFERENCES Material(Id),
 	OrderId nvarchar(30) FOREIGN KEY REFERENCES [Order](Id),
-	Approver nvarchar(30) FOREIGN KEY REFERENCES Staff(Id) null,
 	[Image] text null,
-	IsApproved [bit] NULL DEFAULT 0,
-	ApproveTime datetime Null,
+	[Value] DECIMAL(18,3) NULL DEFAULT 0,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,
 	IsActive [bit] NULL DEFAULT 1
 )
 
-Create Table [Transaction] (
+Create Table Payment (
 	Id nvarchar(30) Primary Key,
 	OrderId nvarchar(30) FOREIGN KEY REFERENCES [Order](Id),
 	[Platform] nvarchar(50),
 	Amount decimal,
-	Currency nvarchar(30),
-	TransactionTime datetime Null, 
+	PayTime datetime Null, 
 	CreatedTime datetime Null,
 	[Status] int null default 0
 )
@@ -296,7 +300,7 @@ Create Table Chat (
 Create Table ChatHistory (
 	Id nvarchar(30) Primary Key,
 	ChatId nvarchar(30) FOREIGN KEY REFERENCES Chat(Id),
-	StaffReply nvarchar(30) FOREIGN KEY REFERENCES Staff(Id) null,
+	ReplierId nvarchar(30) FOREIGN KEY REFERENCES Staff(Id) null,
 	[Message] nvarchar(500),
 	FromCus [bit] NULL DEFAULT 1,
 	SendTime datetime Null,
@@ -308,9 +312,10 @@ Create Table ChatHistory (
 
 Create Table [Notification] (
 	Id nvarchar(30) Primary Key,
-	CustomerId nvarchar(30) FOREIGN KEY REFERENCES Customer(Id),
-	Title nvarchar(255),
-	Content nvarchar(Max),
+	CustomerId nvarchar(30) FOREIGN KEY REFERENCES Customer(Id) null,
+	StaffId nvarchar(30) FOREIGN KEY REFERENCES Staff(Id) null,
+	Title nvarchar(255) null,
+	Content nvarchar(Max) null,
 	SendTime datetime Null,
 	ReadTime datetime Null,
 	IsRead [bit] NULL DEFAULT 0,
@@ -334,7 +339,6 @@ Create Table ProductBodySize (
 	ProductId nvarchar(30) FOREIGN KEY REFERENCES Product(Id),
 	BodySizeId nvarchar(30) FOREIGN KEY REFERENCES BodySize(Id),
 	[Value] decimal null,
-	Unit nvarchar(10) null,
 	CreatedTime datetime Null,
 	LastestUpdatedTime datetime Null, 
 	InactiveTime datetime Null,

@@ -7,6 +7,7 @@ namespace Etailor.API.Repository.EntityModels
     {
         public string Id { get; set; } = null!;
         public string? CustomerId { get; set; }
+        public string? StaffId { get; set; }
         public string? Title { get; set; }
         public string? Content { get; set; }
         public DateTime? SendTime { get; set; }
@@ -15,5 +16,6 @@ namespace Etailor.API.Repository.EntityModels
         public bool? IsActive { get; set; }
 
         public virtual Customer? Customer { get; set; }
+        public virtual Staff? Staff { get; set; }
     }
 }

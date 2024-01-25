@@ -8,8 +8,8 @@ namespace Etailor.API.Repository.EntityModels
         public BodySize()
         {
             BodyAttributes = new HashSet<BodyAttribute>();
-            CatalogBodySizes = new HashSet<CatalogBodySize>();
             ProductBodySizes = new HashSet<ProductBodySize>();
+            TemplateBodySizes = new HashSet<TemplateBodySize>();
         }
 
         public string Id { get; set; } = null!;
@@ -26,7 +26,7 @@ namespace Etailor.API.Repository.EntityModels
         public bool? IsActive { get; set; }
 
         public virtual ICollection<BodyAttribute> BodyAttributes { get; set; }
-        public virtual ICollection<CatalogBodySize> CatalogBodySizes { get; set; }
         public virtual ICollection<ProductBodySize> ProductBodySizes { get; set; }
+        public virtual ICollection<TemplateBodySize> TemplateBodySizes { get; set; }
     }
 }
