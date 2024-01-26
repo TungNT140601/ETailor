@@ -115,6 +115,9 @@ builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryReposito
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
+builder.Services.AddScoped<IMasteryRepository, MasteryRepository>();
+//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
 FirebaseApp.Create(new AppOptions { Credential = credentials });

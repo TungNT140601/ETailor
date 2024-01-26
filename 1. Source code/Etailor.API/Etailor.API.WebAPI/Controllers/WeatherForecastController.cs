@@ -19,6 +19,8 @@ using Firebase.Storage;
 using System.Web;
 using System.Text.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
+using Etailor.API.Repository.Repository;
+using Etailor.API.Ultity.CustomException;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -670,6 +672,60 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [HttpPost("test-async-task")]
+        public async Task<IActionResult> TaskAsync(TestTask testTask)
+        {
+            try
+            {
+                var checkNum = new List<Task>();
+                var setNum = new List<Task<bool>>();
+
+                var addNum = new List<int>();
+                if (testTask.Nums != null && testTask.Nums.Count > 0)
+                {
+                    foreach (var num in testTask.Nums)
+                    {
+                        checkNum.Add(Task.Run(() =>
+                        {
+                            if (num == 0)
+                            {
+                                throw new Exception("Phat hien so 0");
+                            }
+                            else
+                            {
+                                setNum.Add(Task.Run(() =>
+                                {
+                                    addNum.Add(num);
+                                    return true;
+                                }));
+                            }
+                        }));
+                    }
+                    await Task.WhenAll(checkNum);
+
+                    var addMastery = await Task.WhenAll(setNum);
+
+                    if (addMastery.Any(c => c == false))
+                    {
+                        throw new UserException("Lỗi khi thêm kỹ năng chuyên môn");
+                    }
+                    else
+                    {
+                        return Ok();
+                    }
+                }
+                else
+                {
+                    return Ok();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
     public class Notify
     {
@@ -692,5 +748,10 @@ namespace Etailor.API.WebAPI.Controllers
         public string? DbImages { get; set; }
         public List<string>? ExistImages { get; set; }
         public List<IFormFile>? NewImages { get; set; }
+    }
+
+    public class TestTask
+    {
+        public List<int> Nums { get; set; }
     }
 }

@@ -21,12 +21,16 @@ namespace Etailor.API.Service.Service
     public class StaffService : IStaffService
     {
         private readonly IStaffRepository staffRepository;
+        private readonly ICategoryRepository categoryRepository;
+        private readonly IMasteryRepository masteryRepository;
         private IConfiguration configuration;
 
-        public StaffService(IStaffRepository staffRepository, IConfiguration configuration)
+        public StaffService(IStaffRepository staffRepository, IConfiguration configuration, ICategoryRepository categoryRepository, IMasteryRepository masteryRepository)
         {
             this.staffRepository = staffRepository;
             this.configuration = configuration;
+            this.categoryRepository = categoryRepository;
+            this.masteryRepository = masteryRepository;
         }
 
         public Staff CheckLogin(string username, string password)
@@ -62,7 +66,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> AddNewStaff(Staff staff, string wwwroot, IFormFile? avatar)
+        public async Task<bool> AddNewStaff(Staff staff, string wwwroot, IFormFile? avatar, List<string>? masterySkills)
         {
             try
             {
@@ -108,23 +112,105 @@ namespace Etailor.API.Service.Service
 
                 await Task.WhenAll(setAvatar, setId, setRole, setCreateTime, setIsActive, hashPassword);
 
-                return staffRepository.Create(staff);
+                if (staffRepository.Create(staff))
+                {
+                    var checkCategory = new List<Task>();
+                    var setMasterySkill = new List<Task<bool>>();
+                    if (masterySkills != null && masterySkills.Count > 0)
+                    {
+                        foreach (var skill in masterySkills)
+                        {
+                            checkCategory.Add(Task.Run(() =>
+                            {
+                                var category = categoryRepository.Get(skill);
+                                if (category != null && category.IsActive == true)
+                                {
+                                    setMasterySkill.Add(Task.Run(() =>
+                                    {
+                                        return masteryRepository.Create(new Mastery()
+                                        {
+                                            Id = Ultils.GenGuidString(),
+                                            CategoryId = skill,
+                                            StaffId = staff.Id
+                                        });
+                                    }));
+                                }
+                                else
+                                {
+                                    throw new UserException($"Loại sản phẩm không tồn tại;error_category_not_found;{staff.Id}");
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(checkCategory);
+                        var addMastery = await Task.WhenAll(setMasterySkill);
+                        if (addMastery.Any(c => c == false))
+                        {
+                            throw new UserException($"Lỗi khi thêm kỹ năng chuyên môn;error_mastery_add;{staff.Id}");
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    throw new UserException($"Lỗi khi thêm nhân viên;error_staff_add;{staff.Id}");
+                }
             }
             catch (UserException ex)
             {
-                throw new UserException(ex.Message);
+                if (ex.Message.Contains(";"))
+                {
+                    var errors = ex.Message.Split(';');
+                    var staffId = errors[2];
+                    var error = errors[1];
+                    var staffError = GetStaff(staffId);
+                    if (staffError != null)
+                    {
+                        var masteryIds = masteryRepository.GetAll(x => x.StaffId == staffId).Select(c => c.Id);
+                        var listTasks = new List<Task>();
+                        foreach (var id in masteryIds)
+                        {
+                            listTasks.Add(Task.Run(() =>
+                            {
+                                masteryRepository.Delete(id);
+                            }));
+                        }
+                        listTasks.Add(Task.Run(() =>
+                        {
+                            if (!string.IsNullOrEmpty(staffError.Avatar))
+                            {
+                                Ultils.DeleteObject(staffError.Avatar);
+                            }
+                        }));
+                        await Task.WhenAll(listTasks);
+
+                        staffRepository.Delete(staffId);
+                    }
+                    throw new UserException(errors[0]);
+                }
+                else
+                {
+                    throw ex;
+                }
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw ex;
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw ex;
             }
         }
-        public async Task<bool> UpdateInfo(Staff staff, string wwwroot, IFormFile? avatar)
+        public async Task<bool> UpdateInfo(Staff staff, string wwwroot, IFormFile? avatar, List<string>? masterySkills)
         {
+            var bkStaff = new Staff();
             try
             {
                 var dbStaff = GetStaff(staff.Id);
