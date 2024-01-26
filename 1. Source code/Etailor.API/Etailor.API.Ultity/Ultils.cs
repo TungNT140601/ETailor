@@ -15,6 +15,7 @@ using Google.Cloud.Storage.V1;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Http.Internal;
 using Etailor.API.Ultity.CustomException;
+using System.Globalization;
 
 namespace Etailor.API.Ultity
 {
@@ -352,5 +353,23 @@ namespace Etailor.API.Ultity
             return Regex.IsMatch(fileName, pattern);
         }
 
+        public static string ConvertToEnglishAlphabet(string text)
+        {
+            string formD = text.Normalize(NormalizationForm.FormD);
+            StringBuilder stringBuilder = new StringBuilder();
+
+            foreach (char ch in formD)
+            {
+                UnicodeCategory unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(ch);
+                }
+            }
+
+            var returnString = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+
+            return returnString.Replace(" ", "-");
+        }
     }
 }

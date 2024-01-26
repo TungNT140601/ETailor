@@ -30,18 +30,25 @@ namespace Etailor.API.WebAPI.Controllers
             this.staffService = staffService;
         }
         [HttpGet("{id}")]
-        public IActionResult Get(string id)
+        public IActionResult Get(string? id)
         {
             try
             {
-                var materialType = materialTypeService.GetMaterialType(id);
-                if (materialType == null)
+                if (id == null)
                 {
                     return NotFound("không tìm thấy loại nguyên liệu");
                 }
                 else
                 {
-                    return Ok(mapper.Map<MaterialTypeVM>(materialType));
+                    var materialType = materialTypeService.GetMaterialType(id);
+                    if (materialType == null)
+                    {
+                        return NotFound("không tìm thấy loại nguyên liệu");
+                    }
+                    else
+                    {
+                        return Ok(mapper.Map<MaterialTypeVM>(materialType));
+                    }
                 }
             }
             catch (UserException ex)
@@ -92,7 +99,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                     return Forbid("Không có quyền truy cập");
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -141,7 +148,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                     return Forbid("Không có quyền truy cập");
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -201,7 +208,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                     return Forbid("Không có quyền truy cập");
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {

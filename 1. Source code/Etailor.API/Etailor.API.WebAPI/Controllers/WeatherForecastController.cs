@@ -16,6 +16,7 @@ using Newtonsoft.Json.Linq;
 using Google.Cloud.Storage.V1;
 using Google.Apis.Storage.v1.Data;
 using Firebase.Storage;
+using System.Web;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -488,6 +489,39 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
 
+        }
+
+        [HttpGet("get-object-name")]
+        public IActionResult GetObjectName(string url)
+        {
+            try
+            {// Find the index of the "/o/" part in the URL
+                int indexO = url.IndexOf("/o/");
+                if (indexO == -1)
+                {
+                    throw new InvalidOperationException("Invalid Firebase Storage URL: '/o/' not found.");
+                }
+
+                // Extract the substring starting from the "/o/" part
+                string substring = url.Substring(indexO + 3);
+
+                // Remove query parameters
+                int indexQuestionMark = substring.IndexOf('?');
+                if (indexQuestionMark != -1)
+                {
+                    substring = substring.Substring(0, indexQuestionMark);
+                }
+
+                // Decode the remaining part of the URL to get the object name
+                string objectName = Uri.UnescapeDataString(substring);
+
+                return Ok(objectName);
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
     public class Notify

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using Etailor.API.Repository.EntityModels;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<Customer> Customers { get; set; } = null!;
         public virtual DbSet<CustomerClient> CustomerClients { get; set; } = null!;
         public virtual DbSet<Discount> Discounts { get; set; } = null!;
+        public virtual DbSet<Mastery> Masteries { get; set; } = null!;
         public virtual DbSet<Material> Materials { get; set; } = null!;
         public virtual DbSet<MaterialCategory> MaterialCategories { get; set; } = null!;
         public virtual DbSet<MaterialType> MaterialTypes { get; set; } = null!;
@@ -39,6 +41,7 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<Product> Products { get; set; } = null!;
         public virtual DbSet<ProductBodySize> ProductBodySizes { get; set; } = null!;
         public virtual DbSet<ProductComponent> ProductComponents { get; set; } = null!;
+        public virtual DbSet<ProductComponentMaterial> ProductComponentMaterials { get; set; } = null!;
         public virtual DbSet<ProductStage> ProductStages { get; set; } = null!;
         public virtual DbSet<ProductTemplate> ProductTemplates { get; set; } = null!;
         public virtual DbSet<ProfileBody> ProfileBodies { get; set; } = null!;
@@ -391,6 +394,27 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.StartDate).HasColumnType("datetime");
             });
 
+            modelBuilder.Entity<Mastery>(entity =>
+            {
+                entity.ToTable("Mastery");
+
+                entity.Property(e => e.Id).HasMaxLength(30);
+
+                entity.Property(e => e.CategoryId).HasMaxLength(30);
+
+                entity.Property(e => e.StaffId).HasMaxLength(30);
+
+                entity.HasOne(d => d.Category)
+                    .WithMany(p => p.Masteries)
+                    .HasForeignKey(d => d.CategoryId)
+                    .HasConstraintName("FK__Mastery__Categor__2E06CDA9");
+
+                entity.HasOne(d => d.Staff)
+                    .WithMany(p => p.Masteries)
+                    .HasForeignKey(d => d.StaffId)
+                    .HasConstraintName("FK__Mastery__StaffId__2EFAF1E2");
+            });
+
             modelBuilder.Entity<Material>(entity =>
             {
                 entity.ToTable("Material");
@@ -694,8 +718,6 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.MaterialId).HasMaxLength(30);
-
                 entity.Property(e => e.Name).HasMaxLength(100);
 
                 entity.Property(e => e.ProductStageId).HasMaxLength(30);
@@ -705,15 +727,33 @@ namespace Etailor.API.Repository.DataAccess
                     .HasForeignKey(d => d.ComponentId)
                     .HasConstraintName("FK__ProductCo__Compo__041093DD");
 
-                entity.HasOne(d => d.Material)
-                    .WithMany(p => p.ProductComponents)
-                    .HasForeignKey(d => d.MaterialId)
-                    .HasConstraintName("FK__ProductCo__Mater__05F8DC4F");
-
                 entity.HasOne(d => d.ProductStage)
                     .WithMany(p => p.ProductComponents)
                     .HasForeignKey(d => d.ProductStageId)
                     .HasConstraintName("FK__ProductCo__Produ__0504B816");
+            });
+
+            modelBuilder.Entity<ProductComponentMaterial>(entity =>
+            {
+                entity.ToTable("ProductComponentMaterial");
+
+                entity.Property(e => e.Id).HasMaxLength(30);
+
+                entity.Property(e => e.MaterialId).HasMaxLength(30);
+
+                entity.Property(e => e.ProductComponentId).HasMaxLength(30);
+
+                entity.Property(e => e.Quantity).HasColumnType("decimal(18, 0)");
+
+                entity.HasOne(d => d.Material)
+                    .WithMany(p => p.ProductComponentMaterials)
+                    .HasForeignKey(d => d.MaterialId)
+                    .HasConstraintName("FK__ProductCo__Mater__32CB82C6");
+
+                entity.HasOne(d => d.ProductComponent)
+                    .WithMany(p => p.ProductComponentMaterials)
+                    .HasForeignKey(d => d.ProductComponentId)
+                    .HasConstraintName("FK__ProductCo__Produ__31D75E8D");
             });
 
             modelBuilder.Entity<ProductStage>(entity =>
