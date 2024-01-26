@@ -8,6 +8,7 @@ namespace Etailor.API.Repository.EntityModels
         public Category()
         {
             ComponentTypes = new HashSet<ComponentType>();
+            Masteries = new HashSet<Mastery>();
             ProductTemplates = new HashSet<ProductTemplate>();
         }
 
@@ -19,6 +20,7 @@ namespace Etailor.API.Repository.EntityModels
         public bool? IsActive { get; set; }
 
         public virtual ICollection<ComponentType> ComponentTypes { get; set; }
+        public virtual ICollection<Mastery> Masteries { get; set; }
         public virtual ICollection<ProductTemplate> ProductTemplates { get; set; }
     }
 }
