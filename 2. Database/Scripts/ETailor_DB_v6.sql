@@ -267,10 +267,16 @@ Create Table ProductComponent (
 	Id nvarchar(30) Primary Key,
 	ComponentId nvarchar(30) FOREIGN KEY REFERENCES Component(Id),
 	ProductStageId nvarchar(30) FOREIGN KEY REFERENCES ProductStage(Id),
-	MaterialId nvarchar(30) FOREIGN KEY REFERENCES Material(Id),
 	[Name] nvarchar(100),
 	[Image] text null,
 	LastestUpdatedTime datetime Null
+)
+
+CREATE TABLE ProductComponentMaterial (
+	Id nvarchar(30) Primary Key,
+	ProductComponentId NVARCHAR(30) FOREIGN KEY REFERENCES dbo.ProductComponent(Id),
+	MaterialId NVARCHAR(30) FOREIGN KEY REFERENCES dbo.Material(Id),
+	Quantity DECIMAL NULL 
 )
 
 Create Table OrderMaterial (
