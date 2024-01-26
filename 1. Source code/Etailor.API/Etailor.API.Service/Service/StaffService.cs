@@ -305,7 +305,7 @@ namespace Etailor.API.Service.Service
             try
             {
                 var staff = staffRepository.Get(id);
-                if (staff != null)
+                if (staff != null && staff.IsActive == true)
                 {
                     return staff.SecrectKeyLogin == key;
                 }

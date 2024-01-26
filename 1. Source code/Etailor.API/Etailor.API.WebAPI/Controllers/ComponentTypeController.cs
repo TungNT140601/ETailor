@@ -222,5 +222,26 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet("/api/category/{id}/component-types")]
+        public async Task<IActionResult> GetComponentTypesByCategory(string id)
+        {
+            try
+            {
+                return Ok(mapper.Map<IEnumerable<ComponentTypeVM>>(componentTypeService.GetComponentTypesByCategory(id)));
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }
