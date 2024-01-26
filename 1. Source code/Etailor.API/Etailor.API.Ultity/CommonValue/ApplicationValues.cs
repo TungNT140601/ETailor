@@ -19,4 +19,17 @@ namespace Etailor.API.Ultity.CommonValue
         public static string BUCKET_NAME = "etailor-21a50.appspot.com";
         public static string FIREBASE_KEY = "etailor-21a50-firebase-adminsdk-badmt-5e743a2d8e.json";
     }
+
+    public static class SystemMessage
+    {
+        //format: table_function_(Field)_status
+        public static string STAFF_LOGIN_SUCCESS = "Đăng nhập thành công";
+        public static string STAFF_LOGIN_PASSWORD_FAIL= "Sai mật khẩu";
+        public static string STAFF_LOGIN_USERNAME_FAIL = "Sai tài khoản";
+        public static string FOR_BID_ERROR = "";
+
+        public static string PRODUCTTEMPLATE_CREATE_SUCCESS = "Thêm mẫu sản phẩm thành công";
+        public static string PRODUCTTEMPLATE_CREATE_NAME_FAIL = "Mẫu sản phẩm đã có trong cửa hàng";
+
+    }
 }
