@@ -17,6 +17,10 @@ using Google.Cloud.Storage.V1;
 using Google.Apis.Storage.v1.Data;
 using Firebase.Storage;
 using System.Web;
+using System.Text.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
+using Etailor.API.Repository.Repository;
+using Etailor.API.Ultity.CustomException;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -353,7 +357,7 @@ namespace Etailor.API.WebAPI.Controllers
 
             string paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
 
-            return Redirect(paymentUrl);
+            return Ok(paymentUrl);
         }
 
         [HttpGet]
@@ -407,7 +411,7 @@ namespace Etailor.API.WebAPI.Controllers
                 if (file == null || file.Length == 0)
                     return BadRequest("Invalid file");
 
-                var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
+                var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestUpdateImage", file, null);
                 var url = await Ultils.GetUrlImage(viewLink);
                 return Ok(new
                 {
@@ -427,7 +431,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var viewLink = await Ultils.UploadImages(_wwwrootPath, "TestImage", files);
+                var viewLink = await Ultils.UploadImages(_wwwrootPath, "TestUpdateImage", files);
 
                 return Ok(viewLink);
             }
@@ -523,6 +527,205 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+
+        [HttpPost("test-check-exist-and-add-new-image")]
+        [DisableRequestSizeLimit]
+        public async Task<IActionResult> TestCheckExistAndAddNewImage([FromForm] CheckExistAndAddNewImage checkExist)
+        {
+            try
+            {
+                string dbImages = checkExist.DbImages;
+                List<string> existImages = checkExist.ExistImages;
+                List<IFormFile> newImages = checkExist.NewImages;
+                string wwwroot = _wwwrootPath;
+                string generalPath = "TestUpdateImage";
+                if (newImages != null)
+                {
+                    var existLinkPayload = new List<string>();
+                    if (existImages != null && existImages.Count > 0)
+                    {
+                        existLinkPayload = existImages.Select(c => c.Contains("%2F") ? c.Replace("%2F", "/") : c).ToList();
+
+                        if (!string.IsNullOrWhiteSpace(dbImages))
+                        {
+                            var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                            var checkImages = Task.Run(async () =>
+                            {
+                                List<Task> tasks = new List<Task>();
+                                foreach (var existImage in existImagesDB)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        if (!existImages.Contains(existImage))
+                                        {
+                                            Ultils.DeleteObject(existImage);
+                                            existImagesDB.Remove(existImage);
+                                        }
+                                    }));
+                                }
+                                await Task.WhenAll(tasks);
+                            });
+
+                            await Task.WhenAll(checkImages);
+
+                            existImagesDB.AddRange(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+
+                            dbImages = JsonSerializer.Serialize(existImagesDB);
+                        }
+                        else
+                        {
+                            dbImages = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(dbImages))
+                        {
+                            var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                            var checkImages = Task.Run(async () =>
+                            {
+                                List<Task> tasks = new List<Task>();
+                                foreach (var existImage in existImagesDB)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        Ultils.DeleteObject(existImage);
+                                        existImagesDB.Remove(existImage);
+                                    }));
+                                }
+                                await Task.WhenAll(tasks);
+                            });
+
+                            await Task.WhenAll(checkImages);
+
+                            existImagesDB.AddRange(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+
+                            dbImages = JsonSerializer.Serialize(existImagesDB);
+                        }
+                        else
+                        {
+                            dbImages = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+                        }
+                    }
+                }
+                else
+                {
+                    var existLinkPayload = new List<string>();
+                    if (existImages != null && existImages.Count > 0)
+                    {
+                        existLinkPayload = existImages.Select(c => c.Contains("%2F") ? c.Replace("%2F", "/") : c).ToList();
+
+                        if (!string.IsNullOrWhiteSpace(dbImages))
+                        {
+                            var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                            var checkImages = Task.Run(async () =>
+                            {
+                                List<Task> tasks = new List<Task>();
+                                foreach (var existImage in existImagesDB)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        if (!existImages.Contains(existImage))
+                                        {
+                                            Ultils.DeleteObject(existImage);
+                                            existImagesDB.Remove(existImage);
+                                        }
+                                    }));
+                                }
+                                await Task.WhenAll(tasks);
+                            });
+                            await Task.WhenAll(checkImages);
+
+                            dbImages = JsonSerializer.Serialize(existImagesDB);
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(dbImages))
+                        {
+                            var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                            var checkImages = Task.Run(async () =>
+                            {
+                                List<Task> tasks = new List<Task>();
+                                foreach (var existImage in existImagesDB)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        Ultils.DeleteObject(existImage);
+                                        existImagesDB.Remove(existImage);
+                                    }));
+                                }
+                                await Task.WhenAll(tasks);
+                            });
+
+                            await Task.WhenAll(checkImages);
+
+                            dbImages = JsonSerializer.Serialize(existImagesDB);
+                        }
+                    }
+                }
+                return Ok(dbImages);
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("test-async-task")]
+        public async Task<IActionResult> TaskAsync(TestTask testTask)
+        {
+            try
+            {
+                var checkNum = new List<Task>();
+                var setNum = new List<Task<bool>>();
+
+                var addNum = new List<int>();
+                if (testTask.Nums != null && testTask.Nums.Count > 0)
+                {
+                    foreach (var num in testTask.Nums)
+                    {
+                        checkNum.Add(Task.Run(() =>
+                        {
+                            if (num == 0)
+                            {
+                                throw new Exception("Phat hien so 0");
+                            }
+                            else
+                            {
+                                setNum.Add(Task.Run(() =>
+                                {
+                                    addNum.Add(num);
+                                    return true;
+                                }));
+                            }
+                        }));
+                    }
+                    await Task.WhenAll(checkNum);
+
+                    var addMastery = await Task.WhenAll(setNum);
+
+                    if (addMastery.Any(c => c == false))
+                    {
+                        throw new UserException("Lỗi khi thêm kỹ năng chuyên môn");
+                    }
+                    else
+                    {
+                        return Ok();
+                    }
+                }
+                else
+                {
+                    return Ok();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
     }
     public class Notify
     {
@@ -539,5 +742,16 @@ namespace Etailor.API.WebAPI.Controllers
     {
         public string Base64String { get; set; }
         public string FileName { get; set; }
+    }
+    public class CheckExistAndAddNewImage
+    {
+        public string? DbImages { get; set; }
+        public List<string>? ExistImages { get; set; }
+        public List<IFormFile>? NewImages { get; set; }
+    }
+
+    public class TestTask
+    {
+        public List<int> Nums { get; set; }
     }
 }

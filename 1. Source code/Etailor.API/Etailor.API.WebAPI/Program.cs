@@ -95,7 +95,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
-//builder.Services.AddScoped<>();
+builder.Services.AddScoped<IProductTemplateService, ProductTemplateService>();
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
@@ -116,6 +116,9 @@ builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryReposito
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<IMasteryRepository, MasteryRepository>();
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 

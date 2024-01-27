@@ -32,9 +32,9 @@ namespace Etailor.API.Ultity
         public static string GenerateRandomOTP()
         {
             Random random = new Random();
-            int randomNumber = random.Next(0, 1000000);
+            int randomNumber = random.Next(0, 10000);
 
-            return randomNumber.ToString("D6");
+            return randomNumber.ToString("D4");
         }
 
         public static string GenerateRandomString(int length)
@@ -236,7 +236,7 @@ namespace Etailor.API.Ultity
             {
                 var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
 
-                var filePath = Path.Combine(wwwrootPath, "Upload", file.FileName);
+                var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
 
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
@@ -301,7 +301,7 @@ namespace Etailor.API.Ultity
             }
         }
 
-        private static void DeleteObject(string objectName)
+        public static void DeleteObject(string objectName)
         {
             try
             {

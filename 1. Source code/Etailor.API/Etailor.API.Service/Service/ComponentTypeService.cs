@@ -131,5 +131,17 @@ namespace Etailor.API.Service.Service
         {
             return componentTypeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
         }
+
+        public IEnumerable<ComponentType> GetComponentTypesByCategory(string? id)
+        {
+            if (id == null || categoryRepository.Get(id) == null)
+            {
+                throw new UserException("Loại danh mục không tìm thấy");
+            }
+            else
+            {
+                return componentTypeRepository.GetAll(x => x.CategoryId.Trim() == id.Trim() && x.IsActive == true);
+            }
+        }
     }
 }
