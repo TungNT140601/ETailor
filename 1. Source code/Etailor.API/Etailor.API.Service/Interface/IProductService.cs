@@ -12,7 +12,7 @@ namespace Etailor.API.Service.Interface
         //Task<bool> AddProduct(Product Product);
         //Task<bool> UpdateProduct(Product Product);
         //Task<bool> DeleteProduct(string id);
-        //Product GetProduct(string id);
-        //IEnumerable<Product> GetProducts(string? search);
+        Product GetProduct(string id);
+        IEnumerable<Product> GetProductsByOrderId(string? search);
     }
 }
