@@ -27,7 +27,7 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> CreateOrder(Order order)
         {
-            var checkName = Task.Run(() =>
+            var checkDuplicateId = Task.Run(() =>
             {
                 if (orderRepository.GetAll(x => x.Id == order.Id && x.IsActive == true).Any())
                 {
@@ -43,7 +43,7 @@ namespace Etailor.API.Service.Service
                 order.IsActive = true;
             });
 
-            await Task.WhenAll(checkName, setValue);
+            await Task.WhenAll(checkDuplicateId, setValue);
 
             return orderRepository.Create(order);
         }
@@ -53,22 +53,18 @@ namespace Etailor.API.Service.Service
             var dbOrder = orderRepository.Get(order.Id);
             if (dbOrder != null && dbOrder.IsActive == true)
             {
-                var checkName = Task.Run(() =>
-                {
-                    if (orderRepository.GetAll(x => dbOrder.Id != x.Id && x.IsActive == true).Any())
-                    {
-                        throw new UserException("Mã Id Order không khớp");
-                    }
-                });
-
                 var setValue = Task.Run(() =>
                 {
+                    //này lấy từ bảng product
                     dbOrder.TotalProduct = order.TotalProduct;
                     dbOrder.TotalPrice = order.TotalPrice;
+
+                    //này lấy từ bảng discount
                     dbOrder.DiscountId = order.DiscountId;
                     dbOrder.DiscountCode = order.DiscountCode;
                     dbOrder.AfterDiscountPrice   = order.AfterDiscountPrice;
 
+                    //lấy từ bảng transaction
                     dbOrder.PayDeposit = order.PayDeposit;
                     dbOrder.Deposit = order.Deposit;
                     dbOrder.PaidMoney = order.PaidMoney;
@@ -83,7 +79,7 @@ namespace Etailor.API.Service.Service
                     dbOrder.IsActive = true;
                 });
 
-                await Task.WhenAll(checkName, setValue);
+                await Task.WhenAll(setValue);
 
                 return orderRepository.Update(dbOrder.Id, dbOrder);
             }
@@ -93,35 +89,35 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        //public async Task<bool> DeleteOrder(string id)
-        //{
-        //    var dbOrder = orderRepository.Get(id);
-        //    if (dbOrder != null && dbOrder.IsActive == true)
-        //    {
-        //        var checkChild = Task.Run(() =>
-        //        {
-        //            if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
-        //            {
-        //                throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
-        //            }
-        //        });
-        //        var setValue = Task.Run(() =>
-        //        {
-        //            dbOrder.LastestUpdatedTime = DateTime.Now;
-        //            dbOrder.IsActive = false;
-        //            dbOrder.InactiveTime = DateTime.Now;
-        //        });
+        public async Task<bool> DeleteOrder(string id)
+        {
+            var dbOrder = orderRepository.Get(id);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                var checkChild = Task.Run(() =>
+                {
+                    //if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
+                    //{
+                    //    throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
+                    //}
+                });
+                var setValue = Task.Run(() =>
+                {
+                    dbOrder.CreatedTime = null;
+                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.IsActive = false;
+                    dbOrder.InactiveTime = DateTime.Now;
+                });
 
-        //        await Task.WhenAll(checkChild, setValue);
+                await Task.WhenAll(checkChild, setValue);
 
-        //        return orderRepository.Update(dbOrder.Id, dbOrder);
-        //    }
-        //    else
-        //    {
-        //        throw new UserException("Không tìm thấy danh mục sản phầm");
-        //    }
-        //}
-
+                return orderRepository.Update(dbOrder.Id, dbOrder);
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy danh mục sản phầm");
+            }
+        }
 
         public Order GetOrder(string id)
         {

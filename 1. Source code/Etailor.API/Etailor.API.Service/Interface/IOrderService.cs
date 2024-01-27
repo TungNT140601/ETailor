@@ -11,7 +11,7 @@ namespace Etailor.API.Service.Interface
     {
         Task<bool> CreateOrder(Order order);
         Task<bool> UpdateOrder(Order order);
-        //Task<bool> DeleteOrder(string id);
+        Task<bool> DeleteOrder(string id);
         Order GetOrder(string id);
         IEnumerable<Order> GetOrders(string? search);
     }
