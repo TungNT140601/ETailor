@@ -18,6 +18,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? Name { get; set; }
         public string? Description { get; set; }
         public decimal? Price { get; set; }
+        public string? ThumbnailImage { get; set; }
         public string? Image { get; set; }
         public string? CollectionImage { get; set; }
         public string? UrlPath { get; set; }

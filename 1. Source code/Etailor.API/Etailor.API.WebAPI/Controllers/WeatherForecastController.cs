@@ -357,7 +357,7 @@ namespace Etailor.API.WebAPI.Controllers
 
             string paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
 
-            return Redirect(paymentUrl);
+            return Ok(paymentUrl);
         }
 
         [HttpGet]

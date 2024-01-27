@@ -194,6 +194,10 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        //public IEnumerable<Category> GetProductCategory()
+        //{
+        //    var categories 
+        //}
 
         private async Task<string> HandleImage(string? dbImages, List<string>? existImages, List<IFormFile>? newImages, string wwwroot, string generalPath)
         {
