@@ -82,6 +82,9 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+
 builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
 builder.Services.AddScoped<IComponentTypeService, ComponentTypeService>();
 
