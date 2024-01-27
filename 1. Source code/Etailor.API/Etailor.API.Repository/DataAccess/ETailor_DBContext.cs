@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Etailor.API.Repository.EntityModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Etailor.API.Repository.DataAccess
 {
@@ -51,11 +52,12 @@ namespace Etailor.API.Repository.DataAccess
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!optionsBuilder.IsConfigured)
-            {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-                optionsBuilder.UseSqlServer("server=tungnt-dbcloud.database.windows.net;uid=tungnt;pwd=123456789aA@;database=ETailor_DB;TrustServerCertificate=True;");
-            }
+            optionsBuilder.UseSqlServer("server=tungnt-dbcloud.database.windows.net;uid=tungnt;pwd=123456789aA@;database=ETailor_DB;TrustServerCertificate=True;", b => b.MigrationsAssembly("Etailor.API.WebAPI"));
+//            if (!optionsBuilder.IsConfigured)
+//            {
+//#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+//                optionsBuilder.UseSqlServer("server=tungnt-dbcloud.database.windows.net;uid=tungnt;pwd=123456789aA@;database=ETailor_DB;TrustServerCertificate=True;");
+//            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -813,6 +815,8 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
                 entity.Property(e => e.Description).HasMaxLength(2550);
+
+                entity.Property(e => e.ThumbnailImage).HasColumnType("text");
 
                 entity.Property(e => e.Image).HasColumnType("text");
 

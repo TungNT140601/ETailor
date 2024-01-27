@@ -357,16 +357,27 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                customer.Otpused = true;
-                if (Ultils.IsValidEmail(emailOrPhone))
+                if (customer.Otpused == false && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.Now)
                 {
-                    customer.EmailVerified = true;
+                    throw new UserException($"Mã xác thực có thể gửi lại sau {customer.OtptimeLimit.Value.AddMinutes(-3).Minute - DateTime.Now.Minute} phút");
+                }
+                else if (customer.Otpused == false)
+                {
+                    customer.Otpused = true;
+                    if (Ultils.IsValidEmail(emailOrPhone))
+                    {
+                        customer.EmailVerified = true;
+                    }
+                    else
+                    {
+                        customer.PhoneVerified = true;
+                    }
+                    return customerRepository.Update(customer.Id, customer);
                 }
                 else
                 {
-                    customer.PhoneVerified = true;
+                    throw new UserException("Mã xác thực đã được sử dụng");
                 }
-                return customerRepository.Update(customer.Id, customer);
             }
         }
 
@@ -383,7 +394,7 @@ namespace Etailor.API.Service.Service
         public bool CheckSecerctKey(string id, string key)
         {
             var customer = customerRepository.Get(id);
-            if (customer != null)
+            if (customer != null && customer.IsActive == true)
             {
                 return customer.SecrectKeyLogin == key;
             }

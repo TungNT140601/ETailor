@@ -57,6 +57,8 @@ namespace Etailor.API.WebAPI.Controllers
 
                 return Ok(new
                 {
+                    Name = customer.Fullname ?? "",
+                    Avatar = customer.Avatar != string.Empty ? await Ultils.GetUrlImage(customer.Avatar) : "",
                     Token = Ultils.GetToken(customer.Id, customer.Fullname ?? string.Empty, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration)
                 });
             }
@@ -318,7 +320,7 @@ namespace Etailor.API.WebAPI.Controllers
 
         #region Staff
         [HttpPost("staff/login")]
-        public IActionResult CheckLoginStaff([FromBody] StaffLogin staffLogin)
+        public async Task<IActionResult> CheckLoginStaff([FromBody] StaffLogin staffLogin)
         {
             try
             {
@@ -328,6 +330,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF,
                     Name = staff.Fullname ?? string.Empty,
+                    Avatar = staff.Avatar != string.Empty ? await Ultils.GetUrlImage(staff.Avatar) : "",
                     Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration)
                 });
             }

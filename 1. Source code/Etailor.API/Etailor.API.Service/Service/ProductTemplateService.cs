@@ -77,22 +77,18 @@ namespace Etailor.API.Service.Service
                     throw new UserException("Giá tham khảo không phù hợp");
                 }
             });
-            var setImage = Task.Run(() =>
+            var setImage = Task.Run(async () =>
             {
-                if (images != null)
+                if(images != null && images.Count > 0)
                 {
-                    var imagesUrls = Ultils.UploadImages(wwwroot, "TemplateImages", images);
-
-                    productTemplate.Image = JsonSerializer.Serialize(imagesUrls);
+                    productTemplate.Image = await HandleImage(null, null, images, wwwroot, "TemplateImages");
                 }
             });
             var setCoolectionImage = Task.Run(async () =>
             {
-                if (collectionImages != null)
+                if (collectionImages != null && collectionImages.Count > 0)
                 {
-                    var imagesUrls = await Ultils.UploadImages(wwwroot, "TemplateCollectionImages", collectionImages);
-
-                    productTemplate.CollectionImage = JsonSerializer.Serialize(imagesUrls);
+                    productTemplate.CollectionImage = await HandleImage(null, null, collectionImages, wwwroot, "TemplateCollectionImages");
                 }
             });
             var setValue = Task.Run(() =>
@@ -108,7 +104,7 @@ namespace Etailor.API.Service.Service
             return productTemplateRepository.Create(productTemplate);
         }
 
-        public async Task<bool> UpdateTemplate(ProductTemplate productTemplate, string wwwroot, List<IFormFile>? images, List<IFormFile>? collectionImages)
+        public async Task<bool> UpdateTemplate(ProductTemplate productTemplate, string wwwroot, List<string>? existImages, List<IFormFile>? newImages, List<string>? existCollectionImages, List<IFormFile>? newCollectionImages)
         {
             var dbTemplate = productTemplateRepository.Get(productTemplate.Id);
 
@@ -177,27 +173,11 @@ namespace Etailor.API.Service.Service
                         dbTemplate.Price = productTemplate.Price;
                     }
                 });
-                var setImage = Task.Run(async () =>
-                {
-                    if (images != null)
-                    {
-                        var imagesUrls = await Ultils.UploadImages(wwwroot, "TemplateImages", images);
-                        if (!string.IsNullOrWhiteSpace(dbTemplate.Image))
-                        {
-                            imagesUrls.AddRange(JsonSerializer.Deserialize<List<string>>(dbTemplate.Image));
-                        }
-                        dbTemplate.Image = JsonSerializer.Serialize(imagesUrls);
-                    }
-                });
-                var setCoolectionImage = Task.Run(() =>
-                {
-                    if (collectionImages != null)
-                    {
-                        var imagesUrls = Ultils.UploadImages(wwwroot, "TemplateCollectionImages", collectionImages);
 
-                        productTemplate.CollectionImage = JsonSerializer.Serialize(imagesUrls);
-                    }
-                });
+                var setImage = Task.Run(async () => dbTemplate.Image = await HandleImage(dbTemplate.Image, existImages, newImages, wwwroot, "TemplateImages"));
+
+                var setCoolectionImage = Task.Run(async () => dbTemplate.CollectionImage = await HandleImage(dbTemplate.CollectionImage, existCollectionImages, newCollectionImages, wwwroot, "TemplateCollectionImages"));
+
                 var setValue = Task.Run(() =>
                 {
                     dbTemplate.LastestUpdatedTime = DateTime.Now;
@@ -212,6 +192,141 @@ namespace Etailor.API.Service.Service
             {
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
+        }
+
+        //public IEnumerable<Category> GetProductCategory()
+        //{
+        //    var categories 
+        //}
+
+        private async Task<string> HandleImage(string? dbImages, List<string>? existImages, List<IFormFile>? newImages, string wwwroot, string generalPath)
+        {
+            if (newImages != null)
+            {
+                var existLinkPayload = new List<string>();
+                if (existImages != null && existImages.Count > 0)
+                {
+                    existLinkPayload = existImages.Select(c => c.Contains("%2F") ? c.Replace("%2F", "/") : c).ToList();
+
+                    if (!string.IsNullOrWhiteSpace(dbImages))
+                    {
+                        var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                        var checkImages = Task.Run(async () =>
+                        {
+                            List<Task> tasks = new List<Task>();
+                            foreach (var existImage in existImagesDB)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    if (!existImages.Contains(existImage))
+                                    {
+                                        Ultils.DeleteObject(existImage);
+                                        existImagesDB.Remove(existImage);
+                                    }
+                                }));
+                            }
+                            await Task.WhenAll(tasks);
+                        });
+
+                        await Task.WhenAll(checkImages);
+
+                        existImagesDB.AddRange(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+
+                        dbImages = JsonSerializer.Serialize(existImagesDB);
+                    }
+                    else
+                    {
+                        dbImages = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(dbImages))
+                    {
+                        var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                        var checkImages = Task.Run(async () =>
+                        {
+                            List<Task> tasks = new List<Task>();
+                            foreach (var existImage in existImagesDB)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    Ultils.DeleteObject(existImage);
+                                    existImagesDB.Remove(existImage);
+                                }));
+                            }
+                            await Task.WhenAll(tasks);
+                        });
+
+                        await Task.WhenAll(checkImages);
+
+                        existImagesDB.AddRange(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+
+                        dbImages = JsonSerializer.Serialize(existImagesDB);
+                    }
+                    else
+                    {
+                        dbImages = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, generalPath, newImages));
+                    }
+                }
+            }
+            else
+            {
+                var existLinkPayload = new List<string>();
+                if (existImages != null && existImages.Count > 0)
+                {
+                    existLinkPayload = existImages.Select(c => c.Contains("%2F") ? c.Replace("%2F", "/") : c).ToList();
+
+                    if (!string.IsNullOrWhiteSpace(dbImages))
+                    {
+                        var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                        var checkImages = Task.Run(async () =>
+                        {
+                            List<Task> tasks = new List<Task>();
+                            foreach (var existImage in existImagesDB)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    if (!existImages.Contains(existImage))
+                                    {
+                                        Ultils.DeleteObject(existImage);
+                                        existImagesDB.Remove(existImage);
+                                    }
+                                }));
+                            }
+                            await Task.WhenAll(tasks);
+                        });
+                        await Task.WhenAll(checkImages);
+
+                        dbImages = JsonSerializer.Serialize(existImagesDB);
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(dbImages))
+                    {
+                        var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
+                        var checkImages = Task.Run(async () =>
+                        {
+                            List<Task> tasks = new List<Task>();
+                            foreach (var existImage in existImagesDB)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    Ultils.DeleteObject(existImage);
+                                    existImagesDB.Remove(existImage);
+                                }));
+                            }
+                            await Task.WhenAll(tasks);
+                        });
+
+                        await Task.WhenAll(checkImages);
+
+                        dbImages = JsonSerializer.Serialize(existImagesDB);
+                    }
+                }
+            }
+            return dbImages;
         }
     }
 }

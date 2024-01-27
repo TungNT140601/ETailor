@@ -105,6 +105,7 @@ Create Table ProductTemplate (
 	[Name] nvarchar(255) null,
 	[Description] nvarchar(2550) null,
 	Price decimal null default 0,
+	ThumbnailImage text null,
 	[Image] text null,
 	CollectionImage TEXT NULL,
 	UrlPath nvarchar(255) null,

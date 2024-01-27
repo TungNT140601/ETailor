@@ -14,5 +14,6 @@ namespace Etailor.API.Service.Interface
         bool DeleteComponentType(string id);
         ComponentType GetComponentType(string id);
         IEnumerable<ComponentType> GetComponentTypes(string? search);
+        IEnumerable<ComponentType> GetComponentTypesByCategory(string? id);
     }
 }
