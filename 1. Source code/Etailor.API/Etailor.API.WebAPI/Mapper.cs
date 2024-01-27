@@ -25,11 +25,10 @@ namespace Etailor.API.WebAPI
 
             CreateMap<ComponentType, ComponentTypeVM>().ReverseMap();
             CreateMap<ComponentType, ComponentTypeFormVM>().ReverseMap();
-
+            CreateMap<Discount, DiscountVM>().ReverseMap();
+            CreateMap<Order, OrderVM>().ReverseMap();
 
             CreateMap<ProductTemplate, ProductTemplateALLVM>().ReverseMap();
-
-
         }
     }
 }
