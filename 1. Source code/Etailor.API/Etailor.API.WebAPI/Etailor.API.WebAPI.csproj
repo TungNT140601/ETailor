@@ -31,4 +31,8 @@
     <ProjectReference Include="..\Etailor.API.Service\Etailor.API.Service.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\UpdateDraft\" />
+  </ItemGroup>
+
 </Project>

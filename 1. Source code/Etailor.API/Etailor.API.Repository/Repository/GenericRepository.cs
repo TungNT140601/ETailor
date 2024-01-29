@@ -76,6 +76,18 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
+        public async Task<T> GetAsync(string id)
+        {
+            try
+            {
+                return await dbSet.FindAsync(id);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public IEnumerable<T> GetAll(Func<T, bool> where)
         {
             try
@@ -87,6 +99,18 @@ namespace Etailor.API.Repository.Repository
                 throw new SystemsException(ex.Message);
             }
         }
+
+        //public Task<IEnumerable<T>> GetAll(Func<T, bool> where)
+        //{
+        //    try
+        //    {
+        //        return dbSet.Where(where);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        throw new SystemsException(ex.Message);
+        //    }
+        //}
 
         public bool Update(string id, T entity)
         {
