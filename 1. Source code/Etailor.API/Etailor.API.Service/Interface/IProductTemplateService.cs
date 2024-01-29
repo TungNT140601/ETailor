@@ -16,5 +16,6 @@ namespace Etailor.API.Service.Interface
         Task<string> UpdateDraftTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? newImages, List<IFormFile>? newCollectionImages);
         bool CreateSaveActiveTemplate(string id);
         Task<string> UpdateTemplate(string id, string wwwroot);
+        bool DeleteTemplate(string id);
     }
 }

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Etailor.API.Service.Service
@@ -75,7 +76,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (thumbnailImage != null)
                     {
-                        productTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ThumnailImages", thumbnailImage, null);
+                        productTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, null);
                     }
                 });
 
@@ -95,7 +96,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (images != null && images.Count > 0)
                     {
-                        productTemplate.Image = await HandleImage(null, images, wwwroot, "TemplateImages");
+                        productTemplate.Image = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/Images", images));
                     }
                 });
 
@@ -103,7 +104,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (collectionImages != null && collectionImages.Count > 0)
                     {
-                        productTemplate.CollectionImage = await HandleImage(null, collectionImages, wwwroot, "TemplateCollectionImages");
+                        productTemplate.CollectionImage = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/CollectionImages", collectionImages));
                     }
                 });
 
@@ -201,7 +202,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (images != null && images.Count > 0)
                         {
-                            dbTemplate.Image = await HandleImage(dbTemplate.Image, images, wwwroot, "TemplateImages");
+                            dbTemplate.Image = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/Images", images));
                         }
                     });
 
@@ -209,7 +210,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (collectionImages != null && collectionImages.Count > 0)
                         {
-                            dbTemplate.CollectionImage = await HandleImage(dbTemplate.CollectionImage, collectionImages, wwwroot, "TemplateCollectionImages");
+                            dbTemplate.CollectionImage = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/CollectionImages", collectionImages));
                         }
                     });
 
@@ -245,12 +246,12 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<string> UpdateDraftTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? newImages, List<IFormFile>? newCollectionImages)
+        public async Task<string> UpdateDraftTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
         {
 
             var dbTemplate = productTemplateRepository.Get(productTemplate.Id);
 
-            if (dbTemplate != null)
+            if (dbTemplate != null && dbTemplate.IsActive == true)
             {
                 var fileDraft = Path.Combine(wwwroot, "UpdateDraft", $"{dbTemplate.Id}.json");
 
@@ -258,101 +259,187 @@ namespace Etailor.API.Service.Service
 
                 if (File.Exists(fileDraft))
                 {
+                    //using (StreamReader reader = new StreamReader(fileDraft, Encoding.UTF8))
+                    //{
+                    //    string jsonString = reader.ReadToEnd();
+
+                    //    draftTemplate = JsonSerializer.Deserialize<ProductTemplate>(jsonString);
+                    //}
                     string jsonString = File.ReadAllText(fileDraft);
 
                     draftTemplate = JsonSerializer.Deserialize<ProductTemplate>(jsonString);
                 }
-                var checkCategoryId = Task.Run(() =>
-                {
-                    if (productTemplate.CategoryId == null)
-                    {
-                        throw new UserException("Vui lòng chọn loại danh mục");
-                    }
-                    else if (categoryRepository.Get(productTemplate.CategoryId) == null || categoryRepository.Get(productTemplate.CategoryId).IsActive != true)
-                    {
-                        throw new UserException("Loại danh mục không tồn tại");
-                    }
-                    else
-                    {
-                        dbTemplate.CategoryId = productTemplate.CategoryId;
-                    }
-                });
+                var tasks = new List<Task>();
 
-                await checkCategoryId;
+                #region CheckCategoryAndName
+                //tasks.Add(Task.Run(() =>
+                //        {
+                //            if (productTemplate.CategoryId == null)
+                //            {
+                //                throw new UserException("Vui lòng chọn loại danh mục");
+                //            }
+                //            else
+                //            {
+                //                var category = categoryRepository.Get(productTemplate.CategoryId);
+                //                if (category == null || category.IsActive != true)
+                //                {
+                //                    throw new UserException("Loại danh mục không tồn tại");
+                //                }
+                //                else
+                //                {
+                //                    dbTemplate.CategoryId = productTemplate.CategoryId;
+                //                }
+                //            }
 
-                var checkName = Task.Run(() =>
-                {
-                    if (string.IsNullOrWhiteSpace(productTemplate.Name))
-                    {
-                        throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
-                    }
-                    else
-                    {
-                        productTemplate.UrlPath = Ultils.ConvertToEnglishAlphabet(productTemplate.Name);
-                        if (productTemplateRepository.GetAll(x => x.Id != dbTemplate.Id && (x.Name == productTemplate.Name || x.UrlPath == productTemplate.UrlPath) && x.IsActive == true).Any())
+                //            if (string.IsNullOrWhiteSpace(productTemplate.Name))
+                //            {
+                //                throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
+                //            }
+                //            else
+                //            {
+                //                productTemplate.UrlPath = Ultils.ConvertToEnglishAlphabet(productTemplate.Name);
+                //                if (productTemplateRepository.GetAll(x => x.Id != dbTemplate.Id && (x.Name == productTemplate.Name || x.UrlPath == productTemplate.UrlPath) && x.IsActive == true).Any())
+                //                {
+                //                    throw new UserException($"Tên mẫu sản phẩm đã được sử dụng: {productTemplate.UrlPath.Replace("-", " ")}");
+                //                }
+                //                else
+                //                {
+                //                    dbTemplate.Name = productTemplate.Name;
+                //                    dbTemplate.UrlPath = productTemplate.UrlPath;
+                //                }
+                //            }
+                //        }));
+                #endregion
+
+                #region SetDesc
+                tasks.Add(Task.Run(() =>
                         {
-                            throw new UserException($"Tên mẫu sản phẩm đã được sử dụng: {productTemplate.UrlPath.Replace("-", " ")}");
-                        }
-                        else
+                            if (string.IsNullOrWhiteSpace(productTemplate.Description))
+                            {
+                                productTemplate.Description = "";
+                            }
+                            else
+                            {
+                                dbTemplate.Description = productTemplate.Description;
+                            }
+                        }));
+                #endregion
+
+                #region CheckPrice
+                tasks.Add(Task.Run(() =>
                         {
-                            dbTemplate.Name = productTemplate.Name;
-                            dbTemplate.UrlPath = productTemplate.UrlPath;
-                        }
-                    }
-                });
+                            if (productTemplate.Price == null || productTemplate.Price == 0)
+                            {
+                                throw new UserException("Vui lòng nhập giá tham khảo sản phẩm cho mẫu sản phẩm");
+                            }
+                            else if (productTemplate.Price < 0)
+                            {
+                                throw new UserException("Giá tham khảo không phù hợp");
+                            }
+                            else
+                            {
+                                dbTemplate.Price = productTemplate.Price;
+                            }
+                        }));
+                #endregion
 
-                var setDesc = Task.Run(() =>
+                #region SetThumnailImage
+                tasks.Add(Task.Run(async () =>
+                        {
+                            if (thumbnailImage != null)
+                            {
+                                dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, draftTemplate == null ? dbTemplate.ThumbnailImage : draftTemplate.ThumbnailImage);
+                            }
+                            else
+                            {
+                                dbTemplate.ThumbnailImage = "";
+                            }
+                        }));
+                #endregion
+
+                #region RemoveDraftThumnailImage
+                tasks.Add(Task.Run(() =>
+                        {
+                            if (!string.IsNullOrEmpty(draftTemplate.ThumbnailImage))
+                            {
+                                Ultils.DeleteObject(draftTemplate.ThumbnailImage);
+                            }
+                        }));
+                #endregion
+
+                #region SetImage
+                tasks.Add(Task.Run(async () =>
                 {
-                    if (string.IsNullOrWhiteSpace(productTemplate.Description))
+                    if (images != null)
                     {
-                        productTemplate.Description = "";
+                        dbTemplate.Image = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/Images", images));
                     }
                     else
                     {
-                        dbTemplate.Description = productTemplate.Description;
+                        dbTemplate.Image = "";
                     }
-                });
+                }));
+                #endregion
 
-                await checkName;
-
-                var checkPrice = Task.Run(() =>
+                #region RemoveDraftImage
+                if (!string.IsNullOrEmpty(draftTemplate.Image))
                 {
-                    if (productTemplate.Price == null || productTemplate.Price == 0)
+                    var draftImages = JsonSerializer.Deserialize<List<string>>(draftTemplate.Image);
+                    foreach (var draftImage in draftImages)
                     {
-                        throw new UserException("Vui lòng nhập giá tham khảo sản phẩm cho mẫu sản phẩm");
+                        tasks.Add(Task.Run(() =>
+                        {
+                            Ultils.DeleteObject(draftImage);
+                        }));
                     }
-                    else if (productTemplate.Price < 0)
+                }
+                #endregion
+
+                #region SetCollectionImage
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (collectionImages != null)
                     {
-                        throw new UserException("Giá tham khảo không phù hợp");
+                        dbTemplate.CollectionImage = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/CollectionImages", collectionImages));
                     }
                     else
                     {
-                        dbTemplate.Price = productTemplate.Price;
+                        dbTemplate.CollectionImage = "";
                     }
-                });
+                }));
+                #endregion
 
-                var setThumbnailImage = Task.Run(async () =>
+                #region RemoveDraftCollectionImage
+                if (!string.IsNullOrEmpty(draftTemplate.CollectionImage))
                 {
-                    if (thumbnailImage != null)
+                    var draftCollectionImages = JsonSerializer.Deserialize<List<string>>(draftTemplate.CollectionImage);
+                    foreach (var draftCollectionImage in draftCollectionImages)
                     {
-                        dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ThumnailImages", thumbnailImage, draftTemplate == null ? dbTemplate.ThumbnailImage : draftTemplate.ThumbnailImage);
+                        tasks.Add(Task.Run(() =>
+                        {
+                            Ultils.DeleteObject(draftCollectionImage);
+                        }));
                     }
-                });
+                }
+                #endregion
 
-                var setImage = Task.Run(async () => dbTemplate.Image = await HandleImage(draftTemplate == null ? dbTemplate.Image : draftTemplate.Image, newImages, wwwroot, "TemplateImages"));
+                #region SetValue
+                tasks.Add(Task.Run(() =>
+                        {
+                            dbTemplate.LastestUpdatedTime = DateTime.Now;
+                            dbTemplate.InactiveTime = null;
+                            dbTemplate.IsActive = true;
+                        }));
+                #endregion
 
-                var setCoolectionImage = Task.Run(async () => dbTemplate.CollectionImage = await HandleImage(draftTemplate == null ? dbTemplate.CollectionImage : draftTemplate.CollectionImage, newCollectionImages, wwwroot, "TemplateCollectionImages"));
+                await Task.WhenAll(tasks);
 
-                var setValue = Task.Run(() =>
+                var options = new JsonSerializerOptions
                 {
-                    dbTemplate.LastestUpdatedTime = DateTime.Now;
-                    dbTemplate.InactiveTime = null;
-                    dbTemplate.IsActive = true;
-                });
+                    ReferenceHandler = ReferenceHandler.IgnoreCycles,
+                };
 
-                await Task.WhenAll(checkCategoryId, checkName, setDesc, checkPrice, setThumbnailImage, setImage, setCoolectionImage, setValue);
-
-                var saveDraftString = JsonSerializer.Serialize(dbTemplate);
+                var saveDraftString = JsonSerializer.Serialize(dbTemplate, options);
 
                 File.WriteAllText(fileDraft, saveDraftString);
 
@@ -380,50 +467,65 @@ namespace Etailor.API.Service.Service
 
                     productTemplate = JsonSerializer.Deserialize<ProductTemplate>(jsonString);
                 }
-                var checkCategoryId = Task.Run(() =>
+
+                var tasks = new List<Task>();
+
+                tasks.Add(Task.Run(() =>
                 {
                     dbTemplate.CategoryId = productTemplate.CategoryId;
-                });
+                }));
 
-                var checkName = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
                     dbTemplate.Name = productTemplate.Name;
                     dbTemplate.UrlPath = productTemplate.UrlPath;
-                });
+                }));
 
-                var setDesc = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
                     dbTemplate.Description = productTemplate.Description;
-                });
+                }));
 
-                var checkPrice = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
                     dbTemplate.Price = productTemplate.Price;
-                });
+                }));
 
-                var setThumbnailImage = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
+                    if (!string.IsNullOrEmpty(dbTemplate.ThumbnailImage))
+                    {
+
+                    }
                     dbTemplate.ThumbnailImage = productTemplate.ThumbnailImage;
-                });
+                }));
 
-                var setImage = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
+                    if (!string.IsNullOrEmpty(dbTemplate.ThumbnailImage))
+                    {
+
+                    }
                     dbTemplate.Image = productTemplate.Image;
-                });
+                }));
 
-                var setCoolectionImage = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
-                    dbTemplate.CollectionImage = productTemplate.CollectionImage;
-                });
+                    if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
+                    {
 
-                var setValue = Task.Run(() =>
+                    }
+                    dbTemplate.CollectionImage = productTemplate.CollectionImage;
+                }));
+
+                tasks.Add(Task.Run(() =>
                 {
                     dbTemplate.LastestUpdatedTime = DateTime.Now;
                     dbTemplate.InactiveTime = null;
                     dbTemplate.IsActive = true;
-                });
+                }));
 
-                await Task.WhenAll(checkCategoryId, checkName, setDesc, checkPrice, setThumbnailImage, setImage, setCoolectionImage, setValue);
+                await Task.WhenAll(tasks);
 
                 return productTemplateRepository.Update(dbTemplate.Id, dbTemplate) ? productTemplate.Id : null;
             }
@@ -527,56 +629,23 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        private async Task<string> HandleImage(string? dbImages, List<IFormFile>? newImages, string wwwroot, string generalPath)
+        public bool DeleteTemplate(string id)
         {
-            if (newImages != null)
+            var dbTemplate = productTemplateRepository.Get(id);
+
+            if (dbTemplate != null && dbTemplate.IsActive == true)
             {
-                var imageNames = new List<string>();
-                List<Task> tasks = new List<Task>();
-                if (!string.IsNullOrWhiteSpace(dbImages))
-                {
-                    var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
-                    foreach (var existImage in existImagesDB)
-                    {
-                        tasks.Add(Task.Run(() =>
-                        {
-                            Ultils.DeleteObject(existImage);
-                        }));
-                    }
-                }
 
-                tasks.Add(Task.Run(async () =>
-                {
-                    imageNames = await Ultils.UploadImages(wwwroot, $"ProductTemplates/{generalPath}", newImages);
-                }));
+                dbTemplate.InactiveTime = DateTime.Now;
 
-                await Task.WhenAll(tasks);
+                dbTemplate.IsActive = false;
 
-                dbImages = JsonSerializer.Serialize(imageNames);
+                return productTemplateRepository.Update(dbTemplate.Id, dbTemplate);
             }
             else
             {
-
-                if (!string.IsNullOrWhiteSpace(dbImages))
-                {
-                    var existImagesDB = JsonSerializer.Deserialize<List<string>>(dbImages);
-                    var checkImages = Task.Run(async () =>
-                    {
-                        foreach (var existImage in existImagesDB)
-                        {
-                            List<Task> tasks = new List<Task>();
-                            tasks.Add(Task.Run(() =>
-                            {
-                                Ultils.DeleteObject(existImage);
-                            }));
-                            await Task.WhenAll(tasks);
-                        }
-                    });
-                    await Task.WhenAll(checkImages);
-                }
-                dbImages = "";
+                throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
-            return dbImages;
         }
     }
 }

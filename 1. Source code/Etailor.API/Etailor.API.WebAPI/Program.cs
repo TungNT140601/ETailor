@@ -20,10 +20,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors();
 // Add services to the container.
 
-//builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true).AddJsonOptions(options =>
-//{
-//    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-//});
+builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true).AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 builder.Services.AddControllers();
 
@@ -92,7 +92,7 @@ builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
 builder.Services.AddScoped<IComponentTypeService, ComponentTypeService>();
 
 builder.Services.AddScoped<IComponentRepository, ComponentRepository>();
-//builder.Services.AddScoped<IComponentTypeService, ComponentTypeService>();
+builder.Services.AddScoped<IComponentService, ComponentService>();
 
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
