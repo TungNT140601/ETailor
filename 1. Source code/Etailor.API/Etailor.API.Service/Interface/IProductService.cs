@@ -9,10 +9,14 @@ namespace Etailor.API.Service.Interface
 {
     public interface IProductService 
     {
-        //Task<bool> AddProduct(Product Product);
-        //Task<bool> UpdateProduct(Product Product);
-        //Task<bool> DeleteProduct(string id);
-        //Product GetProduct(string id);
-        //IEnumerable<Product> GetProducts(string? search);
+        Task<bool> AddProduct(Product Product);
+
+        Task<bool> UpdateProduct(Product Product);
+
+        Task<bool> DeleteProduct(string id);
+
+        Product GetProduct(string id);
+
+        IEnumerable<Product> GetProductsByOrderId(string? search);
     }
 }
