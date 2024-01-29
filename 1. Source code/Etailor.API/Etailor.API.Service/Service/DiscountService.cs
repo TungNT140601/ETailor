@@ -66,7 +66,6 @@ namespace Etailor.API.Service.Service
 
         public Discount GetDiscount(string id)
         {
-
             var discount = discountRepository.Get(id);
             return discount == null ? null : discount.IsActive == true ? discount : null;
         }

@@ -82,6 +82,15 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
+builder.Services.AddScoped<IBodySizeRepository, BodySizeRepository>();
+builder.Services.AddScoped<IBodySizeService, BodySizeService>();
+
+builder.Services.AddScoped<IBodyAttributeRepository, BodyAttributeRepository>();
+builder.Services.AddScoped<IBodyAttributeService, BodyAttributeService>();
+
+builder.Services.AddScoped<ITemplateBodySizeRepository, TemplateBodySizeRepository>();
+builder.Services.AddScoped<ITemplateBodySizeService, TemplateBodySizeService>();
+
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 
