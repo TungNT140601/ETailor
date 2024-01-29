@@ -355,6 +355,7 @@ namespace Etailor.API.Ultity
 
         public static string ConvertToEnglishAlphabet(string text)
         {
+            text = text.Trim().ToLower();
             string formD = text.Normalize(NormalizationForm.FormD);
             StringBuilder stringBuilder = new StringBuilder();
 
