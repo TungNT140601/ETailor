@@ -21,13 +21,15 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ICategoryService categoryService;
         private readonly IStaffService staffService;
         private readonly IMapper mapper;
+        private readonly string _wwwroot;
 
-        public ProductTemplateController(IProductTemplateService productTemplateService, ICategoryService categoryService, IMapper mapper, IStaffService staffService)
+        public ProductTemplateController(IProductTemplateService productTemplateService, ICategoryService categoryService, IMapper mapper, IStaffService staffService, IWebHostEnvironment webHost)
         {
             this.productTemplateService = productTemplateService;
             this.categoryService = categoryService;
             this.mapper = mapper;
             this.staffService = staffService;
+            _wwwroot = webHost.WebRootPath;
         }
 
         [HttpGet("get-all-template")]
@@ -153,7 +155,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                return Ok(templateCreateVM);
+                return Ok(await productTemplateService.AddTemplate(mapper.Map<ProductTemplate>(templateCreateVM), _wwwroot, templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
                 //    }
                 //}
             }
@@ -215,7 +217,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("{id}/body-size-template")]
-        public async Task<IActionResult> CreateBodySize(string id,[FromBody] List<string>? bodySizes)
+        public async Task<IActionResult> CreateBodySize(string id, [FromBody] List<string>? bodySizes)
         {
 
             try
