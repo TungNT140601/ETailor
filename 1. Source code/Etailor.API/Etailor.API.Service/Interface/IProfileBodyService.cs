@@ -1,0 +1,24 @@
+﻿using Etailor.API.Repository.EntityModels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Etailor.API.Service.Interface
+{
+    public interface IProfileBodyService
+    {
+        Task<bool> AddProfileBody(ProfileBody ProfileBody);
+
+        Task<bool> UpdateProfileBody(ProfileBody ProfileBody);
+
+        Task<bool> DeleteProfileBody(string id);
+
+        ProfileBody GetProfileBody(string id);
+
+        IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string? search);
+
+        IEnumerable<ProfileBody> GetProfileBodysByStaffId(string? search);
+    }
+}

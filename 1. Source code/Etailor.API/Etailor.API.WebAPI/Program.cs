@@ -82,6 +82,9 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
+builder.Services.AddScoped<IProfileBodyRepository, ProfileBodyRepository>();
+builder.Services.AddScoped<IProfileBodyService, ProfileBodyService>();
+
 builder.Services.AddScoped<IBodySizeRepository, BodySizeRepository>();
 builder.Services.AddScoped<IBodySizeService, BodySizeService>();
 

@@ -34,9 +34,6 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Loại danh mục không tìm thấy");
                 }
-            });
-            var checkName = Task.Run(() =>
-            {
                 if (string.IsNullOrWhiteSpace(componentType.Name))
                 {
                     throw new UserException("Tên loại thành phần sản phẩm không được để trống");
@@ -46,6 +43,7 @@ namespace Etailor.API.Service.Service
                     throw new UserException("Tên loại thành phần sản phẩm không được trùng");
                 }
             });
+            
             var setValue = Task.Run(() =>
             {
                 componentType.CreatedTime = DateTime.Now;
@@ -53,7 +51,7 @@ namespace Etailor.API.Service.Service
                 componentType.IsActive = true;
             });
 
-            await Task.WhenAll(genId, checkCategory, checkName, setValue);
+            await Task.WhenAll(genId, checkCategory, setValue);
 
             return componentTypeRepository.Create(componentType);
         }
@@ -72,9 +70,6 @@ namespace Etailor.API.Service.Service
                     {
                         dbComponentType.CategoryId = componentType.CategoryId;
                     }
-                });
-                var checkName = Task.Run(() =>
-                {
                     if (string.IsNullOrWhiteSpace(componentType.Name))
                     {
                         throw new UserException("Tên loại thành phần sản phẩm không được để trống");
@@ -88,13 +83,14 @@ namespace Etailor.API.Service.Service
                         dbComponentType.Name = componentType.Name;
                     }
                 });
+
                 var setValue = Task.Run(() =>
                 {
                     dbComponentType.LastestUpdatedTime = DateTime.Now;
                     dbComponentType.IsActive = true;
                 });
 
-                await Task.WhenAll(checkCategory, checkName, setValue);
+                await Task.WhenAll(checkCategory,  setValue);
 
                 return componentTypeRepository.Update(dbComponentType.Id, dbComponentType);
             }
