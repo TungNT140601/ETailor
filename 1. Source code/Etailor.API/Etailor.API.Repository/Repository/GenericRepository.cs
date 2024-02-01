@@ -38,6 +38,20 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
+        public bool CreateRange(List<T> entities)
+        {
+            try
+            {
+                dbSet.AddRange(entities);
+                dBContext.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public bool Delete(string id)
         {
             try

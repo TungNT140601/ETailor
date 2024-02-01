@@ -11,6 +11,7 @@ namespace Etailor.API.Repository.Interface
         IEnumerable<T> GetAll(Func<T, bool> where);
         T Get(string id);
         bool Create(T entity);
+        bool CreateRange(List<T> entities);
         bool Update(string id, T entity);
         bool Delete(string id);
     }

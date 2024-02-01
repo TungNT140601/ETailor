@@ -44,9 +44,10 @@ namespace Etailor.API.Service.Service
                     c.Id,
                     c.StageNum
                 });
+                var existStageNumIds = new List<string>();
+                var componentOfStages = new List<ComponentStage>();
                 foreach (var templateStage in templateStages)
                 {
-                    var createTask = new List<Task>();
                     if (string.IsNullOrWhiteSpace(templateStage.Name))
                     {
                         throw new UserException("Tên giai đoạn không được để trống");
@@ -55,32 +56,26 @@ namespace Etailor.API.Service.Service
                     {
                         if (existStageNums.Select(c => c.StageNum).Contains(templateStage.StageNum))
                         {
-                            var existStage = templateStateRepository.Get(existStageNums.Where(c => c.StageNum == templateStage.StageNum).Select(c => c.Id).FirstOrDefault());
-                            if (existStage != null)
-                            {
-                                existStage.IsActive = false;
-                                existStage.InactiveTime = DateTime.Now;
-                                templateStateRepository.Update(existStage.Id, existStage);
-                            }
+                            existStageNumIds.Add(existStageNums.Where(c => c.StageNum == templateStage.StageNum).Select(c => c.Id).FirstOrDefault());
                         }
 
-                        createTask.Add(Task.Run(() =>
+                        tasks.Add(Task.Run(() =>
                         {
                             templateStage.Id = Ultils.GenGuidString();
                         }));
-                        createTask.Add(Task.Run(() =>
+                        tasks.Add(Task.Run(() =>
                         {
                             templateStage.IsActive = true;
                         }));
-                        createTask.Add(Task.Run(() =>
+                        tasks.Add(Task.Run(() =>
                         {
                             templateStage.CreatedTime = DateTime.Now;
                         }));
-                        createTask.Add(Task.Run(() =>
+                        tasks.Add(Task.Run(() =>
                         {
                             templateStage.LastestUpdatedTime = DateTime.Now;
                         }));
-                        createTask.Add(Task.Run(() =>
+                        tasks.Add(Task.Run(() =>
                         {
                             templateStage.InactiveTime = null;
                         }));
@@ -93,70 +88,43 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
-                                createTask.Add(Task.Run(() =>
+                                tasks.Add(Task.Run(() =>
                                 {
-                                    componentTypeStage.Id = Ultils.GenGuidString();
-                                    componentTypeStage.TemplateStageId = templateStage.Id;
+                                    componentOfStages.Add(new ComponentStage()
+                                    {
+                                        ComponentTypeId = componentTypeStage.ComponentTypeId,
+                                        TemplateStageId = templateStage.Id,
+                                        Id = Ultils.GenGuidString()
+                                    });
                                 }));
                             }
                         }
-
-                        await Task.WhenAll(createTask);
-
-                        result = templateStateRepository.Create(templateStage);
+                        templateStage.ComponentStages = null;
                     }
                 }
                 await Task.WhenAll(tasks);
 
-                return result;
+                if (templateStateRepository.CreateRange(templateStages) && componentStageRepository.CreateRange(componentOfStages))
+                {
+                    foreach (var id in existStageNumIds)
+                    {
+                        var existStage = templateStateRepository.Get(id);
+                        if (existStage != null)
+                        {
+                            existStage.IsActive = false;
+                            existStage.InactiveTime = DateTime.Now;
+
+                            templateStateRepository.Update(id, existStage);
+                        }
+                    }
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
             }
         }
 
-        //public Task<bool> UpdateTemplateStage(string templateId, List<TemplateStage> templateStages)
-        //{
-        //    var tasks = new List<Task<bool>>();
-        //    int stageNum = 1;
-        //    var template = productTemplateRepository.Get(templateId);
-        //    if (template == null || template.IsActive == true)
-        //    {
-        //        throw new UserException("Mẫu sản phẩm không tìm thấy");
-        //    }
-        //    else
-        //    {
-        //        var existStages = templateStateRepository.GetAll(x => x.ProductTemplateId == templateId).ToList();
-        //        if (existStages is null)
-        //        {
-        //            existStages = new List<TemplateStage>();
-        //            for (int i = 0; i < templateStages.Count; i++)
-        //            {
-        //                existStages.Add(new TemplateStage());
-        //            }
-        //        }
-        //        else if (existStages.Any() && existStages.Count < templateStages.Count)
-        //        {
-        //            var indexDiff = templateStages.Count - existStages.Count;
-
-        //            for (int i = 0; i < indexDiff; i++)
-        //            {
-        //                existStages.Add(new TemplateStage());
-        //            }
-        //        }
-
-        //        for (int i = 0; i < existStages.Count; i++)
-        //        {
-        //            if (i < templateStages.Count)
-        //            {
-        //                if ((existStages[i].Name != templateStages[i].Name) || )
-        //                {
-
-        //                }
-        //            }
-        //            else
-        //            {
-
-        //            }
-        //        }
-        //    }
-        //}
     }
 }
