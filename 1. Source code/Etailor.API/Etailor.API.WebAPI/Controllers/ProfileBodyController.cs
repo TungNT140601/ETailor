@@ -2,32 +2,31 @@
 using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
-using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Etailor.API.WebAPI.Controllers
 {
-    [Route("api/component-type-management")]
+    [Route("api/profile-body")]
     [ApiController]
-    public class ComponentTypeController : ControllerBase
+    public class ProfileBodyController : ControllerBase
     {
+        private readonly IProfileBodyService profileBodyService;
+        private readonly ICustomerService customerService;
         private readonly IStaffService staffService;
-        private readonly IComponentTypeService componentTypeService;
         private readonly IMapper mapper;
 
-        public ComponentTypeController(IStaffService staffService, IMapper mapper, IComponentTypeService componentTypeService)
+        public ProfileBodyController(IProfileBodyService profileBodyService, ICustomerService customerService, IStaffService staffService, IMapper mapper)
         {
+            this.profileBodyService = profileBodyService;
+            this.customerService = customerService;
             this.staffService = staffService;
             this.mapper = mapper;
-            this.componentTypeService = componentTypeService;
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddComponentType([FromBody] ComponentTypeFormVM componentType)
+        public async Task<IActionResult> AddProfileBody([FromBody] ProfileBodyVM profileBodyVM)
         {
             try
             {
@@ -42,16 +41,16 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                    //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    //if (!staffService.CheckSecrectKey(id, secrectKey))
-                    //{
-                    //    return Unauthorized("Chưa đăng nhập");
-                    //}
-                    //else
-                    //{
-                        return (await componentTypeService.AddComponentType(mapper.Map<ComponentType>(componentType))) ? Ok("Tạo mới loại danh mục thành công") : BadRequest("Tạo mới loại danh mục thất bại");
-                    //}
+                //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //if (!staffService.CheckSecrectKey(id, secrectKey))
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else
+                //{
+                return (await profileBodyService.AddProfileBody(mapper.Map<ProfileBody>(profileBodyVM))) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                //}
                 //}
             }
             catch (UserException ex)
@@ -69,7 +68,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateComponentType(string? id, [FromBody] ComponentTypeFormVM componentType)
+        public async Task<IActionResult> UpdateProfileBody(string id, [FromBody] ProfileBodyVM profileBodyVM)
         {
             try
             {
@@ -92,14 +91,11 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                        if (id == null || id != componentType.Id)
-                        {
-                            return NotFound("Không tìm thấy loại danh mục");
-                        }
-                        else
-                        {
-                            return (await componentTypeService.UpdateComponentType(mapper.Map<ComponentType>(componentType))) ? Ok("Cập nhật loại danh mục thành công") : BadRequest("Cập nhật loại danh mục thất bại");
-                        }
+                if (id == null || id != profileBodyVM.Id)
+                {
+                    return NotFound("Id danh mục không tồn tại");
+                }
+                return (await profileBodyService.UpdateProfileBody(mapper.Map<ProfileBody>(profileBodyVM))) ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                 //    }
                 //}
             }
@@ -118,7 +114,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteComponentType(string? id)
+        public async Task<IActionResult> DeleteProfileBody(string id)
         {
             try
             {
@@ -133,22 +129,19 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                //    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                        if (id == null)
-                        {
-                            return NotFound("Không tìm thấy loại danh mục");
-                        }
-                        else
-                        {
-                            return componentTypeService.DeleteComponentType(id) ? Ok("Xóa loại danh mục thành công") : BadRequest("Xóa loại danh mục thất bại");
-                        }
+                //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else
+                //{
+                if (id == null)
+                {
+                    return NotFound("Id sản phẩm không tồn tại");
+                }
+                return (await profileBodyService.DeleteProfileBody(id)) ? Ok("Xóa Profile Body thành công") : BadRequest("Xóa Profile Body thất bại");
                 //    }
                 //}
             }
@@ -167,26 +160,19 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetComponentType(string? id)
+        public async Task<IActionResult> GetProfileBody(string id)
         {
             try
             {
-                //if (id == null)
-                //{
-                //    return NotFound("Không tìm thấy loại danh mục");
-                //}
-                //else
-                //{
-                    var componentType = componentTypeService.GetComponentType(id);
-                    if (componentType == null)
-                    {
-                        return NotFound("Không tìm thấy loại danh mục");
-                    }
-                    else
-                    {
-                        return Ok(mapper.Map<ComponentTypeVM>(componentType));
-                    }
-                //}
+                if (id == null)
+                {
+                    return NotFound("Id Profile Body không tồn tại");
+                }
+                else
+                {
+                    var profileBody = profileBodyService.GetProfileBody(id);
+                    return profileBody != null ? Ok(mapper.Map<ProfileBodyVM>(profileBody)) : NotFound(id);
+                }
             }
             catch (UserException ex)
             {
@@ -202,12 +188,12 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetComponentTypes(string? search)
+        [HttpGet("/get-profile-body-by-customer-id")]
+        public async Task<IActionResult> GetProfileBodysByCustomerId(string? customerId)
         {
             try
             {
-                return Ok(mapper.Map<IEnumerable<ComponentTypeVM>>(componentTypeService.GetComponentTypes(search)));
+                return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
             }
             catch (UserException ex)
             {
@@ -223,12 +209,12 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("/api/category/{id}/component-types")]
-        public async Task<IActionResult> GetComponentTypesByCategory(string id)
+        [HttpGet("/get-profile-body-by-staff-id")]
+        public async Task<IActionResult> GetProfileBodysByStaffId(string? staffId)
         {
             try
             {
-                return Ok(mapper.Map<IEnumerable<ComponentTypeVM>>(componentTypeService.GetComponentTypesByCategory(id)));
+                return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByStaffId(staffId)));
             }
             catch (UserException ex)
             {
