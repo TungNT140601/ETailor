@@ -232,9 +232,13 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Image).HasColumnType("text");
 
+                entity.Property(e => e.Index).HasColumnType("int");
+
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
                 entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
+
+                entity.Property(e => e.Default).HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.Name).HasMaxLength(100);
 

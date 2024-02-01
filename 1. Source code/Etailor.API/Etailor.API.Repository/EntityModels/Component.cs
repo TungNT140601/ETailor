@@ -18,6 +18,8 @@ namespace Etailor.API.Repository.EntityModels
         public DateTime? CreatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
+        public int? Index { get; set; }
+        public bool? Default { get; set; }
 
         public virtual ComponentType? ComponentType { get; set; }
         public virtual ProductTemplate? ProductTemplate { get; set; }

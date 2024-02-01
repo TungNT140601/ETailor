@@ -14,6 +14,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
+using Etailor.API.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -135,6 +136,16 @@ builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 
 builder.Services.AddScoped<IMasteryRepository, MasteryRepository>();
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<ITemplateStateRepository, TemplateStageRepository>();
+builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
+
+builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>();
+//builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
+
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+//builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
