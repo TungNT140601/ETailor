@@ -39,6 +39,8 @@ namespace Etailor.API.WebAPI
             CreateMap<BodySize, BodySizeVM>().ReverseMap();
 
             CreateMap<ProfileBody, ProfileBodyVM>().ReverseMap();
+
+            CreateMap<BodyAttribute, BodyAttributeVM>().ReverseMap();
         }
     }
 }
