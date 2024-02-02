@@ -83,6 +83,9 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
+builder.Services.AddScoped<IBlogRepository, BlogRepository>();
+builder.Services.AddScoped<IBlogService, BlogService>();
+
 builder.Services.AddScoped<IProfileBodyRepository, ProfileBodyRepository>();
 builder.Services.AddScoped<IProfileBodyService, ProfileBodyService>();
 
