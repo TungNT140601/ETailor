@@ -36,11 +36,11 @@ namespace Etailor.API.WebAPI.Controllers
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
-                    return Unauthorized();
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else if (role != RoleName.CUSTOMER)
                 {
-                    return Forbid();
+                     return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -48,7 +48,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
                     if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
                     {
-                        return Unauthorized();
+                        return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {

@@ -9,7 +9,6 @@ namespace Etailor.API.Repository.EntityModels
         public string? ProductId { get; set; }
         public string? BodySizeId { get; set; }
         public decimal? Value { get; set; }
-        public string? Unit { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }

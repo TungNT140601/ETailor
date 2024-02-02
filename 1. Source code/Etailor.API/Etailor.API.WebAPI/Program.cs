@@ -14,16 +14,17 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
+using Etailor.API.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors();
 // Add services to the container.
 
-//builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true).AddJsonOptions(options =>
-//{
-//    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
-//});
+builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true).AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 builder.Services.AddControllers();
 
@@ -82,36 +83,72 @@ builder.Services.AddAuthentication(option =>
     };
 });
 
-builder.Services.AddScoped<ISkillRepository, SkillRepository>();
-builder.Services.AddScoped<ISkillService, SkillService>();
+builder.Services.AddScoped<IBlogRepository, BlogRepository>();
+builder.Services.AddScoped<IBlogService, BlogService>();
 
+builder.Services.AddScoped<IProfileBodyRepository, ProfileBodyRepository>();
+builder.Services.AddScoped<IProfileBodyService, ProfileBodyService>();
 
-builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
-//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+builder.Services.AddScoped<IBodySizeRepository, BodySizeRepository>();
+builder.Services.AddScoped<IBodySizeService, BodySizeService>();
+
+builder.Services.AddScoped<IBodyAttributeRepository, BodyAttributeRepository>();
+builder.Services.AddScoped<IBodyAttributeService, BodyAttributeService>();
+
+builder.Services.AddScoped<ITemplateBodySizeRepository, TemplateBodySizeRepository>();
+builder.Services.AddScoped<ITemplateBodySizeService, TemplateBodySizeService>();
+
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IProductService, ProductService>();
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 builder.Services.AddScoped<IComponentTypeRepository, ComponentTypeRepository>();
-//builder.Services.AddScoped<ICatalogRepository, CatalogRepository>();
+builder.Services.AddScoped<IComponentTypeService, ComponentTypeService>();
+
+builder.Services.AddScoped<IComponentRepository, ComponentRepository>();
+builder.Services.AddScoped<IComponentService, ComponentService>();
 
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 
+builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
+builder.Services.AddScoped<IProductTemplateService, ProductTemplateService>();
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-builder.Services.AddScoped<IStaffRepository, StaffRepository>();
-builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
-builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
-builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
-builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
-builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
-
-
-builder.Services.AddScoped<ISkillService, SkillService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
+
+builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
+
+
+builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
+
+builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
 builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
-builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
-builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
+//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
+//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<IMasteryRepository, MasteryRepository>();
+//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+
+builder.Services.AddScoped<ITemplateStateRepository, TemplateStageRepository>();
+builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
+
+builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>();
+//builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
+
+
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+//builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));

@@ -1,5 +1,12 @@
 ﻿namespace Etailor.API.WebAPI.ViewModels
 {
+    public class StaffVM
+    {
+        public string Id { get; set; }
+        public string? Fullname { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
     public class StaffCreateVM
     {
         public IFormFile? AvatarImage { get; set; }
@@ -8,6 +15,7 @@
         public string? Phone { get; set; }
         public string? Username { get; set; }
         public string? Password { get; set; }
+        public List<string>? MasterySkill { get; set; }
     }
     public class StaffUpdateVM
     {
@@ -17,6 +25,7 @@
         public string? Address { get; set; }
         public string? Phone { get; set; }
         public string? Username { get; set; }
+        public List<string>? MasterySkill { get; set; }
     }
     public class StaffListVM
     {

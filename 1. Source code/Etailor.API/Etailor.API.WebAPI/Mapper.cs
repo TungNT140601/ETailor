@@ -11,10 +11,7 @@ namespace Etailor.API.WebAPI
             CreateMap<Staff, StaffCreateVM>().ReverseMap();
             CreateMap<Staff, StaffUpdateVM>().ReverseMap();
             CreateMap<Staff, StaffListVM>().ReverseMap();
-
-            CreateMap<Skill, SkillListVM>().ReverseMap();
-            CreateMap<Skill, SkillCreateVM>().ReverseMap();
-            CreateMap<Skill, SkillUpdateVM>().ReverseMap();
+            CreateMap<Staff, StaffVM>().ReverseMap();
 
             CreateMap<Customer, CusRegis>().ReverseMap();
             CreateMap<Customer, CustomerVM>().ReverseMap();
@@ -24,6 +21,36 @@ namespace Etailor.API.WebAPI
 
 
             CreateMap<Category, CategoryVM>().ReverseMap();
+            CreateMap<Category, CategoryAllTemplateVM>().ReverseMap();
+
+            CreateMap<ComponentType, ComponentTypeVM>().ReverseMap();
+            CreateMap<ComponentType, ComponentTypeFormVM>().ReverseMap();
+
+            CreateMap<Component, ComponentVM>().ReverseMap();
+
+            CreateMap<ComponentStage, ComponentStageVM>().ReverseMap();
+
+            CreateMap<Discount, DiscountVM>().ReverseMap();
+            CreateMap<Order, OrderVM>().ReverseMap();
+
+            CreateMap<ProductTemplate, ProductTemplateALLVM>().ReverseMap();
+            CreateMap<ProductTemplate, ProductTemplateCreateVM>().ReverseMap();
+
+            CreateMap<Product, ProductVM>().ReverseMap();
+
+            CreateMap<BodySize, BodySizeVM>().ReverseMap();
+
+            CreateMap<ProfileBody, ProfileBodyVM>().ReverseMap();
+
+            CreateMap<TemplateStage, TemplateStageCreateVM>().ReverseMap();
+            CreateMap<TemplateStage, TemplateStageAllVM>().ReverseMap();
+
+
+
+            CreateMap<BodyAttribute, BodyAttributeVM>().ReverseMap();
+
+            CreateMap<Blog, BlogVM>().ReverseMap();
+            CreateMap<Blog, ListOfBlogVM>().ReverseMap();
         }
     }
 }

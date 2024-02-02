@@ -15,6 +15,7 @@ using Google.Cloud.Storage.V1;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Http.Internal;
 using Etailor.API.Ultity.CustomException;
+using System.Globalization;
 
 namespace Etailor.API.Ultity
 {
@@ -31,9 +32,9 @@ namespace Etailor.API.Ultity
         public static string GenerateRandomOTP()
         {
             Random random = new Random();
-            int randomNumber = random.Next(0, 1000000);
+            int randomNumber = random.Next(0, 10000);
 
-            return randomNumber.ToString("D6");
+            return randomNumber.ToString("D4");
         }
 
         public static string GenerateRandomString(int length)
@@ -235,7 +236,7 @@ namespace Etailor.API.Ultity
             {
                 var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
 
-                var filePath = Path.Combine(wwwrootPath, "Upload", file.FileName);
+                var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
 
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
@@ -300,7 +301,7 @@ namespace Etailor.API.Ultity
             }
         }
 
-        private static void DeleteObject(string objectName)
+        public static void DeleteObject(string objectName)
         {
             try
             {
@@ -352,5 +353,24 @@ namespace Etailor.API.Ultity
             return Regex.IsMatch(fileName, pattern);
         }
 
+        public static string ConvertToEnglishAlphabet(string text)
+        {
+            text = text.Trim().ToLower();
+            string formD = text.Normalize(NormalizationForm.FormD);
+            StringBuilder stringBuilder = new StringBuilder();
+
+            foreach (char ch in formD)
+            {
+                UnicodeCategory unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(ch);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(ch);
+                }
+            }
+
+            var returnString = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+
+            return returnString.Replace(" ", "-");
+        }
     }
 }
