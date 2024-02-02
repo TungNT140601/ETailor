@@ -9,7 +9,7 @@ namespace Etailor.API.WebAPI.Controllers
 {
     [Route("api/body-attribute")]
     [ApiController]
-    public class BodyAttributeController : Controller
+    public class BodyAttributeController : ControllerBase
     {
         private readonly IBodyAttributeService bodyAttributeService;
         private readonly IProfileBodyService profileBodyService;
