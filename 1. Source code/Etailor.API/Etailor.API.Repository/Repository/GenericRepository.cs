@@ -38,6 +38,20 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
+        public bool CreateRange(List<T> entities)
+        {
+            try
+            {
+                dbSet.AddRange(entities);
+                dBContext.SaveChanges();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public bool Delete(string id)
         {
             try
@@ -127,6 +141,26 @@ namespace Etailor.API.Repository.Repository
                     dbSet.Update(entity);
                     dBContext.SaveChanges();
                     return true;
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+        public void Detach(string id)
+        {
+            try
+            {
+                var data = dbSet.Find(id);
+                if (data != null)
+                {
+                    dBContext.Entry(data).State = EntityState.Detached;
+                    dBContext.SaveChanges();
                 }
             }
             catch (UserException ex)

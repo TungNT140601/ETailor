@@ -98,6 +98,13 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
+                    dbComponent.IsActive = false;
+                    dbComponent.InactiveTime = DateTime.Now;
+                    componentRepository.Update(dbComponent.Id, dbComponent);
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
                     if (string.IsNullOrWhiteSpace(component.Name))
                     {
                         throw new UserException("Tên bộ phận không được để trống");
@@ -119,19 +126,35 @@ namespace Etailor.API.Service.Service
                 {
                     if (newImage != null)
                     {
-                        dbComponent.Image = await Ultils.UploadImage(wwwroot, "ComponentType", newImage, dbComponent.Image);
+                        dbComponent.Image = await Ultils.UploadImage(wwwroot, "ComponentType", newImage, null);
                     }
+                }));
+
+                await Task.WhenAll(tasks);
+
+                tasks.Add(Task.Run(() =>
+                {
+                    dbComponent.Id = Ultils.GenGuidString();
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    dbComponent.CreatedTime = DateTime.Now;
                 }));
 
                 tasks.Add(Task.Run(() =>
                 {
                     dbComponent.InactiveTime = null;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
                     dbComponent.IsActive = true;
                 }));
 
                 await Task.WhenAll(tasks);
 
-                return componentRepository.Update(dbComponent.Id, dbComponent) ? dbComponent.Id : null;
+                return componentRepository.Create(dbComponent) ? dbComponent.Id : null;
             }
             else
             {
@@ -156,9 +179,9 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<IEnumerable<Component>> GetAllByComponentType(string componentTypeId)
+        public async Task<IEnumerable<Component>> GetAllByComponentType(string componentTypeId, string templateId)
         {
-            var components = componentRepository.GetAll(x => x.ComponentTypeId == componentTypeId && x.IsActive == true);
+            var components = componentRepository.GetAll(x => x.ComponentTypeId == componentTypeId && x.ProductTemplateId == templateId && x.IsActive == true);
             if (components.Any())
             {
                 var tasks = new List<Task>();
