@@ -24,8 +24,8 @@ namespace Etailor.API.Repository.EntityModels
 
         public virtual ProductTemplate? ProductTemplate { get; set; }
         public virtual TemplateStage? TemplateStageNavigation { get; set; }
-        public virtual ICollection<ComponentStage> ComponentStages { get; set; }
-        public virtual ICollection<TemplateStage> InverseTemplateStageNavigation { get; set; }
-        public virtual ICollection<ProductStage> ProductStages { get; set; }
+        public virtual ICollection<ComponentStage>? ComponentStages { get; set; }
+        public virtual ICollection<TemplateStage>? InverseTemplateStageNavigation { get; set; }
+        public virtual ICollection<ProductStage>? ProductStages { get; set; }
     }
 }
