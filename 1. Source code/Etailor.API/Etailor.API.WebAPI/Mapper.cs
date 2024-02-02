@@ -41,6 +41,9 @@ namespace Etailor.API.WebAPI
             CreateMap<ProfileBody, ProfileBodyVM>().ReverseMap();
 
             CreateMap<BodyAttribute, BodyAttributeVM>().ReverseMap();
+
+            CreateMap<Blog, BlogVM>().ReverseMap();
+            CreateMap<Blog, ListOfBlogVM>().ReverseMap();
         }
     }
 }
