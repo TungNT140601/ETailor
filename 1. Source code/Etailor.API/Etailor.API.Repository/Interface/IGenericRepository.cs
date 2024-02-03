@@ -15,5 +15,6 @@ namespace Etailor.API.Repository.Interface
         bool Update(string id, T entity);
         bool Delete(string id);
         void Detach(string id);
+        void SaveChange();
     }
 }

@@ -255,49 +255,66 @@ namespace Etailor.API.Service.Service
                         if (inputStage.Name != currentStage.Name)// if it has diff name
                         {
                             checkDiff = true; // flag is true
-                            if (currentComponents != null && currentComponents.Count > 0)
+                            if (currentComponents == null && inputComponents != null) // if new list component not null and old list null
                             {
-                                updateCurrentComponentStages.AddRange(currentComponents); // add list component to list for add
+                                checkDiff = true; // flag is true
+                                inputStage = new TemplateStage()
+                                {
+                                    Id = id,
+                                    Name = inputStage.Name,
+                                    ProductTemplateId = currentStage.ProductTemplateId,
+                                    TemplateStageId = currentStage.TemplateStageId,
+                                    StageNum = currentStage.StageNum
+                                }; // duplicate old stage
+                                templateStateRepository.Detach(currentStage.Id);
+                                if (inputComponents != null && inputComponents.Count > 0)
+                                {
+                                    updateCurrentComponentStages.AddRange(inputComponents);// add list component to list for add
+                                }
                             }
-                        }
-                        else if (currentComponents == null && inputComponents != null) // if new list component not null and old list null
-                        {
-                            checkDiff = true; // flag is true
-                            inputStage = new TemplateStage()
-                            {
-                                Id = id,
-                                Name = currentStage.Name,
-                                ProductTemplateId = currentStage.ProductTemplateId,
-                                TemplateStageId = currentStage.TemplateStageId,
-                                StageNum = currentStage.StageNum
-                            }; // duplicate old stage
-                            templateStateRepository.Detach(currentStage.Id);
-                            if (inputComponents != null && inputComponents.Count > 0)
-                            {
-                                updateCurrentComponentStages.AddRange(inputComponents);// add list component to list for add
-                            }
-                        }
-                        else if (currentComponents != null && inputComponents == null)// if new list component is null and old list not null
-                        {
-                            checkDiff = true;
-                            inputStage = new TemplateStage()
-                            {
-                                Id = id,
-                                Name = currentStage.Name,
-                                ProductTemplateId = currentStage.ProductTemplateId,
-                                TemplateStageId = currentStage.TemplateStageId,
-                                StageNum = currentStage.StageNum
-                            }; // duplicate old stage
-                            templateStateRepository.Detach(currentStage.Id);
-                        }
-                        else if (currentComponents != null && inputComponents != null)// if both list not null
-                        {
-                            var currentComponentsIds = currentComponents.Select(x => x.ComponentTypeId);
-                            var inputComponentsIds = inputComponents.Select(x => x.ComponentTypeId);
-                            var idDiffs = currentComponentsIds.Except(inputComponentsIds); // check diff between two lists
-                            if (idDiffs.Any()) // if has any diff
+                            else if (currentComponents != null && inputComponents == null)// if new list component is null and old list not null
                             {
                                 checkDiff = true;
+                                inputStage = new TemplateStage()
+                                {
+                                    Id = id,
+                                    Name = inputStage.Name,
+                                    ProductTemplateId = currentStage.ProductTemplateId,
+                                    TemplateStageId = currentStage.TemplateStageId,
+                                    StageNum = currentStage.StageNum
+                                }; // duplicate old stage
+                                templateStateRepository.Detach(currentStage.Id);
+                            }
+                            else if (currentComponents != null && inputComponents != null)// if both list not null
+                            {
+                                var currentComponentsIds = currentComponents.Select(x => x.ComponentTypeId);
+                                var inputComponentsIds = inputComponents.Select(x => x.ComponentTypeId);
+                                var idDiff1s = currentComponentsIds.Except(inputComponentsIds).ToList(); // check diff between two lists
+                                var idDiff2s = inputComponentsIds.Except(currentComponentsIds).ToList(); // check diff between two lists
+                                if (idDiff1s.Any() || idDiff2s.Any()) // if has any diff
+                                {
+                                    checkDiff = true;
+                                    inputStage = new TemplateStage()
+                                    {
+                                        Id = id,
+                                        Name = inputStage.Name,
+                                        ProductTemplateId = currentStage.ProductTemplateId,
+                                        TemplateStageId = currentStage.TemplateStageId,
+                                        StageNum = currentStage.StageNum
+                                    }; // duplicate old stage
+                                    templateStateRepository.Detach(currentStage.Id);
+                                    if (inputComponents != null && inputComponents.Count > 0)
+                                    {
+                                        updateCurrentComponentStages.AddRange(inputComponents);
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            if (currentComponents == null && inputComponents != null) // if new list component not null and old list null
+                            {
+                                checkDiff = true; // flag is true
                                 inputStage = new TemplateStage()
                                 {
                                     Id = id,
@@ -309,7 +326,44 @@ namespace Etailor.API.Service.Service
                                 templateStateRepository.Detach(currentStage.Id);
                                 if (inputComponents != null && inputComponents.Count > 0)
                                 {
-                                    updateCurrentComponentStages.AddRange(inputComponents);
+                                    updateCurrentComponentStages.AddRange(inputComponents);// add list component to list for add
+                                }
+                            }
+                            else if (currentComponents != null && inputComponents == null)// if new list component is null and old list not null
+                            {
+                                checkDiff = true;
+                                inputStage = new TemplateStage()
+                                {
+                                    Id = id,
+                                    Name = currentStage.Name,
+                                    ProductTemplateId = currentStage.ProductTemplateId,
+                                    TemplateStageId = currentStage.TemplateStageId,
+                                    StageNum = currentStage.StageNum
+                                }; // duplicate old stage
+                                templateStateRepository.Detach(currentStage.Id);
+                            }
+                            else if (currentComponents != null && inputComponents != null)// if both list not null
+                            {
+                                var currentComponentsIds = currentComponents.Select(x => x.ComponentTypeId);
+                                var inputComponentsIds = inputComponents.Select(x => x.ComponentTypeId);
+                                var idDiff1s = currentComponentsIds.Except(inputComponentsIds).ToList(); // check diff between two lists
+                                var idDiff2s = inputComponentsIds.Except(currentComponentsIds).ToList(); // check diff between two lists
+                                if (idDiff1s.Any() || idDiff2s.Any()) // if has any diff
+                                {
+                                    checkDiff = true;
+                                    inputStage = new TemplateStage()
+                                    {
+                                        Id = id,
+                                        Name = currentStage.Name,
+                                        ProductTemplateId = currentStage.ProductTemplateId,
+                                        TemplateStageId = currentStage.TemplateStageId,
+                                        StageNum = currentStage.StageNum
+                                    }; // duplicate old stage
+                                    templateStateRepository.Detach(currentStage.Id);
+                                    if (inputComponents != null && inputComponents.Count > 0)
+                                    {
+                                        updateCurrentComponentStages.AddRange(inputComponents);
+                                    }
                                 }
                             }
                         }
@@ -317,6 +371,7 @@ namespace Etailor.API.Service.Service
 
                     if (checkDiff)
                     {
+                        //componentStageRepository.SaveChange();
                         if (updateCurrentComponentStages != null)
                         {
                             foreach (var updateCurrentComponentStage in updateCurrentComponentStages)
@@ -373,6 +428,7 @@ namespace Etailor.API.Service.Service
                 {
                     foreach (var inactiveStage in inactiveStages)
                     {
+                        templateStateRepository.Detach(inactiveStage.Id);
                         check.Add(templateStateRepository.Update(inactiveStage.Id, inactiveStage));
                     }
                 }
