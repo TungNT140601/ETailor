@@ -13,6 +13,6 @@ namespace Etailor.API.Service.Interface
         Task<string> AddComponent(Component component, IFormFile? image, string wwwroot);
         Task<string> UpdateComponent(Component component, IFormFile? newImage, string wwwroot);
         bool DeleteComponent(string id);
-        Task<IEnumerable<Component>> GetAllByComponentType(string componentTypeId);
+        Task<IEnumerable<Component>> GetAllByComponentType(string componentTypeId,string templkateId);
     }
 }

@@ -4,6 +4,7 @@ using Etailor.API.Repository.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Etailor.API.WebAPI.Migrations
 {
     [DbContext(typeof(ETailor_DBContext))]
-    partial class ETailor_DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240201025906_RollBackDB_01022024_0958")]
+    partial class RollBackDB_01022024_0958
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -275,19 +277,11 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<DateTime?>("CreatedTime")
                         .HasColumnType("datetime");
 
-                    b.Property<bool?>("Default")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValueSql("((0))");
-
                     b.Property<string>("Image")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("InactiveTime")
                         .HasColumnType("datetime");
-
-                    b.Property<int?>("Index")
-                        .HasColumnType("int");
 
                     b.Property<bool?>("IsActive")
                         .ValueGeneratedOnAdd()

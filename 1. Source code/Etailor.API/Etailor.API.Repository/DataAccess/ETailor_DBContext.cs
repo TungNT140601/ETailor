@@ -53,6 +53,7 @@ namespace Etailor.API.Repository.DataAccess
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer("server=tungnt-dbcloud.database.windows.net;uid=tungnt;pwd=123456789aA@;database=ETailor_DB;TrustServerCertificate=True;", b => b.MigrationsAssembly("Etailor.API.WebAPI"));
+            optionsBuilder.EnableSensitiveDataLogging();
             //            if (!optionsBuilder.IsConfigured)
             //            {
             //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
@@ -232,9 +233,13 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Image).HasColumnType("text");
 
+                entity.Property(e => e.Index).HasColumnType("int");
+
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
                 entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
+
+                entity.Property(e => e.Default).HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.Name).HasMaxLength(100);
 
