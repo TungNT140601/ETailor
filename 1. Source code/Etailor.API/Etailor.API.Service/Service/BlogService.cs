@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Etailor.API.Repository.Interface;
+using System.Security.Claims;
 
 namespace Etailor.API.Service.Service
 {
