@@ -14,11 +14,14 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private readonly IBlogService blogService;
         private readonly IMapper mapper;
+        private readonly ICategoryService categoryService;
 
-        public BlogController(IBlogService blogService, IMapper mapper)
+        public BlogController(IBlogService blogService, IMapper mapper, ICategoryService categoryService)
         {
             this.blogService = blogService;
             this.mapper = mapper;
+            this.categoryService = categoryService;
+
         }
 
         [HttpGet("{id}")]

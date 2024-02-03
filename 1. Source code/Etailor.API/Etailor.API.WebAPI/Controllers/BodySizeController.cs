@@ -75,7 +75,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateBodySize([FromBody] BodySizeVM bodySizeVM)
+        public IActionResult CreateBodySize([FromBody] CreateUpdateBodySizeVM bodySizeVM)
         {
             try
             {
@@ -124,7 +124,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateBodySize(string? id, [FromBody] BodySizeVM bodySizeVM)
+        public IActionResult UpdateBodySize(string? id, [FromBody] CreateUpdateBodySizeVM bodySizeVM)
         {
             try
             {
