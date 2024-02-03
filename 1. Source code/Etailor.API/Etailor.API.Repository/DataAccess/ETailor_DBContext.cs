@@ -81,6 +81,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Title).HasMaxLength(255);
 
+                entity.Property(e => e.Hastag).HasMaxLength(255);
+
                 entity.Property(e => e.UrlPath).HasMaxLength(255);
 
                 entity.HasOne(d => d.Staff)
