@@ -536,6 +536,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.AfterDiscountPrice).HasColumnType("decimal(18, 0)");
 
+                entity.Property(e => e.ApproveTime).HasColumnType("datetime");
+
                 entity.Property(e => e.CancelTime).HasColumnType("datetime");
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");

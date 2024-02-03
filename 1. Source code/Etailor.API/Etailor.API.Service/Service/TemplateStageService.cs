@@ -165,10 +165,18 @@ namespace Etailor.API.Service.Service
                 #region GetDataFromDB
                 var activeComponent = componentTypeRepository.GetAll(x => x.IsActive == true && x.CategoryId == template.CategoryId).Select(c => c.Id).ToList();
                 var currentStages = templateStateRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();
+                var componentStages = new List<ComponentStage>();
                 if (currentStages != null && currentStages.Count > 0)
                 {
                     var stageIds = currentStages.Select(x => x.Id).ToList();
-                    //var componentStages = componentStageRepository.GetAll(x => stageIds.Contains(x.TemplateStageId)).ToList();
+                    componentStages = componentStageRepository.GetAll(x => stageIds.Contains(x.TemplateStageId)).ToList();
+                    if (componentStages != null && componentStages.Count > 0)
+                    {
+                        foreach (var componentStage in componentStages)
+                        {
+                            componentStageRepository.Detach(componentStage.Id);
+                        }
+                    }
                 }
                 #endregion
 
@@ -225,6 +233,11 @@ namespace Etailor.API.Service.Service
                     var currentStage = currentStages.Where(x => x.StageNum == i + 1).FirstOrDefault();
                     var inputStage = inputStages.Where(x => x.StageNum == i + 1).FirstOrDefault();
 
+                    if (currentStage != null)
+                    {
+                        currentStage.ComponentStages = componentStages.Where(c => c.TemplateStageId == currentStage.Id).ToList();
+                        componentStages.RemoveAll(c => c.TemplateStageId == currentStage.Id);
+                    }
                     // Check diff
                     if (currentStage == null && inputStage != null) // if db dont have stage num
                     {
