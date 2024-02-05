@@ -45,12 +45,12 @@ namespace Etailor.API.WebAPI
             CreateMap<TemplateStage, TemplateStageCreateVM>().ReverseMap();
             CreateMap<TemplateStage, TemplateStageAllVM>().ReverseMap();
 
-
-
             CreateMap<BodyAttribute, BodyAttributeVM>().ReverseMap();
 
             CreateMap<Blog, BlogVM>().ReverseMap();
             CreateMap<Blog, ListOfBlogVM>().ReverseMap();
+            CreateMap<Blog, CreateBlogVM>().ReverseMap();
+            CreateMap<Blog, UpdateBlogVM>().ReverseMap();
         }
     }
 }
