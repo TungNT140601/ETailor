@@ -17,12 +17,15 @@ namespace Etailor.API.Service.Service
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly IComponentTypeRepository componentTypeRepository;
         private readonly IComponentStageRepository componentStageRepository;
-        public TemplateStageService(ITemplateStateRepository templateStateRepository, IProductTemplateRepository productTemplateRepository, IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository)
+        private readonly IProductTemplateService productTemplateService;
+
+        public TemplateStageService(ITemplateStateRepository templateStateRepository, IProductTemplateRepository productTemplateRepository, IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository, IProductTemplateService productTemplateService)
         {
             this.templateStateRepository = templateStateRepository;
             this.productTemplateRepository = productTemplateRepository;
             this.componentTypeRepository = componentTypeRepository;
             this.componentStageRepository = componentStageRepository;
+            this.productTemplateService = productTemplateService;
         }
 
         public List<TemplateStage> GetAll(string templateId, string? search)
@@ -151,7 +154,7 @@ namespace Etailor.API.Service.Service
                 }
             }
         }
-        public async Task<bool> UpdateTemplateStages(string templateId, List<TemplateStage> inputStages)
+        public async Task<bool> UpdateTemplateStages(string templateId, List<TemplateStage> inputStages, string wwwroot)
         {
 
             var tasks = new List<Task>();
@@ -162,6 +165,14 @@ namespace Etailor.API.Service.Service
             }
             else
             {
+                #region UpdateTemplateDraft
+                var checkUpdateTemplateDraft = await productTemplateService.UpdateTemplate(templateId, wwwroot);
+                if (checkUpdateTemplateDraft == null)
+                {
+                    throw new UserException("Đã xảy ra lỗi khi cập nhật mẫu sản phẩm từ bản nháp");
+                }
+                #endregion
+
                 #region GetDataFromDB
                 var activeComponent = componentTypeRepository.GetAll(x => x.IsActive == true && x.CategoryId == template.CategoryId).Select(c => c.Id).ToList();
                 var currentStages = templateStateRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();

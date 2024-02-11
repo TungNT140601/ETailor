@@ -895,6 +895,10 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
 
+                entity.Property(e => e.InactiveTime).HasColumnType("datetime");
+
+                entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
+
                 entity.HasOne(d => d.BodySize)
                     .WithMany(p => p.TemplateBodySizes)
                     .HasForeignKey(d => d.BodySizeId)
