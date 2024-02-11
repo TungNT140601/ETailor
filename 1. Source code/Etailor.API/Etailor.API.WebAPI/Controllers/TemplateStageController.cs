@@ -175,7 +175,7 @@ namespace Etailor.API.WebAPI.Controllers
                         stages.Add(stage);
                     }
                 }
-                return (await templateStageService.UpdateTemplateStages(templateId, stages)) ? Ok() : BadRequest();
+                return (await templateStageService.UpdateTemplateStages(templateId, stages, _wwwroot)) ? Ok() : BadRequest();
                 //    }
                 //}
             }

@@ -35,30 +35,30 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                //else if (role != RoleName.MANAGER)
-                else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
-                {
-                    return Forbid("Không có quyền truy cập");
-                }
-                else
-                {
-                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                ////else if (role != RoleName.MANAGER)
+                //else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
+                //{
+                //    return Forbid("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(id, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
                         var staffCreate = mapper.Map<Staff>(staff);
                         return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage, staff.MasterySkill)) ? Ok("Tạo mới nhân viên thành công") : BadRequest("Tạo mới nhân viên thất bại");
-                    }
-                }
+                //    }
+                //}
             }
             catch (UserException ex)
             {

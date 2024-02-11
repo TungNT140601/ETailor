@@ -160,8 +160,23 @@ namespace Etailor.API.Repository.Repository
                 if (data != null)
                 {
                     dBContext.Entry(data).State = EntityState.Detached;
-                    dBContext.SaveChanges();
                 }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
+        public void SaveChange()
+        {
+            try
+            {
+                dBContext.SaveChanges();
             }
             catch (UserException ex)
             {
