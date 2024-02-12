@@ -17,12 +17,15 @@ namespace Etailor.API.Service.Service
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly IComponentTypeRepository componentTypeRepository;
         private readonly IComponentStageRepository componentStageRepository;
-        public TemplateStageService(ITemplateStateRepository templateStateRepository, IProductTemplateRepository productTemplateRepository, IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository)
+        private readonly IProductTemplateService productTemplateService;
+
+        public TemplateStageService(ITemplateStateRepository templateStateRepository, IProductTemplateRepository productTemplateRepository, IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository, IProductTemplateService productTemplateService)
         {
             this.templateStateRepository = templateStateRepository;
             this.productTemplateRepository = productTemplateRepository;
             this.componentTypeRepository = componentTypeRepository;
             this.componentStageRepository = componentStageRepository;
+            this.productTemplateService = productTemplateService;
         }
 
         public List<TemplateStage> GetAll(string templateId, string? search)
@@ -151,7 +154,7 @@ namespace Etailor.API.Service.Service
                 }
             }
         }
-        public async Task<bool> UpdateTemplateStages(string templateId, List<TemplateStage> inputStages)
+        public async Task<bool> UpdateTemplateStages(string templateId, List<TemplateStage> inputStages, string wwwroot)
         {
 
             var tasks = new List<Task>();
@@ -162,13 +165,29 @@ namespace Etailor.API.Service.Service
             }
             else
             {
+                #region UpdateTemplateDraft
+                var checkUpdateTemplateDraft = await productTemplateService.UpdateTemplate(templateId, wwwroot);
+                if (checkUpdateTemplateDraft == null)
+                {
+                    throw new UserException("Đã xảy ra lỗi khi cập nhật mẫu sản phẩm từ bản nháp");
+                }
+                #endregion
+
                 #region GetDataFromDB
                 var activeComponent = componentTypeRepository.GetAll(x => x.IsActive == true && x.CategoryId == template.CategoryId).Select(c => c.Id).ToList();
                 var currentStages = templateStateRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();
+                var componentStages = new List<ComponentStage>();
                 if (currentStages != null && currentStages.Count > 0)
                 {
                     var stageIds = currentStages.Select(x => x.Id).ToList();
-                    //var componentStages = componentStageRepository.GetAll(x => stageIds.Contains(x.TemplateStageId)).ToList();
+                    componentStages = componentStageRepository.GetAll(x => stageIds.Contains(x.TemplateStageId)).ToList();
+                    if (componentStages != null && componentStages.Count > 0)
+                    {
+                        foreach (var componentStage in componentStages)
+                        {
+                            componentStageRepository.Detach(componentStage.Id);
+                        }
+                    }
                 }
                 #endregion
 
@@ -225,78 +244,88 @@ namespace Etailor.API.Service.Service
                     var currentStage = currentStages.Where(x => x.StageNum == i + 1).FirstOrDefault();
                     var inputStage = inputStages.Where(x => x.StageNum == i + 1).FirstOrDefault();
 
+                    if (currentStage != null)
+                    {
+                        currentStage.ComponentStages = componentStages.Where(c => c.TemplateStageId == currentStage.Id).ToList();
+                        componentStages.RemoveAll(c => c.TemplateStageId == currentStage.Id);
+                    }
+
+                    var currentComponents = currentStage != null && currentStage.ComponentStages != null && currentStage.ComponentStages.Count > 0 ? currentStage.ComponentStages.ToList() : new List<ComponentStage>();// get list component of old stage
+                    var inputComponents = inputStage != null && inputStage.ComponentStages != null && inputStage.ComponentStages.Count > 0 ? inputStage.ComponentStages.ToList() : new List<ComponentStage>();// get list component of new stage
+
                     // Check diff
                     if (currentStage == null && inputStage != null) // if db dont have stage num
                     {
-                        updateStages.Add(inputStage); // add new stage to list for add it
+                        checkDiff = true;
+                        if (inputComponents != null && inputComponents.Count > 0)
+                        {
+                            updateCurrentComponentStages.AddRange(inputComponents);// add list component to list for add
+                        }
                     }
                     else if (currentStage != null && inputStage == null) // if new dont have stage num
                     {
-                        inactiveStages.Add(currentStage); // add old stage to list for remove it
+                        checkDiff = true;
                     }
                     else if (currentStage != null && inputStage != null) // if both old and new have stage num
                     {
-                        var currentComponents = currentStage.ComponentStages.ToList();// get list component of old stage
-                        var inputComponents = inputStage.ComponentStages.ToList();// get list component of new stage
 
                         if (inputStage.Name != currentStage.Name)// if it has diff name
                         {
                             checkDiff = true; // flag is true
-                            if (currentComponents != null && currentComponents.Count > 0)
+                            if (currentComponents == null && inputComponents != null) // if new list component not null and old list null
                             {
-                                updateCurrentComponentStages.AddRange(currentComponents); // add list component to list for add
-                            }
-                        }
-                        else if (currentComponents == null && inputComponents != null) // if new list component not null and old list null
-                        {
-                            checkDiff = true; // flag is true
-                            inputStage = new TemplateStage()
-                            {
-                                Id = id,
-                                Name = currentStage.Name,
-                                ProductTemplateId = currentStage.ProductTemplateId,
-                                TemplateStageId = currentStage.TemplateStageId,
-                                StageNum = currentStage.StageNum
-                            }; // duplicate old stage
-                            templateStateRepository.Detach(currentStage.Id);
-                            if (inputComponents != null && inputComponents.Count > 0)
-                            {
-                                updateCurrentComponentStages.AddRange(inputComponents);// add list component to list for add
-                            }
-                        }
-                        else if (currentComponents != null && inputComponents == null)// if new list component is null and old list not null
-                        {
-                            checkDiff = true;
-                            inputStage = new TemplateStage()
-                            {
-                                Id = id,
-                                Name = currentStage.Name,
-                                ProductTemplateId = currentStage.ProductTemplateId,
-                                TemplateStageId = currentStage.TemplateStageId,
-                                StageNum = currentStage.StageNum
-                            }; // duplicate old stage
-                            templateStateRepository.Detach(currentStage.Id);
-                        }
-                        else if (currentComponents != null && inputComponents != null)// if both list not null
-                        {
-                            var currentComponentsIds = currentComponents.Select(x => x.ComponentTypeId);
-                            var inputComponentsIds = inputComponents.Select(x => x.ComponentTypeId);
-                            var idDiffs = currentComponentsIds.Except(inputComponentsIds); // check diff between two lists
-                            if (idDiffs.Any()) // if has any diff
-                            {
-                                checkDiff = true;
-                                inputStage = new TemplateStage()
-                                {
-                                    Id = id,
-                                    Name = currentStage.Name,
-                                    ProductTemplateId = currentStage.ProductTemplateId,
-                                    TemplateStageId = currentStage.TemplateStageId,
-                                    StageNum = currentStage.StageNum
-                                }; // duplicate old stage
-                                templateStateRepository.Detach(currentStage.Id);
                                 if (inputComponents != null && inputComponents.Count > 0)
                                 {
-                                    updateCurrentComponentStages.AddRange(inputComponents);
+                                    updateCurrentComponentStages.AddRange(inputComponents);// add list component to list for add
+                                }
+                            }
+                            else if (currentComponents != null && inputComponents == null)// if new list component is null and old list not null
+                            {
+                                checkDiff = true;
+                            }
+                            else if (currentComponents != null && inputComponents != null)// if both list not null
+                            {
+                                var currentComponentsIds = currentComponents.Select(x => x.ComponentTypeId);
+                                var inputComponentsIds = inputComponents.Select(x => x.ComponentTypeId);
+                                var idDiff1s = currentComponentsIds.Except(inputComponentsIds).ToList(); // check diff between two lists
+                                var idDiff2s = inputComponentsIds.Except(currentComponentsIds).ToList(); // check diff between two lists
+                                if (idDiff1s.Any() || idDiff2s.Any()) // if has any diff
+                                {
+                                    checkDiff = true;
+                                    if (inputComponents != null && inputComponents.Count > 0)
+                                    {
+                                        updateCurrentComponentStages.AddRange(inputComponents);
+                                    }
+                                }
+                            }
+                        }
+                        else // if it has same name
+                        {
+                            if (currentComponents == null && inputComponents != null) // if new list component not null and old list null
+                            {
+                                checkDiff = true; // flag is true
+                                if (inputComponents != null && inputComponents.Count > 0)
+                                {
+                                    updateCurrentComponentStages.AddRange(inputComponents);// add list component to list for add
+                                }
+                            }
+                            else if (currentComponents != null && inputComponents == null)// if new list component is null and old list not null
+                            {
+                                checkDiff = true;
+                            }
+                            else if (currentComponents != null && inputComponents != null)// if both list not null
+                            {
+                                var currentComponentsIds = currentComponents.Select(x => x.ComponentTypeId);
+                                var inputComponentsIds = inputComponents.Select(x => x.ComponentTypeId);
+                                var idDiff1s = currentComponentsIds.Except(inputComponentsIds).ToList(); // check diff between two lists
+                                var idDiff2s = inputComponentsIds.Except(currentComponentsIds).ToList(); // check diff between two lists
+                                if (idDiff1s.Any() || idDiff2s.Any()) // if has any diff
+                                {
+                                    checkDiff = true;
+                                    if (inputComponents != null && inputComponents.Count > 0)
+                                    {
+                                        updateCurrentComponentStages.AddRange(inputComponents);
+                                    }
                                 }
                             }
                         }
@@ -304,7 +333,8 @@ namespace Etailor.API.Service.Service
 
                     if (checkDiff)
                     {
-                        if (updateCurrentComponentStages != null)
+                        //componentStageRepository.SaveChange();
+                        if (updateCurrentComponentStages != null && updateCurrentComponentStages.Count > 0)
                         {
                             foreach (var updateCurrentComponentStage in updateCurrentComponentStages)
                             {
@@ -360,6 +390,7 @@ namespace Etailor.API.Service.Service
                 {
                     foreach (var inactiveStage in inactiveStages)
                     {
+                        templateStateRepository.Detach(inactiveStage.Id);
                         check.Add(templateStateRepository.Update(inactiveStage.Id, inactiveStage));
                     }
                 }

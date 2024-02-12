@@ -525,6 +525,16 @@ namespace Etailor.API.Service.Service
                     dbTemplate.IsActive = true;
                 }));
 
+                tasks.Add(Task.Run(() =>
+                {
+                    dbTemplate.TemplateBodySizes = productTemplate.TemplateBodySizes;
+                }));
+
+                //tasks.Add(Task.Run(() =>
+                //{
+                //    dbTemplate.TemplateStages = productTemplate.TemplateStages;
+                //}));
+
                 await Task.WhenAll(tasks);
 
                 return productTemplateRepository.Update(dbTemplate.Id, dbTemplate) ? productTemplate.Id : null;
