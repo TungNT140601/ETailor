@@ -20,9 +20,29 @@ namespace Etailor.API.Service.Service
             this.discountRepository = discountRepository;
         }
 
-        public bool CreateDiscount(Discount discount)
+        public async Task<bool> CreateDiscount(Discount discount)
         {
             var tasks = new List<Task>();
+
+            tasks.Add(Task.Run(() =>
+            {
+                if (string.IsNullOrWhiteSpace(discount.Name))
+                {
+                    throw new UserException("Vui lòng nhập tên mã giảm giá");
+                }
+            }));
+
+            tasks.Add(Task.Run(() =>
+            {
+                if (string.IsNullOrWhiteSpace(discount.Code))
+                {
+                    throw new UserException("Vui lòng nhập mã giảm giá");
+                }
+                else if (discount.Code.Contains(" "))
+                {
+                    throw new UserException("Mã giảm giá không được chứa khoảng trống");
+                }
+            }));
 
             tasks.Add(Task.Run(() =>
             {
@@ -51,11 +71,58 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                if (!discount.ConditionProductMin.HasValue && discount.ConditionPriceMax.HasValue && discount.ConditionPriceMin.HasValue)
+                if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
                 {
                     throw new UserException("Vui lòng chọn 1 điều kiện giảm giá");
                 }
+                else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                {
+                    if (discount.ConditionProductMin <= 0)
+                    {
+                        throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
+                    }
+                }
+                else if (!discount.ConditionProductMin.HasValue && (!discount.ConditionPriceMax.HasValue || !discount.ConditionPriceMin.HasValue))
+                {
+                    if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin == 0)
+                    {
+                        throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
+                    }
+                    if (!discount.ConditionPriceMax.HasValue || (discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0)
+                    {
+                        throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
+                    }
+                }
             }));
+
+            tasks.Add(Task.Run(() =>
+            {
+                if (!discount.DiscountPrice.HasValue && !discount.DiscountPercent.HasValue)
+                {
+                    throw new UserException("Vui lòng chọn số tiền giảm giá");
+                }
+                else if (discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
+                {
+                    throw new UserException("Vui lòng chọn 1 phương thức giảm giá");
+                }
+                else if (discount.DiscountPrice.HasValue && !discount.DiscountPercent.HasValue)
+                {
+                    if (discount.DiscountPrice <= 0)
+                    {
+                        throw new UserException("Số tiền giảm giá không hợp lệ: Số tiền giảm giá tối thiểu phải lớn hơn 0");
+                    }
+                }
+                else if (!discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
+                {
+                    if (discount.DiscountPercent < 0 && discount.DiscountPercent > 1)
+                    {
+                        throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 1% - 99%");
+                    }
+                }
+            }));
+
+            await Task.WhenAll(tasks);
+
             return discountRepository.Create(discount);
         }
 

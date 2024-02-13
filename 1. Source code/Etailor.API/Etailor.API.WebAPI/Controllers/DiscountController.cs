@@ -77,7 +77,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateDiscount([FromBody] DiscountCreateVM discount)
+        public async Task<IActionResult> CreateDiscount([FromBody] DiscountCreateVM discount)
         {
             try
             {
@@ -100,14 +100,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        if (string.IsNullOrWhiteSpace(discount.Name) || string.IsNullOrEmpty(discount.Code))
-                        {
-                            throw new UserException("Nhập tên phiếu giảm giá");
-                        }
-                        else
-                        {
-                            return discountService.CreateDiscount(mapper.Map<Discount>(discount)) ? Ok("Tạo mới phiếu giảm giá thành công") : BadRequest("Tạo mới phiếu giảm giá thất bại");
-                        }
+                        return await discountService.CreateDiscount(mapper.Map<Discount>(discount)) ? Ok("Tạo mới phiếu giảm giá thành công") : BadRequest("Tạo mới phiếu giảm giá thất bại");
                     }
                 }
             }

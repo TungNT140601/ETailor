@@ -151,7 +151,6 @@ namespace Etailor.API.Service.Service
                     dbOrder.Status = order.Status;
                     dbOrder.CancelTime = order.CancelTime;
 
-                    dbOrder.CreatedTime = null;
                     dbOrder.LastestUpdatedTime = DateTime.Now;
                     dbOrder.InactiveTime = null;
                     dbOrder.IsActive = true;
