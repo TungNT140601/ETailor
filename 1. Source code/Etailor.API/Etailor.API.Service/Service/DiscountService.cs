@@ -22,11 +22,40 @@ namespace Etailor.API.Service.Service
 
         public bool CreateDiscount(Discount discount)
         {
-            discount.Id = Ultils.GenGuidString();
-            discount.LastestUpdatedTime = DateTime.Now;
-            discount.CreatedTime = DateTime.Now;
-            discount.InactiveTime = null;
-            discount.IsActive = true;
+            var tasks = new List<Task>();
+
+            tasks.Add(Task.Run(() =>
+            {
+                discount.Id = Ultils.GenGuidString();
+                discount.LastestUpdatedTime = DateTime.Now;
+                discount.CreatedTime = DateTime.Now;
+                discount.InactiveTime = null;
+                discount.IsActive = true;
+            }));
+
+            tasks.Add(Task.Run(() =>
+            {
+                if (!discount.StartDate.HasValue)
+                {
+                    throw new UserException("Vui lòng chọn ngày bắt đầu giảm giá");
+                }
+                else if (!discount.EndDate.HasValue)
+                {
+                    discount.EndDate = discount.StartDate.Value.AddMonths(1);
+                }
+                else if (discount.EndDate.Value > discount.StartDate.Value)
+                {
+                    throw new UserException("Ngày kết thúc không được trước ngày bắt đầu giảm giá");
+                }
+            }));
+
+            tasks.Add(Task.Run(() =>
+            {
+                if (!discount.ConditionProductMin.HasValue && discount.ConditionPriceMax.HasValue && discount.ConditionPriceMin.HasValue)
+                {
+                    throw new UserException("Vui lòng chọn 1 điều kiện giảm giá");
+                }
+            }));
             return discountRepository.Create(discount);
         }
 
