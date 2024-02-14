@@ -76,7 +76,7 @@ namespace Etailor.API.Service.Service
                                 }
                                 else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
                                 {
-                                    order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
+                                    //order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
                                 }
                             }
                         }
@@ -90,7 +90,7 @@ namespace Etailor.API.Service.Service
                                 }
                                 else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
                                 {
-                                    order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
+                                    //order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
                                 }
                             }
                         }
@@ -104,7 +104,7 @@ namespace Etailor.API.Service.Service
                                 }
                                 else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
                                 {
-                                    order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
+                                    //order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
                                 }
                             }
                         }
