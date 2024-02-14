@@ -119,7 +119,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateDiscount(string? id, [FromBody] DiscountVM discount)
+        public async Task<IActionResult> UpdateDiscount(string? id, [FromBody] DiscountVM discount)
         {
             try
             {
@@ -148,14 +148,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(discount.Id) || id != discount.Id)
-                            {
-                                return NotFound("Không tìm thấy loại nguyên liệu");
-                            }
-                            else
-                            {
-                                return discountService.UpdateDiscount(mapper.Map<Discount>(discount)) ? Ok("Cập nhật loại nguyên liệu thành công") : BadRequest("Cập nhật loại nguyên liệu thất bại");
-                            }
+                            return await discountService.UpdateDiscount(mapper.Map<Discount>(discount)) ? Ok("Cập nhật phiếu giảm giá thành công") : BadRequest("Cập nhật phiếu giảm giá thất bại");
                         }
                     }
                 }
@@ -175,7 +168,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteMaterialType(string? id)
+        public async Task<IActionResult> DeleteMaterialType(string? id)
         {
             try
             {
@@ -198,14 +191,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        if (string.IsNullOrEmpty(id))
-                        {
-                            return NotFound("Không tìm thấy loại nguyên liệu");
-                        }
-                        else
-                        {
-                            return discountService.DeleteDiscount(id) ? Ok("Xóa phiếu giảm giá thành công") : BadRequest("Xóa phiếu giảm giá thất bại");
-                        }
+                        return discountService.DeleteDiscount(id) ? Ok("Xóa phiếu giảm giá thành công") : BadRequest("Xóa phiếu giảm giá thất bại");
                     }
                 }
             }

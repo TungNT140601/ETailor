@@ -29,7 +29,7 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> CreateOrder(Order order)
         {
-            var discount = discountRepository.GetAll(x => x.Code == order.DiscountCode).FirstOrDefault();
+            var discount = discountRepository.GetAll(x => order.DiscountCode != null && x.Code != null && x.Code.Trim().ToLower() == order.DiscountCode.Trim().ToLower()).FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(order.CustomerId))
             {

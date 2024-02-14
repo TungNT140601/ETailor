@@ -26,6 +26,15 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
+                discount.Id = Ultils.GenGuidString();
+                discount.LastestUpdatedTime = DateTime.Now;
+                discount.CreatedTime = DateTime.Now;
+                discount.InactiveTime = null;
+                discount.IsActive = true;
+            }));
+
+            tasks.Add(Task.Run(() =>
+            {
                 if (string.IsNullOrWhiteSpace(discount.Name))
                 {
                     throw new UserException("Vui lòng nhập tên mã giảm giá");
@@ -42,15 +51,10 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Mã giảm giá không được chứa khoảng trống");
                 }
-            }));
-
-            tasks.Add(Task.Run(() =>
-            {
-                discount.Id = Ultils.GenGuidString();
-                discount.LastestUpdatedTime = DateTime.Now;
-                discount.CreatedTime = DateTime.Now;
-                discount.InactiveTime = null;
-                discount.IsActive = true;
+                else if (discountRepository.GetAll(x => x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
+                {
+                    throw new UserException("Mã giảm giá không được trùng");
+                }
             }));
 
             tasks.Add(Task.Run(() =>
@@ -73,7 +77,7 @@ namespace Etailor.API.Service.Service
             {
                 if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
                 {
-                    throw new UserException("Vui lòng chọn 1 điều kiện giảm giá");
+                    throw new UserException("Vui lòng chọn điều kiện giảm giá");
                 }
                 else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
                 {
@@ -82,13 +86,13 @@ namespace Etailor.API.Service.Service
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
                     }
                 }
-                else if (!discount.ConditionProductMin.HasValue && (!discount.ConditionPriceMax.HasValue || !discount.ConditionPriceMin.HasValue))
+                else
                 {
-                    if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin == 0)
+                    if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin < 0)
                     {
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
                     }
-                    if (!discount.ConditionPriceMax.HasValue || (discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0)
+                    if (discount.ConditionPriceMax.HasValue && ((discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0))
                     {
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
                     }
@@ -126,28 +130,144 @@ namespace Etailor.API.Service.Service
             return discountRepository.Create(discount);
         }
 
-        public bool UpdateDiscount(Discount discount)
+        public async Task<bool> UpdateDiscount(Discount discount)
         {
             var existDiscount = discountRepository.Get(discount.Id);
             if (existDiscount != null)
             {
-                existDiscount.Name = discount.Name;
-                existDiscount.LastestUpdatedTime = DateTime.Now;
-                existDiscount.InactiveTime = null;
-                existDiscount.IsActive = true;
+                var tasks = new List<Task>();
+
+                tasks.Add(Task.Run(() =>
+                {
+                    existDiscount.LastestUpdatedTime = DateTime.Now;
+                    existDiscount.InactiveTime = null;
+                    existDiscount.IsActive = true;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(discount.Name))
+                    {
+                        throw new UserException("Vui lòng nhập tên mã giảm giá");
+                    }
+                    else
+                    {
+                        existDiscount.Name = discount.Name;
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(discount.Code))
+                    {
+                        throw new UserException("Vui lòng nhập mã giảm giá");
+                    }
+                    else if (discount.Code.Contains(" "))
+                    {
+                        throw new UserException("Mã giảm giá không được chứa khoảng trống");
+                    }
+                    else if (discountRepository.GetAll(x => x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
+                    {
+                        throw new UserException("Mã giảm giá không được trùng");
+                    }
+                    else
+                    {
+                        existDiscount.Code = discount.Code.Trim();
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!discount.StartDate.HasValue)
+                    {
+                        throw new UserException("Vui lòng chọn ngày bắt đầu giảm giá");
+                    }
+                    else if (!discount.EndDate.HasValue)
+                    {
+                        discount.EndDate = discount.StartDate.Value.AddMonths(1);
+                    }
+                    else if (discount.EndDate.Value > discount.StartDate.Value)
+                    {
+                        throw new UserException("Ngày kết thúc không được trước ngày bắt đầu giảm giá");
+                    }
+                    else
+                    {
+                        existDiscount.StartDate = discount.StartDate.Value;
+                        existDiscount.EndDate = discount.EndDate.Value;
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                    {
+                        throw new UserException("Vui lòng chọn điều kiện giảm giá");
+                    }
+                    else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                    {
+                        if (discount.ConditionProductMin <= 0)
+                        {
+                            throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
+                        }
+                    }
+                    else
+                    {
+                        if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin < 0)
+                        {
+                            throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
+                        }
+                        if (discount.ConditionPriceMax.HasValue && ((discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0))
+                        {
+                            throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
+                        }
+                    }
+                    existDiscount.ConditionPriceMax = discount.ConditionPriceMax;
+                    existDiscount.ConditionPriceMin = discount.ConditionPriceMin;
+                    existDiscount.ConditionProductMin = discount.ConditionProductMin;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!discount.DiscountPrice.HasValue && !discount.DiscountPercent.HasValue)
+                    {
+                        throw new UserException("Vui lòng chọn số tiền giảm giá");
+                    }
+                    else if (discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
+                    {
+                        throw new UserException("Vui lòng chọn 1 phương thức giảm giá");
+                    }
+                    else if (discount.DiscountPrice.HasValue && !discount.DiscountPercent.HasValue)
+                    {
+                        if (discount.DiscountPrice <= 0)
+                        {
+                            throw new UserException("Số tiền giảm giá không hợp lệ: Số tiền giảm giá tối thiểu phải lớn hơn 0");
+                        }
+                    }
+                    else if (!discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
+                    {
+                        if (discount.DiscountPercent < 0 && discount.DiscountPercent > 1)
+                        {
+                            throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 1% - 99%");
+                        }
+                    }
+                    existDiscount.DiscountPercent = discount.DiscountPercent;
+                    existDiscount.DiscountPrice = discount.DiscountPrice;
+                }));
+
+                await Task.WhenAll(tasks);
 
                 return discountRepository.Update(existDiscount.Id, existDiscount);
             }
             else
             {
-                throw new UserException("Không tìm thấy loại giảm giá.");
+                throw new UserException("Không tìm thấy giảm giá.");
             }
         }
 
         public bool DeleteDiscount(string id)
         {
             var existDiscount = discountRepository.Get(id);
-            if (existDiscount != null)
+            if (existDiscount != null && existDiscount.IsActive == true)
             {
                 existDiscount.LastestUpdatedTime = DateTime.Now;
                 existDiscount.InactiveTime = DateTime.Now;
@@ -156,7 +276,7 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                throw new UserException("Không tìm thấy loại giảm giá.");
+                throw new UserException("Không tìm thấy giảm giá.");
             }
         }
 
@@ -168,7 +288,7 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<Discount> GetDiscounts(string? search)
         {
-            return discountRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            return discountRepository.GetAll(x => (search == null || (search != null && (x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) || x.Code.Trim().ToLower().Contains(search.Trim().ToLower())) && x.IsActive == true);
         }
     }
 }
