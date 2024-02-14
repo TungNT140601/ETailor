@@ -15,7 +15,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? Code { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public decimal? DiscountPercent { get; set; }
+        public float? DiscountPercent { get; set; }
         public decimal? DiscountPrice { get; set; }
         public decimal? ConditionPriceMin { get; set; }
         public decimal? ConditionPriceMax { get; set; }

@@ -67,10 +67,11 @@ namespace Etailor.API.Service.Service
                 {
                     discount.EndDate = discount.StartDate.Value.AddMonths(1);
                 }
-                else if (discount.EndDate.Value > discount.StartDate.Value)
+                else if (discount.EndDate.Value < discount.StartDate.Value)
                 {
                     throw new UserException("Ngày kết thúc không được trước ngày bắt đầu giảm giá");
                 }
+                discount.EndDate = discount.EndDate.Value.AddDays(1).AddSeconds(-1);
             }));
 
             tasks.Add(Task.Run(() =>
@@ -166,7 +167,7 @@ namespace Etailor.API.Service.Service
                     {
                         throw new UserException("Mã giảm giá không được chứa khoảng trống");
                     }
-                    else if (discountRepository.GetAll(x => x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
+                    else if (discountRepository.GetAll(x => x.Id != existDiscount.Id && x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
                     {
                         throw new UserException("Mã giảm giá không được trùng");
                     }
@@ -186,14 +187,14 @@ namespace Etailor.API.Service.Service
                     {
                         discount.EndDate = discount.StartDate.Value.AddMonths(1);
                     }
-                    else if (discount.EndDate.Value > discount.StartDate.Value)
+                    else if (discount.EndDate.Value < discount.StartDate.Value)
                     {
                         throw new UserException("Ngày kết thúc không được trước ngày bắt đầu giảm giá");
                     }
                     else
                     {
                         existDiscount.StartDate = discount.StartDate.Value;
-                        existDiscount.EndDate = discount.EndDate.Value;
+                        existDiscount.EndDate = discount.EndDate.Value.AddDays(1).AddSeconds(-1);
                     }
                 }));
 
