@@ -10,9 +10,9 @@ namespace Etailor.API.Service.Interface
     public interface IDiscountService
     {
         Task<bool> CreateDiscount(Discount discount);
-        bool UpdateDiscount(Discount discount);
+        Task<bool> UpdateDiscount(Discount discount);
         bool DeleteDiscount(string id);
         Discount GetDiscount(string id);
-        IEnumerable<Discount> GetDiscounts (string? search);
+        IEnumerable<Discount> GetDiscounts(string? search);
     }
 }
