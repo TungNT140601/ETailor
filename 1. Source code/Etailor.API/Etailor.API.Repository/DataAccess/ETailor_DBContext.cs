@@ -536,6 +536,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.AfterDiscountPrice).HasColumnType("decimal(18, 0)");
 
+                entity.Property(e => e.ApproveTime).HasColumnType("datetime");
+
                 entity.Property(e => e.CancelTime).HasColumnType("datetime");
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
@@ -892,6 +894,10 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.BodySizeId).HasMaxLength(30);
 
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
+
+                entity.Property(e => e.InactiveTime).HasColumnType("datetime");
+
+                entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
                 entity.HasOne(d => d.BodySize)
                     .WithMany(p => p.TemplateBodySizes)
