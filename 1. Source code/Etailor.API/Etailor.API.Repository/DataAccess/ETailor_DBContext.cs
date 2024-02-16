@@ -83,6 +83,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Hastag).HasMaxLength(255);
 
+                entity.Property(e => e.Thumbnail).HasColumnType("text");
+
                 entity.Property(e => e.UrlPath).HasMaxLength(255);
 
                 entity.HasOne(d => d.Staff)
@@ -386,7 +388,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.DiscountPercent).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.DiscountPercent).HasColumnType("float(18, 0)");
 
                 entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 0)");
 
@@ -676,6 +678,10 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
 
                 entity.Property(e => e.Status).HasDefaultValueSql("((1))");
+
+                entity.Property(e => e.Price)
+                    .HasColumnType("decimal(18, 0)")
+                    .HasDefaultValueSql("((0))");
 
                 entity.HasOne(d => d.Order)
                     .WithMany(p => p.Products)

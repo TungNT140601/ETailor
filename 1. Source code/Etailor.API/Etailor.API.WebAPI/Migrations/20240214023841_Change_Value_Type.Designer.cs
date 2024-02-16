@@ -4,6 +4,7 @@ using Etailor.API.Repository.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Etailor.API.WebAPI.Migrations
 {
     [DbContext(typeof(ETailor_DBContext))]
-    partial class ETailor_DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240214023841_Change_Value_Type")]
+    partial class Change_Value_Type
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,9 +54,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("StaffId")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("Thumbnail")
-                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .HasMaxLength(255)
@@ -930,11 +929,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("OrderId")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
-
-                    b.Property<decimal?>("Price")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,0)")
-                        .HasDefaultValueSql("((0))");
 
                     b.Property<string>("ProductTemplateId")
                         .HasMaxLength(30)
