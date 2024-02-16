@@ -5,79 +5,32 @@ using Etailor.API.Service.Service;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace Etailor.API.WebAPI.Controllers
 {
-    [Route("api/discount")]
+    [Route("api/template-body-size")]
     [ApiController]
-    public class DiscountController : ControllerBase
+    public class TemplateBodySizeController : ControllerBase
     {
-        private readonly IDiscountService discountService;
+
         private readonly IStaffService staffService;
+        private readonly ITemplateBodySizeService templateBodySizeService;
         private readonly IMapper mapper;
+        private readonly string _wwwroot;
 
-        public DiscountController(IDiscountService discountService, IStaffService staffService, IMapper mapper)
+        public TemplateBodySizeController(IStaffService staffService, IMapper mapper, ITemplateBodySizeService templateBodySizeService, IWebHostEnvironment webHost)
         {
-            this.mapper = mapper;
-            this.discountService = discountService;
             this.staffService = staffService;
+            this.mapper = mapper;
+            this.templateBodySizeService = templateBodySizeService;
+            _wwwroot = webHost.WebRootPath;
         }
 
-        [HttpGet("{id}")]
-        public IActionResult Get(string id)
-        {
-            try
-            {
-                var discount = discountService.GetDiscount(id);
-                if (discount == null)
-                {
-                    return NotFound("không tìm thấy loại giảm giá");
-                }
-                else
-                {
-                    return Ok(mapper.Map<DiscountVM>(discount));
-                }
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpGet]
-        public IActionResult GetAll(string? search)
-        {
-            try
-            {
-                var discounts = discountService.GetDiscounts(search);
-                return Ok(mapper.Map<IEnumerable<DiscountVM>>(discounts));
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> CreateDiscount([FromBody] DiscountCreateVM discount)
+        [HttpPost("template/{templateId}")]
+        public async Task<IActionResult> AddTemplateBodySize(string templateId, [FromBody] List<string> bodySizeIds)
         {
             try
             {
@@ -92,15 +45,15 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    if (!staffService.CheckSecrectKey(id, secrectKey))
                 //    {
                 //        return Unauthorized("Chưa đăng nhập");
                 //    }
                 //    else
                 //    {
-                return await discountService.CreateDiscount(mapper.Map<Discount>(discount)) ? Ok("Tạo mới phiếu giảm giá thành công") : BadRequest("Tạo mới phiếu giảm giá thất bại");
+                return (await templateBodySizeService.CreateTemplateBodySize(bodySizeIds, templateId)) ? Ok("Thêm số đo thành công") : BadRequest("Thêm số đo thất bại");
                 //    }
                 //}
             }
@@ -118,8 +71,8 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDiscount(string? id, [FromBody] DiscountVM discount)
+        [HttpPut("template/{templateId}")]
+        public async Task<IActionResult> UpdateTemplateBodySize(string templateId, [FromBody] List<string> bodySizeIds)
         {
             try
             {
@@ -134,15 +87,15 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    if (!staffService.CheckSecrectKey(id, secrectKey))
                 //    {
                 //        return Unauthorized("Chưa đăng nhập");
                 //    }
                 //    else
                 //    {
-                return await discountService.UpdateDiscount(mapper.Map<Discount>(discount)) ? Ok("Cập nhật phiếu giảm giá thành công") : BadRequest("Cập nhật phiếu giảm giá thất bại");
+                return (await templateBodySizeService.UpdateDraftTemplateBodySize(_wwwroot, bodySizeIds, templateId)) ? Ok("Cập nhật số đo thành công") : BadRequest("Cập nhật số đo thất bại");
                 //    }
                 //}
             }
@@ -159,9 +112,8 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMaterialType(string? id)
+        public async Task<IActionResult> DeleteTemplateBodySize(string id)
         {
             try
             {
@@ -176,15 +128,15 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    if (!staffService.CheckSecrectKey(id, secrectKey))
                 //    {
                 //        return Unauthorized("Chưa đăng nhập");
                 //    }
                 //    else
                 //    {
-                return discountService.DeleteDiscount(id) ? Ok("Xóa phiếu giảm giá thành công") : BadRequest("Xóa phiếu giảm giá thất bại");
+                return templateBodySizeService.DeleteTemplateBodySize(id) ? Ok("Xóa số đo thành công") : BadRequest("Xóa số đo thất bại");
                 //    }
                 //}
             }

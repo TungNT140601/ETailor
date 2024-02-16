@@ -18,11 +18,13 @@ namespace Etailor.API.Service.Service
     {
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly ICategoryRepository categoryRepository;
+        private readonly ITemplateBodySizeService templateBodySizeService;
 
-        public ProductTemplateService(IProductTemplateRepository productTemplateRepository, ICategoryRepository categoryRepository)
+        public ProductTemplateService(IProductTemplateRepository productTemplateRepository, ICategoryRepository categoryRepository, ITemplateBodySizeService templateBodySizeService)
         {
             this.productTemplateRepository = productTemplateRepository;
             this.categoryRepository = categoryRepository;
+            this.templateBodySizeService = templateBodySizeService;
         }
 
         public async Task<string> AddTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
@@ -470,6 +472,8 @@ namespace Etailor.API.Service.Service
 
                 var tasks = new List<Task>();
 
+                var checkUpdateBodySize = await templateBodySizeService.UpdateTemplateBodySize(productTemplate.TemplateBodySizes.ToList(), dbTemplate.Id);
+
                 tasks.Add(Task.Run(() =>
                 {
                     dbTemplate.CategoryId = productTemplate.CategoryId;
@@ -523,11 +527,7 @@ namespace Etailor.API.Service.Service
                     dbTemplate.LastestUpdatedTime = DateTime.Now;
                     dbTemplate.InactiveTime = null;
                     dbTemplate.IsActive = true;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    dbTemplate.TemplateBodySizes = productTemplate.TemplateBodySizes;
+                    dbTemplate.TemplateBodySizes = null;
                 }));
 
                 //tasks.Add(Task.Run(() =>
@@ -537,7 +537,14 @@ namespace Etailor.API.Service.Service
 
                 await Task.WhenAll(tasks);
 
-                return productTemplateRepository.Update(dbTemplate.Id, dbTemplate) ? productTemplate.Id : null;
+                if (checkUpdateBodySize)
+                {
+                    return productTemplateRepository.Update(dbTemplate.Id, dbTemplate) ? productTemplate.Id : null;
+                }
+                else
+                {
+                    return null;
+                }
             }
             else
             {

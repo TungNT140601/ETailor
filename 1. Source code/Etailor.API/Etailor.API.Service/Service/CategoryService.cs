@@ -25,7 +25,15 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> AddCategory(Category category)
         {
-            var checkName = Task.Run(() =>
+            var componentTypes = new List<ComponentType>();
+
+            category.Id = Ultils.GenGuidString();
+
+            var tasks = new List<Task>();
+
+            var duplicateName = categoryRepository.GetAll(x => x.Name == category.Name && x.IsActive == true);
+
+            tasks.Add(Task.Run(() =>
             {
                 if (string.IsNullOrWhiteSpace(category.Name))
                 {
@@ -33,46 +41,122 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    if (categoryRepository.GetAll(x => x.Name == category.Name && x.IsActive == true).Any())
+                    if (duplicateName.Any())
                     {
                         throw new UserException("Tên danh mục sản phầm đã được sử dụng");
                     }
                 }
-            });
-            var setValue = Task.Run(() =>
+            }));
+
+            tasks.Add(Task.Run(() =>
             {
-                category.Id = Ultils.GenGuidString();
                 category.CreatedTime = DateTime.Now;
                 category.LastestUpdatedTime = DateTime.Now;
-            });
+            }));
 
-            await Task.WhenAll(checkName, setValue);
+            if (category.ComponentTypes.Any())
+            {
+                componentTypes = category.ComponentTypes.ToList();
 
-            return categoryRepository.Create(category);
+                category.ComponentTypes = null;
+
+                foreach (var componentType in componentTypes)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        componentType.Id = Ultils.GenGuidString();
+                        componentType.CreatedTime = DateTime.Now;
+                        componentType.LastestUpdatedTime = DateTime.Now;
+                        componentType.IsActive = true;
+                        componentType.InactiveTime = null;
+                        componentType.CategoryId = category.Id;
+                    }));
+                }
+            }
+
+            await Task.WhenAll(tasks);
+
+            if (categoryRepository.Create(category))
+            {
+                return componentTypeRepository.CreateRange(componentTypes);
+            }
+            else
+            {
+                return false;
+            }
         }
 
         public async Task<bool> UpdateCategory(Category category)
         {
             var dbCategory = categoryRepository.Get(category.Id);
+
             if (dbCategory != null && dbCategory.IsActive == true)
             {
-                var checkName = Task.Run(() =>
+                var tasks = new List<Task>();
+                category.Id = Ultils.GenGuidString();
+
+                var componentTypes = new List<ComponentType>();
+
+                var duplicateName = categoryRepository.GetAll(x => dbCategory.Id != x.Id && x.Name == category.Name && x.IsActive == true);
+
+                tasks.Add(Task.Run(() =>
                 {
-                    if (categoryRepository.GetAll(x => dbCategory.Id != x.Id && x.Name == category.Name && x.IsActive == true).Any())
+                    if (duplicateName.Any())
                     {
                         throw new UserException("Tên danh mục sản phầm đã được sử dụng");
                     }
-                });
+                }));
 
-                var setValue = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
-                    dbCategory.Name = category.Name;
+                    dbCategory.IsActive = false;
+                    dbCategory.InactiveTime = DateTime.Now;
                     dbCategory.LastestUpdatedTime = DateTime.Now;
-                });
+                }));
 
-                await Task.WhenAll(checkName, setValue);
+                tasks.Add(Task.Run(() =>
+                {
+                    category.CreatedTime = DateTime.Now;
+                    category.LastestUpdatedTime = DateTime.Now;
+                }));
 
-                return categoryRepository.Update(dbCategory.Id, dbCategory);
+                if (category.ComponentTypes.Any())
+                {
+                    componentTypes = category.ComponentTypes.ToList();
+
+                    category.ComponentTypes = null;
+
+                    foreach (var componentType in componentTypes)
+                    {
+                        tasks.Add(Task.Run(() =>
+                        {
+                            componentType.Id = Ultils.GenGuidString();
+                            componentType.CreatedTime = DateTime.Now;
+                            componentType.LastestUpdatedTime = DateTime.Now;
+                            componentType.IsActive = true;
+                            componentType.InactiveTime = null;
+                            componentType.CategoryId = category.Id;
+                        }));
+                    }
+                }
+
+                await Task.WhenAll(tasks);
+
+                if (categoryRepository.Update(dbCategory.Id, dbCategory))
+                {
+                    if (categoryRepository.Create(category))
+                    {
+                        return componentTypeRepository.CreateRange(componentTypes);
+                    }
+                    else
+                    {
+                        throw new UserException("Lỗi trong quá trình tạo mới");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Lỗi trong quá trình cập nhật");
+                }
             }
             else
             {
@@ -112,7 +196,15 @@ namespace Etailor.API.Service.Service
         public Category GetCategory(string id)
         {
             var category = categoryRepository.Get(id);
-            return category == null ? null : category.IsActive == true ? category : null;
+            if (category != null && category.IsActive == true)
+            {
+                category.ComponentTypes = componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).ToList();
+                return category;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public IEnumerable<Category> GetCategorys(string? search)
