@@ -54,6 +54,8 @@ namespace Etailor.API.WebAPI
             CreateMap<Blog, ListOfBlogVM>().ReverseMap();
             CreateMap<Blog, CreateBlogVM>().ReverseMap();
             CreateMap<Blog, UpdateBlogVM>().ReverseMap();
+
+            CreateMap<Material, MaterialVM>().ReverseMap();
         }
     }
 }
