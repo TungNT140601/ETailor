@@ -62,7 +62,7 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var blogs = blogService.GetBlogs(search);
-                return Json(mapper.Map<IEnumerable<ListOfBlogVM>>(blogs));
+                return Ok(mapper.Map<IEnumerable<ListOfBlogVM>>(blogs));
             }
             catch (UserException ex)
             {
@@ -110,6 +110,7 @@ namespace Etailor.API.WebAPI.Controllers
                         else
                         {
                             blog.StaffId = staffId;
+                            //blog.Thumbnail = "";
                             return blogService.CreateBlog(blog) ? Ok("Tạo mới bài blog thành công") : BadRequest("Tạo mới bài blog thất bại");
                         }
                     }
