@@ -135,7 +135,7 @@ builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryReposito
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
-//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+builder.Services.AddScoped<IMaterialService, MaterialService>();
 
 builder.Services.AddScoped<IMasteryRepository, MasteryRepository>();
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
