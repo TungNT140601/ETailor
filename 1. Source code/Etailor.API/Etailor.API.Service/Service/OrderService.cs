@@ -257,7 +257,23 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool CheckOrderPaidMoney(string id)
+        public bool PayDeposit(string orderId, decimal amount)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                dbOrder.Deposit = amount;
+                dbOrder.PayDeposit = true;
+
+                return orderRepository.Update(dbOrder.Id, dbOrder);
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public bool CheckOrderPaid(string id)
         {
             var dbOrder = orderRepository.Get(id);
             if (dbOrder != null && dbOrder.IsActive == true)

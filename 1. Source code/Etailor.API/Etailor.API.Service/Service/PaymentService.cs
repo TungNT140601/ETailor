@@ -90,7 +90,39 @@ namespace Etailor.API.Service.Service
                 payment.Status = status;
                 payment.PayTime = DateTime.Now;
 
-                return paymentRepository.Update(paymentId, payment);
+                if (paymentRepository.Update(paymentId, payment))
+                {
+                    if (payment.Status == 1)
+                    {
+                        switch (payment.PayType)
+                        {
+                            case 0:
+                                {
+                                    return true;
+                                }
+                            case 1:
+                                {
+                                    return true;
+                                }
+                            case 2:
+                                {
+                                    return true;
+                                }
+                            default:
+                                {
+                                    return true;
+                                }
+                        }
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
             }
             else
             {
