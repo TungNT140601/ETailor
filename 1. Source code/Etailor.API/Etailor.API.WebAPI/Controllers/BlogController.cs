@@ -82,7 +82,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateBlog([FromBody] CreateBlogVM blogVM)
+        public async Task<IActionResult> CreateBlog([FromForm] CreateBlogVM blogVM)
         {
             try
             {
@@ -114,7 +114,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             blog.StaffId = staffId;
                             //blog.Thumbnail = "";
-                            return await blogService.CreateBlog(blog, _wwwrootPath, blogVM.Thumbnail) ? Ok("Tạo mới bài blog thành công") : BadRequest("Tạo mới bài blog thất bại");
+                            return (await blogService.CreateBlog(blog, _wwwrootPath, blogVM.Thumbnail)) ? Ok("Tạo mới bài blog thành công") : BadRequest("Tạo mới bài blog thất bại");
                         }
                     }
                 }
@@ -134,7 +134,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateBodySize(string? id, [FromBody] UpdateBlogVM blogVM)
+        public async Task<IActionResult> UpdateBodySize(string? id, [FromForm] UpdateBlogVM blogVM)
         {
             try
             {
@@ -171,7 +171,7 @@ namespace Etailor.API.WebAPI.Controllers
                             else
                             {
                                 blog.StaffId = staffId;
-                                return blogService.UpdateBlog(blog) ? Ok("Cập nhật bài blog thành công") : BadRequest("Cập nhật bài blog thất bại");
+                                return (await blogService.UpdateBlog(blog, _wwwrootPath, blogVM.Thumbnail)) ? Ok("Cập nhật bài blog thành công") : BadRequest("Cập nhật bài blog thất bại");
                             }
                         }
                     }

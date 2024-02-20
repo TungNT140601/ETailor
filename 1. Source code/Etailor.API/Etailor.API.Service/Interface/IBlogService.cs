@@ -12,7 +12,7 @@ namespace Etailor.API.Service.Interface
     {
         Task<bool> CreateBlog(Blog blog, string wwwroot, IFormFile? avatar);
 
-        bool UpdateBlog(Blog blog);
+        Task<bool> UpdateBlog(Blog blog, string wwwroot, IFormFile? avatar);
 
         bool DeleteBlog(string id);
 
