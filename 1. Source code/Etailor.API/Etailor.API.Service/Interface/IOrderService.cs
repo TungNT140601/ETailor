@@ -15,5 +15,7 @@ namespace Etailor.API.Service.Interface
         Order GetOrder(string id);
         IEnumerable<Order> GetOrders();
         IEnumerable<Order> GetOrdersByCustomer(string cusId);
+        bool PayDeposit(string orderId, decimal amount);
+        bool CheckOrderPaid(string id);
     }
 }

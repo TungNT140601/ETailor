@@ -11,6 +11,7 @@ namespace Etailor.API.Repository.EntityModels
         public decimal? Amount { get; set; }
         public DateTime? PayTime { get; set; }
         public DateTime? CreatedTime { get; set; }
+        public int? PayType { get; set; }
         public int? Status { get; set; }
 
         public virtual Order? Order { get; set; }

@@ -20,54 +20,50 @@ namespace Etailor.API.Service.Service
         private readonly IOrderRepository orderRepository;
         private readonly IDiscountRepository discountRepository;
         private readonly IProductRepository productRepository;
+        private readonly IPaymentRepository paymentRepository;
 
-        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository, IDiscountRepository discountRepository, IProductRepository productRepository)
+        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository, IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
             this.orderRepository = orderRepository;
             this.discountRepository = discountRepository;
             this.productRepository = productRepository;
+            this.paymentRepository = paymentRepository;
         }
 
         public async Task<string> CreateOrder(Order order, string? role)
         {
-            if (string.IsNullOrWhiteSpace(order.CustomerId))
+            var tasks = new List<Task>();
+
+            if (!string.IsNullOrWhiteSpace(order.CustomerId))
             {
-                throw new UserException("Vui lòng chọn khách hàng");
+                var cus = customerRepository.Get(order.CustomerId);
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (cus == null || cus.IsActive == false)
+                    {
+                        throw new UserException("Không tìm thấy khách hàng");
+                    }
+                }));
             }
 
-            var cus = customerRepository.Get(order.CustomerId);
-
-            var checkCus = Task.Run(() =>
-            {
-                if (cus == null || cus.IsActive == false)
-                {
-                    throw new UserException("Không tìm thấy khách hàng");
-                }
-            });
-
-            var setValue = Task.Run(() =>
+            tasks.Add(Task.Run(() =>
             {
                 order.Id = Ultils.GenGuidString();
                 order.CreatedTime = DateTime.Now;
                 order.LastestUpdatedTime = DateTime.Now;
                 order.InactiveTime = null;
                 order.IsActive = true;
-            });
+            }));
 
-            var setValue2 = Task.Run(() =>
+            tasks.Add(Task.Run(() =>
             {
-                if (role != RoleName.MANAGER)
-                {
-                    order.Status = 1;
-                }
-                else
-                {
-                    order.Status = 2;
-                }
-            });
-            await Task.WhenAll(checkCus, setValue);
+                order.Status = 1;
+            }));
+
+            await Task.WhenAll(tasks);
 
             return orderRepository.Create(order) ? order.Id : null;
         }
@@ -79,6 +75,8 @@ namespace Etailor.API.Service.Service
             {
                 if (dbOrder.Status < 2)
                 {
+                    var tasks = new List<Task>();
+
                     if (string.IsNullOrWhiteSpace(order.CustomerId))
                     {
                         throw new UserException("Vui lòng chọn khách hàng");
@@ -88,11 +86,13 @@ namespace Etailor.API.Service.Service
 
                     var discount = discountRepository.GetAll(x => order.DiscountCode != null && x.Code != null && x.Code.Trim().ToLower() == order.DiscountCode.Trim().ToLower()).FirstOrDefault();
 
-                    var usedDiscountCode = orderRepository.GetAll(x => x.Id != dbOrder.Id && x.CustomerId == cus.Id && x.DiscountCode == order.DiscountCode && x.IsActive == true && x.Status != 0);
+                    var usedDiscountCode = orderRepository.GetAll(x => x.Id != dbOrder.Id && ((dbOrder.CustomerId != cus.Id && x.CustomerId == cus.Id) || (dbOrder.CustomerId == cus.Id && x.CustomerId == cus.Id)) && x.DiscountCode == order.DiscountCode && x.IsActive == true && x.Status != 0);
 
                     var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true && x.Status != 0).ToList();
 
-                    var checkCus = Task.Run(() =>
+                    var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 0).ToList();
+
+                    tasks.Add(Task.Run(() =>
                     {
                         if (cus == null || cus.IsActive == false)
                         {
@@ -102,10 +102,17 @@ namespace Etailor.API.Service.Service
                         {
                             dbOrder.CustomerId = cus.Id;
                         }
-                    });
+                    }));
 
-                    var checkDiscount = Task.Run(() =>
+                    tasks.Add(Task.Run(() =>
                     {
+                        if (orderProducts.Any() && orderProducts.Count > 0)
+                        {
+                            dbOrder.TotalProduct = orderProducts.Count;
+
+                            dbOrder.TotalPrice = orderProducts.Sum(x => x.Price);
+                        }
+
                         if (!string.IsNullOrWhiteSpace(order.DiscountCode))
                         {
                             if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.Now && discount.EndDate <= DateTime.Now)
@@ -120,19 +127,40 @@ namespace Etailor.API.Service.Service
                             {
                                 dbOrder.DiscountId = discount.Id;
                                 dbOrder.DiscountCode = discount.Code;
-
-                                if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax == null)
+                                if (discount.ConditionProductMin != null && discount.ConditionProductMin != 0)
+                                {
+                                    if (dbOrder.TotalProduct >= discount.ConditionProductMin)
+                                    {
+                                        if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                                        {
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
+                                        }
+                                        else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                                        {
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
+                                    }
+                                }
+                                else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax == null)
                                 {
                                     if (order.TotalPrice >= discount.ConditionPriceMin)
                                     {
                                         if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
                                         {
-                                            order.DiscountPrice = discount.DiscountPrice;
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
                                         }
                                         else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
                                         {
-                                            //order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
                                         }
+                                    }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
                                     }
                                 }
                                 else if (discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0 && discount.ConditionPriceMin == null)
@@ -141,12 +169,16 @@ namespace Etailor.API.Service.Service
                                     {
                                         if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
                                         {
-                                            order.DiscountPrice = discount.DiscountPrice;
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
                                         }
                                         else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
                                         {
-                                            //order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
                                         }
+                                    }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
                                     }
                                 }
                                 else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0)
@@ -155,46 +187,62 @@ namespace Etailor.API.Service.Service
                                     {
                                         if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
                                         {
-                                            order.DiscountPrice = discount.DiscountPrice;
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
                                         }
                                         else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
                                         {
-                                            //order.DiscountPrice = order.DiscountPrice * discount.DiscountPercent;
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
                                         }
                                     }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
+                                    }
+                                }
+                                else
+                                {
+                                    dbOrder.DiscountPrice = 0;
                                 }
                             }
                         }
-                    });
 
-                    var setValue1 = Task.Run(() =>
+
+                        if (orderPayments.Any() && orderPayments.Count > 0)
+                        {
+                            dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0).Sum(x => x.Amount);
+                            if (dbOrder.DiscountPrice > 0)
+                            {
+                                if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
+                                {
+                                    dbOrder.AfterDiscountPrice = dbOrder.TotalPrice - dbOrder.DiscountPrice;
+                                }
+                                else
+                                {
+                                    dbOrder.AfterDiscountPrice = 0;
+                                }
+                            }
+
+                            if (dbOrder.AfterDiscountPrice != 0)
+                            {
+                                dbOrder.UnPaidMoney = dbOrder.AfterDiscountPrice - dbOrder.PaidMoney;
+                            }
+                            else
+                            {
+                                dbOrder.UnPaidMoney = dbOrder.TotalPrice - dbOrder.PaidMoney;
+                            }
+                        }
+
+                    }));
+
+                    tasks.Add(Task.Run(() =>
                     {
-                        //này lấy từ bảng product
-                        dbOrder.TotalProduct = order.TotalProduct;
-                        dbOrder.TotalPrice = order.TotalPrice;
-
-                        //này lấy từ bảng discount
-
-
-                        dbOrder.DiscountId = order.DiscountId;
-                        dbOrder.DiscountCode = order.DiscountCode;
-                        dbOrder.AfterDiscountPrice = order.AfterDiscountPrice;
-
-                        //lấy từ bảng transaction
-                        dbOrder.PayDeposit = order.PayDeposit;
-                        dbOrder.Deposit = order.Deposit;
-                        dbOrder.PaidMoney = order.PaidMoney;
-                        dbOrder.UnPaidMoney = order.UnPaidMoney;
-
-                        dbOrder.Status = order.Status;
-                        dbOrder.CancelTime = order.CancelTime;
-
                         dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.CancelTime = null;
                         dbOrder.InactiveTime = null;
                         dbOrder.IsActive = true;
-                    });
+                    }));
 
-                    await Task.WhenAll(setValue1);
+                    await Task.WhenAll(tasks);
 
                     return orderRepository.Update(dbOrder.Id, dbOrder) ? dbOrder.Id : null;
                 }
@@ -202,6 +250,163 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Hóa đơn đã được duyệt. Không thể cập nhập hóa đơn");
                 }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public bool PayDeposit(string orderId, decimal amount)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                dbOrder.Deposit = amount;
+                dbOrder.PayDeposit = true;
+
+                if (orderRepository.Update(dbOrder.Id, dbOrder))
+                {
+                    return CheckOrderPaid(orderId);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public bool CheckOrderPaid(string id)
+        {
+            var dbOrder = orderRepository.Get(id);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                var discount = string.IsNullOrEmpty(dbOrder.DiscountId) ? null : discountRepository.Get(dbOrder.DiscountId);
+
+                var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true && x.Status != 0).ToList();
+
+                var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 0).ToList();
+
+                if (orderProducts.Any() && orderProducts.Count > 0)
+                {
+                    dbOrder.TotalProduct = orderProducts.Count;
+
+                    dbOrder.TotalPrice = orderProducts.Sum(x => x.Price);
+                }
+
+                if (discount != null)
+                {
+
+                    dbOrder.DiscountId = discount.Id;
+                    dbOrder.DiscountCode = discount.Code;
+                    if (discount.ConditionProductMin != null && discount.ConditionProductMin != 0)
+                    {
+                        if (dbOrder.TotalProduct >= discount.ConditionProductMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax == null)
+                    {
+                        if (dbOrder.TotalPrice >= discount.ConditionPriceMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0 && discount.ConditionPriceMin == null)
+                    {
+                        if (dbOrder.TotalPrice <= discount.ConditionPriceMax)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0)
+                    {
+                        if (dbOrder.TotalPrice <= discount.ConditionPriceMax && dbOrder.TotalPrice >= discount.ConditionPriceMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else
+                    {
+                        dbOrder.DiscountPrice = 0;
+                    }
+                }
+
+                if (orderPayments.Any() && orderPayments.Count > 0)
+                {
+                    dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0).Sum(x => x.Amount);
+                    if (dbOrder.DiscountPrice > 0)
+                    {
+                        if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
+                        {
+                            dbOrder.AfterDiscountPrice = dbOrder.TotalPrice - dbOrder.DiscountPrice;
+                        }
+                        else
+                        {
+                            dbOrder.AfterDiscountPrice = 0;
+                        }
+                    }
+
+                    if (dbOrder.AfterDiscountPrice != 0)
+                    {
+                        dbOrder.UnPaidMoney = dbOrder.AfterDiscountPrice - dbOrder.PaidMoney;
+                    }
+                    else
+                    {
+                        dbOrder.UnPaidMoney = dbOrder.TotalPrice - dbOrder.PaidMoney;
+                    }
+                }
+
+                return orderRepository.Update(dbOrder.Id, dbOrder);
             }
             else
             {
@@ -218,8 +423,12 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Hóa đơn đã được duyệt. Không thể duyệt lại hóa đơn");
                 }
-
-                return orderRepository.Update(dbOrder.Id, dbOrder);
+                else
+                {
+                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.Status = 2;
+                    return orderRepository.Update(dbOrder.Id, dbOrder);
+                }
             }
             else
             {
