@@ -87,7 +87,7 @@ namespace Etailor.API.Service.Service
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
                     }
                 }
-                else
+                else if (!discount.ConditionProductMin.HasValue && (discount.ConditionPriceMax.HasValue || discount.ConditionPriceMin.HasValue))
                 {
                     if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin < 0)
                     {
@@ -97,6 +97,10 @@ namespace Etailor.API.Service.Service
                     {
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
                     }
+                }
+                else
+                {
+                    throw new UserException("Điều kiện giảm giá không hợp lệ: Chỉ được chọn 1 trong 2 điều kiện giảm giá");
                 }
             }));
 

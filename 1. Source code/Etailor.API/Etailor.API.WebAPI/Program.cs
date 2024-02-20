@@ -146,9 +146,8 @@ builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>();
 //builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 
-
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-//builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));

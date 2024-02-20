@@ -643,6 +643,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Platform).HasMaxLength(50);
 
+                entity.Property(e => e.PayType).HasDefaultValueSql("((0))");
+
                 entity.Property(e => e.Status).HasDefaultValueSql("((0))");
 
                 entity.HasOne(d => d.Order)
