@@ -19,7 +19,6 @@ namespace Etailor.API.WebAPI
             CreateMap<MaterialType, MaterialTypeVM>().ReverseMap();
             CreateMap<MaterialType, MaterialTypeAllVM>().ReverseMap();
 
-
             CreateMap<Category, CategoryVM>().ReverseMap();
             CreateMap<Category, CategoryAllTemplateVM>().ReverseMap();
 
@@ -44,6 +43,9 @@ namespace Etailor.API.WebAPI
             CreateMap<BodySize, CreateUpdateBodySizeVM>().ReverseMap();
 
             CreateMap<ProfileBody, ProfileBodyVM>().ReverseMap();
+            CreateMap<ProfileBody, CreateProfileBodyByStaffVM>().ReverseMap();
+            CreateMap<ProfileBody, CreateProfileBodyByCustomerVM>().ReverseMap();
+            CreateMap<ProfileBody, UpdateProfileBodyVM>().ReverseMap();
 
             CreateMap<TemplateStage, TemplateStageCreateVM>().ReverseMap();
             CreateMap<TemplateStage, TemplateStageAllVM>().ReverseMap();
