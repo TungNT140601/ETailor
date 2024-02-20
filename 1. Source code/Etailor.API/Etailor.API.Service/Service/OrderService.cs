@@ -90,7 +90,7 @@ namespace Etailor.API.Service.Service
 
                     var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true && x.Status != 0).ToList();
 
-                    var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 1).ToList();
+                    var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 0).ToList();
 
                     tasks.Add(Task.Run(() =>
                     {
@@ -209,7 +209,7 @@ namespace Etailor.API.Service.Service
 
                         if (orderPayments.Any() && orderPayments.Count > 0)
                         {
-                            dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0 && x.Status == 1).Sum(x => x.Amount);
+                            dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0).Sum(x => x.Amount);
                             if (dbOrder.DiscountPrice > 0)
                             {
                                 if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
@@ -265,7 +265,14 @@ namespace Etailor.API.Service.Service
                 dbOrder.Deposit = amount;
                 dbOrder.PayDeposit = true;
 
-                return orderRepository.Update(dbOrder.Id, dbOrder);
+                if (orderRepository.Update(dbOrder.Id, dbOrder))
+                {
+                    return CheckOrderPaid(orderId);
+                }
+                else
+                {
+                    return false;
+                }
             }
             else
             {
@@ -278,11 +285,105 @@ namespace Etailor.API.Service.Service
             var dbOrder = orderRepository.Get(id);
             if (dbOrder != null && dbOrder.IsActive == true)
             {
-                var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 1).ToList();
+                var discount = string.IsNullOrEmpty(dbOrder.DiscountId) ? null : discountRepository.Get(dbOrder.DiscountId);
+
+                var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true && x.Status != 0).ToList();
+
+                var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 0).ToList();
+
+                if (orderProducts.Any() && orderProducts.Count > 0)
+                {
+                    dbOrder.TotalProduct = orderProducts.Count;
+
+                    dbOrder.TotalPrice = orderProducts.Sum(x => x.Price);
+                }
+
+                if (discount != null)
+                {
+
+                    dbOrder.DiscountId = discount.Id;
+                    dbOrder.DiscountCode = discount.Code;
+                    if (discount.ConditionProductMin != null && discount.ConditionProductMin != 0)
+                    {
+                        if (dbOrder.TotalProduct >= discount.ConditionProductMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax == null)
+                    {
+                        if (dbOrder.TotalPrice >= discount.ConditionPriceMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0 && discount.ConditionPriceMin == null)
+                    {
+                        if (dbOrder.TotalPrice <= discount.ConditionPriceMax)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0)
+                    {
+                        if (dbOrder.TotalPrice <= discount.ConditionPriceMax && dbOrder.TotalPrice >= discount.ConditionPriceMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else
+                    {
+                        dbOrder.DiscountPrice = 0;
+                    }
+                }
 
                 if (orderPayments.Any() && orderPayments.Count > 0)
                 {
-                    dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0 && x.Status == 1).Sum(x => x.Amount);
+                    dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0).Sum(x => x.Amount);
                     if (dbOrder.DiscountPrice > 0)
                     {
                         if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
