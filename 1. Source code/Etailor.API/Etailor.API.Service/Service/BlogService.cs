@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Etailor.API.Repository.Interface;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using System.Collections;
 
 namespace Etailor.API.Service.Service
 {
@@ -22,10 +24,23 @@ namespace Etailor.API.Service.Service
             this.blogRepository = blogRepository;
         }
 
-        public bool CreateBlog(Blog blog)
+        public async Task<bool> CreateBlog(Blog blog, string wwwroot, IFormFile? avatar)
         {
             blog.Id = Ultils.GenGuidString();
             blog.UrlPath = Ultils.ConvertToEnglishAlphabet(blog.Title);
+
+            var setAvatar = Task.Run(async () =>
+            {
+                if (avatar != null)
+                {
+                    blog.Thumbnail = await Ultils.UploadImage(wwwroot, "Thumbnail", avatar, null);
+                }
+                else
+                {
+                    blog.Thumbnail = await Ultils.GetUrlImage("https://drive.google.com/file/d/100YI-uovn5PdEhn4IeB1RYj4B41kcFIi/view");
+                }
+            });
+            await Task.WhenAll(setAvatar);
 
             blog.LastestUpdatedTime = DateTime.Now;
             blog.CreatedTime = DateTime.Now;

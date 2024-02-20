@@ -7,6 +7,7 @@ using Etailor.API.WebAPI.ViewModels;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Etailor.API.Ultity.CommonValue;
+using Microsoft.AspNetCore;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -18,13 +19,15 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly ICategoryService categoryService;
         private readonly IMapper mapper;
+        private readonly string _wwwrootPath;
 
-        public BlogController(IBlogService blogService, IMapper mapper, ICategoryService categoryService, IStaffService staffService)
+        public BlogController(IBlogService blogService, IMapper mapper, ICategoryService categoryService, IStaffService staffService, IWebHostEnvironment webHost)
         {
             this.blogService = blogService;
             this.mapper = mapper;
             this.categoryService = categoryService;
             this.staffService = staffService;
+            _wwwrootPath = webHost.WebRootPath;
         }
 
         [HttpGet("{id}")]
@@ -79,7 +82,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateBlog([FromBody] CreateBlogVM blogVM)
+        public async Task<IActionResult> CreateBlog([FromBody] CreateBlogVM blogVM)
         {
             try
             {
@@ -111,7 +114,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             blog.StaffId = staffId;
                             //blog.Thumbnail = "";
-                            return blogService.CreateBlog(blog) ? Ok("Tạo mới bài blog thành công") : BadRequest("Tạo mới bài blog thất bại");
+                            return await blogService.CreateBlog(blog, _wwwrootPath, blogVM.Thumbnail) ? Ok("Tạo mới bài blog thành công") : BadRequest("Tạo mới bài blog thất bại");
                         }
                     }
                 }

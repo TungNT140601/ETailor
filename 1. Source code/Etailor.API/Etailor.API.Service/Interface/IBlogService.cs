@@ -1,4 +1,5 @@
 ﻿using Etailor.API.Repository.EntityModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Etailor.API.Service.Interface
 {
     public interface IBlogService
     {
-        bool CreateBlog(Blog blog);
+        Task<bool> CreateBlog(Blog blog, string wwwroot, IFormFile? avatar);
 
         bool UpdateBlog(Blog blog);
 

@@ -17,6 +17,8 @@ namespace Etailor.API.Service.Service
         private readonly ICustomerRepository customerRepository;
         private readonly IStaffRepository staffRepository;
         private readonly IProfileBodyRepository profileBodyRepository;
+        private readonly IBodySizeRepository bodySizeRepository;
+        private readonly IBodyAttributeRepository bodyAttributeRepository;
 
         public ProfileBodyService(ICustomerRepository customerRepository, IStaffRepository staffRepository, IProfileBodyRepository profileBodyRepository)
         {
@@ -48,25 +50,78 @@ namespace Etailor.API.Service.Service
             return profileBodyRepository.Create(ProfileBody);
         }
 
+        public async Task<bool> CreateTemplateBodySize(List<string> bodySizeId, string profileBodyId)
+        {
+            var profileBody = profileBodyRepository.Get(profileBodyId);
+            if (profileBody == null || profileBody.IsActive != false)
+            {
+                throw new UserException("Không tìm thấy hồ sơ số đo cơ thể");
+            }
+            else
+            {
+                var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => x.Id).ToList();
+                var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBodyId && x.IsActive == true).Select(x => x.BodySizeId).ToList();
+
+                var bodyAttributeList = new List<BodyAttribute>();
+                var tasks = new List<Task>();
+                foreach (string id in bodySizeId)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (existBodySizeList.Contains(id))
+                        {
+                            if (!existBodyAttributeList.Contains(id))
+                            {
+                                bodyAttributeList.Add(new BodyAttribute()
+                                {
+                                    Id = Ultils.GenGuidString(),
+                                    BodySizeId = id,
+                                    ProfileBodyId = profileBodyId,
+                                    CreatedTime = DateTime.Now,
+                                    LastestUpdatedTime = null,
+                                    InactiveTime = null,
+                                    IsActive = true
+                                });
+                            }
+                            else
+                            {
+                                throw new UserException("Số đo đã tồn tại trong hệ thống");
+                            }
+                        }
+                        else
+                        {
+                            throw new UserException("Số đo không tồn tại trong hệ thống");
+                        }
+                    }
+                    ));
+                }
+
+                await Task.WhenAll(tasks);
+
+                return bodyAttributeRepository.CreateRange(bodyAttributeList);
+            }
+        }
+
         public async Task<bool> UpdateProfileBody(ProfileBody ProfileBody)
         {
-            var dbProduct = profileBodyRepository.Get(ProfileBody.Id);
-            if (dbProduct != null && dbProduct.IsActive == true)
+            var dbProfileBody = profileBodyRepository.Get(ProfileBody.Id);
+            if (dbProfileBody != null && dbProfileBody.IsActive == true)
             {
                 var setValue = Task.Run(() =>
                 {
-                    dbProduct.Name = ProfileBody.Name;
-                    dbProduct.StaffId = ProfileBody.StaffId;
+                    dbProfileBody.Name = ProfileBody.Name;
+                    dbProfileBody.StaffId = ProfileBody.StaffId;
+                    dbProfileBody.CustomerId = ProfileBody.CustomerId;
 
-                    dbProduct.CreatedTime = null;
-                    dbProduct.LastestUpdatedTime = DateTime.Now;
-                    dbProduct.InactiveTime = null;
-                    dbProduct.IsActive = true;
+                    dbProfileBody.CreatedTime = null;
+                    dbProfileBody.LastestUpdatedTime = DateTime.Now;
+                    dbProfileBody.InactiveTime = null;
+                    dbProfileBody.IsActive = true;
                 });
 
                 await Task.WhenAll(setValue);
 
-                return profileBodyRepository.Update(dbProduct.Id, dbProduct);
+                return profileBodyRepository.Update(dbProfileBody.Id, dbProfileBody);
             }
             else
             {
@@ -76,8 +131,8 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> DeleteProfileBody(string id)
         {
-            var dbProduct = profileBodyRepository.Get(id);
-            if (dbProduct != null && dbProduct.IsActive == true)
+            var dbProfileBody = profileBodyRepository.Get(id);
+            if (dbProfileBody != null && dbProfileBody.IsActive == true)
             {
                 var checkChild = Task.Run(() =>
                 {
@@ -88,15 +143,15 @@ namespace Etailor.API.Service.Service
                 });
                 var setValue = Task.Run(() =>
                 {
-                    dbProduct.CreatedTime = null;
-                    dbProduct.LastestUpdatedTime = DateTime.Now;
-                    dbProduct.IsActive = false;
-                    dbProduct.InactiveTime = DateTime.Now;
+                    dbProfileBody.CreatedTime = null;
+                    dbProfileBody.LastestUpdatedTime = DateTime.Now;
+                    dbProfileBody.IsActive = false;
+                    dbProfileBody.InactiveTime = DateTime.Now;
                 });
 
                 await Task.WhenAll(checkChild, setValue);
 
-                return profileBodyRepository.Update(dbProduct.Id, dbProduct);
+                return profileBodyRepository.Update(dbProfileBody.Id, dbProfileBody);
             }
             else
             {
