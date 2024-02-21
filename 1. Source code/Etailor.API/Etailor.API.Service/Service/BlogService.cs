@@ -58,6 +58,7 @@ namespace Etailor.API.Service.Service
                 existBlog.Title = blog.Title;
                 existBlog.Content = blog.Content;
                 existBlog.UrlPath = Ultils.ConvertToEnglishAlphabet(blog.Title);
+                existBlog.StaffId = blog.StaffId;
 
                 var setThumbnail = Task.Run(async () =>
                 {
@@ -100,21 +101,43 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Blog GetBlog(string id)
+        public async Task<Blog> GetBlog(string id)
         {
-            var bodySize = blogRepository.Get(id);
-            return bodySize == null ? null : bodySize.IsActive == true ? bodySize : null;
+            var blog = blogRepository.Get(id);
+
+            var setThumbnail = Task.Run(async () =>
+            {
+                if (string.IsNullOrEmpty(blog.Thumbnail))
+                {
+                    blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                }
+                else
+                {
+                    blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
+                }
+            });
+            await Task.WhenAll(setThumbnail);
+
+            return blog == null ? null : blog.IsActive == true ? blog : null;
         }
 
-        public IEnumerable<Blog> GetBlogs(string? search)
+        public async Task<IEnumerable<Blog>> GetBlogs(string? search)
         {
             IEnumerable<Blog> ListOfBlog = blogRepository.GetAll(x => (search == null || (search != null && x.Title.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
             foreach (Blog blog in ListOfBlog)
             {
-                if (blog.Thumbnail == null)
+                var setThumbnail = Task.Run(async () =>
                 {
-                    blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
-                }
+                    if (string.IsNullOrEmpty(blog.Thumbnail))
+                    {
+                        blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                    }
+                    else
+                    {
+                        blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
+                    }
+                });
+                await Task.WhenAll(setThumbnail);
             };
             return ListOfBlog;
         }

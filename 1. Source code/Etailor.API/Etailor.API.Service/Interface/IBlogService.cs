@@ -16,8 +16,8 @@ namespace Etailor.API.Service.Interface
 
         bool DeleteBlog(string id);
 
-        Blog GetBlog(string id);
+        Task<Blog> GetBlog(string id);
 
-        IEnumerable<Blog> GetBlogs(string? search);
+        Task <IEnumerable<Blog>> GetBlogs(string? search);
     }
 }
