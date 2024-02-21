@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -70,7 +71,47 @@ namespace Etailor.API.Ultity.PaymentConfig
             return baseUrl;
         }
 
+        public string CreateRefundSecureHash(string vnp_HashSecret)
+        {
+            //_requestData.TryGetValue("vnp_RequestId", out string vnp_RequestId);
+            //_requestData.TryGetValue("vnp_Version", out string vnp_Version);
+            //_requestData.TryGetValue("vnp_Command", out string vnp_Command);
+            //_requestData.TryGetValue("vnp_TmnCode", out string vnp_TmnCode);
+            //_requestData.TryGetValue("vnp_TxnRef", out string vnp_TxnRef);
+            //_requestData.TryGetValue("vnp_TransactionDate", out string vnp_TransactionDate);
+            //_requestData.TryGetValue("vnp_CreateDate", out string vnp_CreateDate);
+            //_requestData.TryGetValue("vnp_IpAddr", out string vnp_IpAddr);
+            //_requestData.TryGetValue("vnp_OrderInfo", out string vnp_OrderInfo);
 
+            //string queryString = vnp_RequestId + "|" + vnp_Version + "|" + vnp_Command + "|" + vnp_TmnCode + "|" + vnp_TxnRef + "|" + vnp_TransactionDate + "|" + vnp_CreateDate + "|" + vnp_IpAddr + "|" + vnp_OrderInfo;
+
+            //string vnp_SecureHash = Ultils.HmacSHA512(vnp_HashSecret, queryString);
+
+            StringBuilder data = new StringBuilder();
+            foreach (KeyValuePair<string, string> kv in _requestData)
+            {
+                if (!String.IsNullOrEmpty(kv.Value))
+                {
+                    data.Append(WebUtility.UrlEncode(kv.Key) + "=" + WebUtility.UrlEncode(kv.Value) + "|");
+                }
+            }
+            string queryString = data.ToString();
+
+            String signData = queryString;
+            if (signData.Length > 0)
+            {
+
+                signData = signData.Remove(data.Length - 1, 1);
+            }
+            string vnp_SecureHash = Ultils.HmacSHA512(vnp_HashSecret, signData);
+
+            return vnp_SecureHash;
+        }
+
+        public string GetRequestDataJson()
+        {
+            return JsonConvert.SerializeObject(_requestData);
+        }
 
         #endregion
 

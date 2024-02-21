@@ -79,6 +79,58 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpPost("refund/{paymentId}")]
+        public async Task<IActionResult> CreateRefund(string paymentId, int transactionType, decimal? amount)
+        {
+            try
+            {
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.CUSTOMER)
+                //{
+                //    return Forbid("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                var result = await paymentService.RefundMoneyVNPay(paymentId, transactionType, amount);
+
+                if (result != null)
+                {
+                    //return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
+                    return Ok(result);
+                }
+                else
+                {
+                    throw new UserException("Tạo thanh toán thất bại");
+                }
+                //    }
+                //}
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpGet("result/vnp")]
         public IActionResult GetVNPayPaymentResult(string? vnp_TmnCode, string? vnp_Amount
             , string? vnp_BankCode, string? vnp_BankTranNo, string? vnp_CardType, string? vnp_PayDate

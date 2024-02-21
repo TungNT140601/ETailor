@@ -6,11 +6,15 @@ using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.Ultity.PaymentConfig;
 using Google.Api.Gax;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,11 +25,13 @@ namespace Etailor.API.Service.Service
         private readonly IPaymentRepository paymentRepository;
         private readonly IOrderRepository orderRepository;
         private readonly IOrderService orderService;
-        public PaymentService(IPaymentRepository paymentRepository, IOrderRepository orderRepository, IOrderService orderService)
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public PaymentService(IPaymentRepository paymentRepository, IOrderRepository orderRepository, IOrderService orderService, IHttpContextAccessor httpContextAccessor)
         {
             this.paymentRepository = paymentRepository;
             this.orderRepository = orderRepository;
             this.orderService = orderService;
+            this._httpContextAccessor = httpContextAccessor;
         }
 
         public string CreatePayment(string orderId, int? percent, int payType, string platform, string ip)
@@ -59,6 +65,8 @@ namespace Etailor.API.Service.Service
                     OrderId = orderId,
                     CreatedTime = DateTime.Now,
                     Amount = (decimal)Math.Round(amount, 2),
+                    AmountAfterRefund = (decimal)Math.Round(amount, 2),
+                    PaymentRefundId = null,
                     Platform = platform,
                     PayTime = null,
                     PayType = payType,
@@ -134,51 +142,96 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        //public bool RefundMoneyVNPay(string paymentId, int transactionType, decimal? amount)
-        //{
-        //    if (transactionType != 2 && transactionType != 3)
-        //    {
-        //        throw new UserException("Loại giao dịch không phù hợp");
-        //    }
+        public async Task<bool> RefundMoneyVNPay(string paymentId, int transactionType, decimal? amount)
+        {
+            if (transactionType != 2 && transactionType != 3)
+            {
+                throw new UserException("Loại giao dịch không phù hợp");
+            }
 
-        //    var payment = paymentRepository.Get(paymentId);
+            var payment = paymentRepository.Get(paymentId);
 
-        //    if (payment != null)
-        //    {
-        //        if (transactionType == 3 && !amount.HasValue)
-        //        {
-        //            throw new UserException("Vui lòng nhập số tiền hoàn một phần");
-        //        }
-        //        else if (transactionType == 3 && amount.HasValue)
-        //        {
-        //            if (amount.Value <= 0 || amount.Value >= (payment.Amount < 0 ? Math.Abs(payment.Amount.Value) : payment.Amount))
-        //            {
-        //                throw new UserException("Số tiền hoàn không hợp lệ");
-        //            }
-        //        }
+            if (payment != null)
+            {
+                if (transactionType == 3 && !amount.HasValue)
+                {
+                    throw new UserException("Vui lòng nhập số tiền hoàn một phần");
+                }
+                else if (transactionType == 3 && amount.HasValue)
+                {
+                    if (amount.Value <= 0 || amount.Value >= (payment.Amount < 0 ? Math.Abs(payment.Amount.Value) : payment.Amount))
+                    {
+                        throw new UserException("Số tiền hoàn không hợp lệ");
+                    }
+                }
 
-        //        var paymentRefund = new Payment()
-        //        {
-        //            Id = Ultils.GenGuidString(),
-        //            OrderId = payment.OrderId,
-        //            CreatedTime = DateTime.Now,
-        //            Amount = (decimal)Math.Round(transactionType == 3 ? 0 - amount.Value : 0 - Math.Abs(payment.Amount.Value), 2),
-        //            Platform = PlatformName.VN_PAY,
-        //            PayTime = null,
-        //            PayType = 2,
-        //            Status = 1
-        //        };
+                var paymentRefund = new Payment()
+                {
+                    Id = Ultils.GenGuidString(),
+                    OrderId = payment.OrderId,
+                    CreatedTime = DateTime.Now,
+                    Amount = (decimal)Math.Round(transactionType == 3 ? 0 - amount.Value : 0 - Math.Abs(payment.Amount.Value), 2),
+                    PaymentRefundId = payment.Id,
+                    Platform = PlatformName.VN_PAY,
+                    PayTime = null,
+                    PayType = 2,
+                    Status = 1
+                };
 
-        //        if (paymentRepository.Create(paymentRefund))
-        //        {
-        //            var body = GetVNPayUrlRefunt(paymentRefund.Id, transactionType, paymentId, payment.Amount.Value);
-        //        }
-        //    }
-        //    else
-        //    {
-        //        throw new UserException("Không tìm thấy giao dịch");
-        //    }
-        //}
+                payment.AmountAfterRefund = payment.Amount + paymentRefund.Amount;
+
+                if (paymentRepository.Create(paymentRefund))
+                {
+                    //var body = GetVNPayUrlRefunt(paymentRefund.Id, transactionType, paymentId, paymentRefund.Amount.Value);
+
+                    var body = DemoRefund(paymentRefund.Id, transactionType, paymentId, paymentRefund.Amount.Value);
+                    throw new UserException("Gửi yêu cầu: " + body);
+
+                    //HttpClient client = new HttpClient();
+
+                    //var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+                    //HttpResponseMessage response = await client.PostAsync("https://sandbox.vnpayment.vn/merchant_webapi/api/transaction", content);
+
+                    //string res = await response.Content.ReadAsStringAsync();
+
+                    //var json = JsonConvert.DeserializeObject<Dictionary<string, string>>(res);
+
+                    //if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                    //{
+                    //    if (json["vnp_ResponseCode"] == "00")
+                    //    {
+                    //        paymentRefund.Status = 0;
+                    //        paymentRefund.PayTime = DateTime.Now;
+
+                    //        return paymentRepository.Update(payment.Id, payment) && paymentRepository.Update(paymentRefund.Id, paymentRefund);
+                    //    }
+                    //    else
+                    //    {
+                    //        var result = "";
+                    //        foreach (var key in json.Keys)
+                    //        {
+                    //            json.TryGetValue(key, out string value);
+                    //            result = result + " | " + key + ": " + value;
+                    //        }
+                    //        throw new UserException("Giao dịch hoàn tiền thất bại: " + result);
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    throw new UserException("Gửi yêu cầu thất bại: " + response.StatusCode);
+                    //}
+                }
+                else
+                {
+                    throw new UserException("Tạo giao dịch hoàn tiền thất bại");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy giao dịch");
+            }
+        }
 
         public IEnumerable<Payment> GetAllPayments(string? orderId)
         {
@@ -231,7 +284,7 @@ namespace Etailor.API.Service.Service
             return paymentUrl;
         }
 
-        private SortedList<String, String> GetVNPayUrlRefunt(string id, int transactionType, string paymentRefuntId, decimal refuntAmount)
+        private string GetVNPayUrlRefunt(string id, int transactionType, string paymentRefuntId, decimal refuntAmount)
         {
             var _configuration = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", true, true)
@@ -239,33 +292,29 @@ namespace Etailor.API.Service.Service
                 .Build();
 
             //Get Config Info
-            string vnp_Returnurl = _configuration["VNPayConfig:vnp_Returnurl"]; //URL nhan ket qua tra ve 
-            string vnp_Url = _configuration["VNPayConfig:vnp_Url"]; //URL thanh toan cua VNPAY 
-            string vnp_TmnCode = _configuration["VNPayConfig:vnp_TmnCode"]; //Ma định danh merchant kết nối (Terminal Id)
+            string vnp_TmnCodeConfig = _configuration["VNPayConfig:vnp_TmnCode"]; //Ma định danh merchant kết nối (Terminal Id)
             string vnp_HashSecret = _configuration["VNPayConfig:vnp_HashSecret"]; //Secret Key
-
-            var body = new SortedList<String, String>();
 
             var vnLib = new VnPayLibrary();
 
-            body.Add("vnp_RequestId", id);
+            vnLib.AddRequestData("vnp_RequestId", id);
 
-            body.Add("vnp_Version", VnPayLibrary.VERSION);
+            vnLib.AddRequestData("vnp_Version", VnPayLibrary.VERSION);
 
-            body.Add("vnp_Command", "refund");
+            vnLib.AddRequestData("vnp_Command", "refund");
 
-            body.Add("vnp_TmnCode", vnp_TmnCode);
+            vnLib.AddRequestData("vnp_TmnCode", vnp_TmnCodeConfig);
 
             if (transactionType != 2 && transactionType != 3)
             {
                 throw new UserException("Loại giao dịch không phù hợp");
             }
 
-            body.Add("vnp_TransactionType", transactionType.ToString("00"));    //Loại giao dịch tại hệ thống VNPAY:
-                                                                                //02: Giao dịch hoàn trả toàn phần(vnp_TransactionType= 02)
-                                                                                //03: Giao dịch hoàn trả một phần(vnp_TransactionType= 03)
+            vnLib.AddRequestData("vnp_TransactionType", transactionType.ToString("00"));    //Loại giao dịch tại hệ thống VNPAY:
+                                                                                            //02: Giao dịch hoàn trả toàn phần(vnp_TransactionType= 02)
+                                                                                            //03: Giao dịch hoàn trả một phần(vnp_TransactionType= 03)
 
-            body.Add("vnp_TxnRef", paymentRefuntId); // Mã tham chiếu của giao dịch tại hệ thống của merchant. Mã này là duy nhất dùng để phân biệt các đơn hàng gửi sang VNPAY. Không được trùng lặp trong ngày
+            vnLib.AddRequestData("vnp_TxnRef", paymentRefuntId); // Mã tham chiếu của giao dịch tại hệ thống của merchant. Mã này là duy nhất dùng để phân biệt các đơn hàng gửi sang VNPAY. Không được trùng lặp trong ngày
 
             if (refuntAmount < 0)
             {
@@ -274,31 +323,109 @@ namespace Etailor.API.Service.Service
 
             var amout = Math.Round(refuntAmount, 2);
 
-            body.Add("vnp_Amount", (amout * 100).ToString()); //Số tiền thanh toán. Số tiền không mang các ký tự phân tách thập phân, phần nghìn, ký tự tiền tệ. Để gửi số tiền thanh toán là 100,000 VND (một trăm nghìn VNĐ) thì merchant cần nhân thêm 100 lần (khử phần thập phân), sau đó gửi sang VNPAY là: 10000000
+            vnLib.AddRequestData("vnp_Amount", (amout * 100).ToString()); //Số tiền thanh toán. Số tiền không mang các ký tự phân tách thập phân, phần nghìn, ký tự tiền tệ. Để gửi số tiền thanh toán là 100,000 VND (một trăm nghìn VNĐ) thì merchant cần nhân thêm 100 lần (khử phần thập phân), sau đó gửi sang VNPAY là: 10000000
 
-            body.Add("vnp_OrderInfo", transactionType == 2 ? $"Giao dich hoan tra toan phan cua giao dich: {paymentRefuntId}" : transactionType == 3 ? $"Giao dich hoan tra mot phan cua giao dich: {paymentRefuntId}" : "Loi");
+            vnLib.AddRequestData("vnp_OrderInfo", transactionType == 2 ? $"Giao dich hoan tra toan phan cua giao dich: {paymentRefuntId}" : transactionType == 3 ? $"Giao dich hoan tra mot phan cua giao dich: {paymentRefuntId}" : "Loi");
 
-            body.Add("vnp_TransactionDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            vnLib.AddRequestData("vnp_TransactionDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
 
-            body.TryGetValue("vnp_TransactionDate", out string vnp_TransactionDate);
+            vnLib.AddRequestData("vnp_CreateBy", "ETailor");
 
-            body.Add("vnp_CreateBy", "ETailor");
+            vnLib.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
 
-            body.Add("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            //vnLib.AddRequestData("vnp_IpAddr", "125.235.238.233");
+            vnLib.AddRequestData("vnp_IpAddr", "20.212.64.6");
 
-            body.TryGetValue("vnp_CreateDate", out string vnp_CreateDate);
+            string vnp_SecureHash = vnLib.CreateRefundSecureHash(vnp_HashSecret);
 
-            body.Add("vnp_IpAddr", "20.212.64.6");
+            vnLib.AddRequestData("vnp_SecureHash", vnp_SecureHash);
 
-            body.TryGetValue("vnp_IpAddr", out string vnp_IpAddr);
+            return vnLib.GetRequestDataJson();
+        }
 
-            var data = id + "|" + VnPayLibrary.VERSION + "|" + "refund" + "|" + vnp_TmnCode + "|" + transactionType.ToString("00") + "|" + paymentRefuntId + "|" + (amout * 100).ToString() + "|" + vnp_TransactionDate + "|" + "ETailor" + "|" + vnp_CreateDate + "|" + vnp_IpAddr + "|" + (transactionType == 2 ? $"Giao dich hoan tra toan phan cua giao dich: {paymentRefuntId}" : transactionType == 3 ? $"Giao dich hoan tra mot phan cua giao dich: {paymentRefuntId}" : "Loi");
+        public string DemoRefund(string id, int transactionType, string paymentRefuntId, decimal refuntAmount)
+        {
+            var _configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", true, true)
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .Build();
 
-            string vnp_SecureHash = Ultils.HmacSHA512(vnp_HashSecret, data);
+            //Get Config Info
+            string vnp_TmnCode = _configuration["VNPayConfig:vnp_TmnCode"]; //Ma định danh merchant kết nối (Terminal Id)
+            string vnp_HashSecret = _configuration["VNPayConfig:vnp_HashSecret"]; //Secret Key
 
-            body.Add("vnp_SecureHash", vnp_SecureHash);
+            var vnp_Api = "https://sandbox.vnpayment.vn/merchant_webapi/api/transaction";
 
-            return body;
+            var vnp_RequestId = id; //Mã hệ thống merchant tự sinh ứng với mỗi yêu cầu hoàn tiền giao dịch. Mã này là duy nhất dùng để phân biệt các yêu cầu truy vấn giao dịch. Không được trùng lặp trong ngày.
+            var vnp_Version = VnPayLibrary.VERSION; //2.1.0
+            var vnp_Command = "refund";
+            var vnp_TransactionType = transactionType.ToString("00");
+            var vnp_Amount = Math.Round(Math.Abs(refuntAmount), 2) * 100;
+            var vnp_TxnRef = paymentRefuntId; // Mã giao dịch thanh toán tham chiếu
+            var vnp_OrderInfo = "Hoan tien giao dich:" + paymentRefuntId;
+            var vnp_TransactionNo = ""; //Giả sử giá trị của vnp_TransactionNo không được ghi nhận tại hệ thống của merchant.
+            var vnp_TransactionDate = DateTime.Now.ToString("yyyyMMddHHmmss");
+            var vnp_CreateDate = DateTime.Now.ToString("yyyyMMddHHmmss");
+            var vnp_CreateBy = "ETailor";
+            var vnp_IpAddr = GetServerIpAddress();
+
+            var signData = vnp_RequestId + "|" + vnp_Version + "|" + vnp_Command + "|" + vnp_TmnCode + "|" + vnp_TransactionType + "|" + vnp_TxnRef + "|" + vnp_Amount + "|" + vnp_TransactionNo + "|" + vnp_TransactionDate + "|" + vnp_CreateBy + "|" + vnp_CreateDate + "|" + vnp_IpAddr + "|" + vnp_OrderInfo;
+            
+            var vnp_SecureHash = Ultils.HmacSHA512(vnp_HashSecret, signData);
+
+            var rfData = new
+            {
+                vnp_RequestId = vnp_RequestId,
+                vnp_Version = vnp_Version,
+                vnp_Command = vnp_Command,
+                vnp_TmnCode = vnp_TmnCode,
+                vnp_TransactionType = vnp_TransactionType,
+                vnp_TxnRef = vnp_TxnRef,
+                vnp_Amount = vnp_Amount,
+                vnp_OrderInfo = vnp_OrderInfo,
+                vnp_TransactionNo = vnp_TransactionNo,
+                vnp_TransactionDate = vnp_TransactionDate,
+                vnp_CreateBy = vnp_CreateBy,
+                vnp_CreateDate = vnp_CreateDate,
+                vnp_IpAddr = vnp_IpAddr,
+                vnp_SecureHash = vnp_SecureHash
+
+            };
+
+            var jsonData = JsonConvert.SerializeObject(rfData);
+
+            var httpWebRequest = (HttpWebRequest)WebRequest.Create(vnp_Api);
+            httpWebRequest.ContentType = "application/json";
+            httpWebRequest.Method = "POST";
+
+            using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+            {
+                streamWriter.Write(jsonData);
+            }
+            var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+            var strData = "";
+            using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            {
+                strData = streamReader.ReadToEnd();
+            }
+
+            return strData;
+        }
+
+        public string GetServerIpAddress()
+        {
+            string serverIpAddress;
+            try
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+                serverIpAddress = httpContext?.Connection.LocalIpAddress?.ToString();
+            }
+            catch (Exception ex)
+            {
+                serverIpAddress = "Invalid IP:" + ex.Message;
+            }
+
+            return serverIpAddress;
         }
     }
 }

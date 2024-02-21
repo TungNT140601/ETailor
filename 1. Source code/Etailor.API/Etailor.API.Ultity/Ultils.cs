@@ -64,6 +64,23 @@ namespace Etailor.API.Ultity
             return hash.ToString();
         }
 
+        public static String HmacSHA256(string key, String inputData)
+        {
+            var hash = new StringBuilder();
+            byte[] keyBytes = Encoding.UTF8.GetBytes(key);
+            byte[] inputBytes = Encoding.UTF8.GetBytes(inputData);
+            using (var hmac = new HMACSHA256(keyBytes))
+            {
+                byte[] hashValue = hmac.ComputeHash(inputBytes);
+                foreach (var theByte in hashValue)
+                {
+                    hash.Append(theByte.ToString("x2"));
+                }
+            }
+
+            return hash.ToString();
+        }
+
         public static string HashPassword(string password)
         {
             string salt = BCrypt.Net.BCrypt.GenerateSalt();
@@ -210,6 +227,7 @@ namespace Etailor.API.Ultity
         }
         #endregion
 
+        #region File
         public static async Task<List<string>> UploadImages(string wwwrootPath, string generalPath, List<IFormFile> files) // Upload list images
         {
             List<Task<string>> uploadTasks = new List<Task<string>>();
@@ -224,7 +242,6 @@ namespace Etailor.API.Ultity
 
             return links.ToList();
         }
-
         public static async Task<string> UploadImage(string wwwrootPath, string generalPath, IFormFile file, string? oldName) // Upload 1 image
         {
             if (oldName != null && ObjectExistsInStorage(oldName))
@@ -310,7 +327,8 @@ namespace Etailor.API.Ultity
             catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
             {
             }
-        }
+        } 
+        #endregion
         public static IFormFile ConvertBase64ToIFormFile(string? base64String, string? fileName)
         {
             if (base64String == null || fileName == null)
