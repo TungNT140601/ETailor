@@ -8,6 +8,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Etailor.API.Ultity.CommonValue;
 using Microsoft.AspNetCore;
+using Etailor.API.Ultity;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -31,11 +32,11 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(string id)
+        public async Task<IActionResult> Get(string id)
         {
             try
             {
-                var blog = blogService.GetBlog(id);
+                var blog = await blogService.GetBlog(id);
                 if (blog == null)
                 {
                     return NotFound("không tìm thấy bài blog này");
@@ -60,11 +61,11 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAll(string? search)
+        public async Task<IActionResult> GetAll(string? search)
         {
             try
             {
-                var blogs = blogService.GetBlogs(search);
+                var blogs = await blogService.GetBlogs(search);
                 return Ok(mapper.Map<IEnumerable<ListOfBlogVM>>(blogs));
             }
             catch (UserException ex)
@@ -82,7 +83,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateBlog([FromBody] CreateBlogVM blogVM)
+        public async Task<IActionResult> CreateBlog([FromForm] CreateBlogVM blogVM)
         {
             try
             {
@@ -114,7 +115,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             blog.StaffId = staffId;
                             //blog.Thumbnail = "";
-                            return await blogService.CreateBlog(blog, _wwwrootPath, blogVM.Thumbnail) ? Ok("Tạo mới bài blog thành công") : BadRequest("Tạo mới bài blog thất bại");
+                            return (await blogService.CreateBlog(blog, _wwwrootPath, blogVM.Thumbnail)) ? Ok("Tạo mới bài blog thành công") : BadRequest("Tạo mới bài blog thất bại");
                         }
                     }
                 }
@@ -134,7 +135,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateBodySize(string? id, [FromBody] UpdateBlogVM blogVM)
+        public async Task<IActionResult> UpdateBlog(string? id, [FromForm] UpdateBlogVM blogVM)
         {
             try
             {
@@ -171,7 +172,7 @@ namespace Etailor.API.WebAPI.Controllers
                             else
                             {
                                 blog.StaffId = staffId;
-                                return blogService.UpdateBlog(blog) ? Ok("Cập nhật bài blog thành công") : BadRequest("Cập nhật bài blog thất bại");
+                                return (await blogService.UpdateBlog(blog, _wwwrootPath, blogVM.Thumbnail)) ? Ok("Cập nhật bài blog thành công") : BadRequest("Cập nhật bài blog thất bại");
                             }
                         }
                     }

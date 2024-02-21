@@ -24,23 +24,24 @@ namespace Etailor.API.Service.Service
             this.blogRepository = blogRepository;
         }
 
-        public async Task<bool> CreateBlog(Blog blog, string wwwroot, IFormFile? avatar)
+        public async Task<bool> CreateBlog(Blog blog, string wwwroot, IFormFile? thumbnail)
         {
             blog.Id = Ultils.GenGuidString();
             blog.UrlPath = Ultils.ConvertToEnglishAlphabet(blog.Title);
 
-            var setAvatar = Task.Run(async () =>
+            var setThumbnail = Task.Run(async () =>
             {
-                if (avatar != null)
+                if (thumbnail != null)
                 {
-                    blog.Thumbnail = await Ultils.UploadImage(wwwroot, "Thumbnail", avatar, null);
+                    blog.Thumbnail = await Ultils.UploadImage(wwwroot, "Thumbnail", thumbnail, null);
                 }
                 else
                 {
-                    blog.Thumbnail = await Ultils.GetUrlImage("https://drive.google.com/file/d/100YI-uovn5PdEhn4IeB1RYj4B41kcFIi/view");
+                    blog.Thumbnail = string.Empty;
+                    //blog.Thumbnail = await Ultils.GetUrlImage("https://drive.google.com/file/d/100YI-uovn5PdEhn4IeB1RYj4B41kcFIi/view");
                 }
             });
-            await Task.WhenAll(setAvatar);
+            await Task.WhenAll(setThumbnail);
 
             blog.LastestUpdatedTime = DateTime.Now;
             blog.CreatedTime = DateTime.Now;
@@ -49,7 +50,7 @@ namespace Etailor.API.Service.Service
             return blogRepository.Create(blog);
         }
 
-        public bool UpdateBlog(Blog blog)
+        public async Task<bool> UpdateBlog(Blog blog, string wwwroot, IFormFile? thumbnail)
         {
             var existBlog = blogRepository.Get(blog.Id);
             if (existBlog != null)
@@ -57,6 +58,20 @@ namespace Etailor.API.Service.Service
                 existBlog.Title = blog.Title;
                 existBlog.Content = blog.Content;
                 existBlog.UrlPath = Ultils.ConvertToEnglishAlphabet(blog.Title);
+                existBlog.StaffId = blog.StaffId;
+
+                var setThumbnail = Task.Run(async () =>
+                {
+                    if (thumbnail != null)
+                    {
+                        existBlog.Thumbnail = await Ultils.UploadImage(wwwroot, "Thumbnail", thumbnail, null);
+                    }
+                    else
+                    {
+                        existBlog.Thumbnail = string.Empty;
+                    }
+                });
+                await Task.WhenAll(setThumbnail);
 
                 existBlog.LastestUpdatedTime = DateTime.Now;
                 existBlog.InactiveTime = null;
@@ -86,15 +101,45 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Blog GetBlog(string id)
+        public async Task<Blog> GetBlog(string id)
         {
-            var bodySize = blogRepository.Get(id);
-            return bodySize == null ? null : bodySize.IsActive == true ? bodySize : null;
+            var blog = blogRepository.Get(id);
+
+            var setThumbnail = Task.Run(async () =>
+            {
+                if (string.IsNullOrEmpty(blog.Thumbnail))
+                {
+                    blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                }
+                else
+                {
+                    blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
+                }
+            });
+            await Task.WhenAll(setThumbnail);
+
+            return blog == null ? null : blog.IsActive == true ? blog : null;
         }
 
-        public IEnumerable<Blog> GetBlogs(string? search)
+        public async Task<IEnumerable<Blog>> GetBlogs(string? search)
         {
-            return blogRepository.GetAll(x => (search == null || (search != null && x.Title.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            IEnumerable<Blog> ListOfBlog = blogRepository.GetAll(x => (search == null || (search != null && x.Title.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            foreach (Blog blog in ListOfBlog)
+            {
+                var setThumbnail = Task.Run(async () =>
+                {
+                    if (string.IsNullOrEmpty(blog.Thumbnail))
+                    {
+                        blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                    }
+                    else
+                    {
+                        blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
+                    }
+                });
+                await Task.WhenAll(setThumbnail);
+            };
+            return ListOfBlog;
         }
 
     }
