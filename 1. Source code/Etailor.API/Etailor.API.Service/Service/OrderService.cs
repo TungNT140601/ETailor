@@ -297,6 +297,12 @@ namespace Etailor.API.Service.Service
 
                     dbOrder.TotalPrice = orderProducts.Sum(x => x.Price);
                 }
+                else
+                {
+                    dbOrder.TotalProduct = 0;
+
+                    dbOrder.TotalPrice = 0;
+                }
 
                 if (discount != null)
                 {
@@ -384,7 +390,7 @@ namespace Etailor.API.Service.Service
                 if (orderPayments.Any() && orderPayments.Count > 0)
                 {
                     dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0).Sum(x => x.Amount);
-                    if (dbOrder.DiscountPrice > 0)
+                    if (dbOrder.DiscountPrice.HasValue && dbOrder.DiscountPrice > 0)
                     {
                         if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
                         {
@@ -395,8 +401,13 @@ namespace Etailor.API.Service.Service
                             dbOrder.AfterDiscountPrice = 0;
                         }
                     }
+                    else
+                    {
+                        dbOrder.AfterDiscountPrice = 0;
+                        dbOrder.DiscountPrice = 0;
+                    }
 
-                    if (dbOrder.AfterDiscountPrice != 0)
+                    if (dbOrder.AfterDiscountPrice.HasValue && dbOrder.AfterDiscountPrice != 0)
                     {
                         dbOrder.UnPaidMoney = dbOrder.AfterDiscountPrice - dbOrder.PaidMoney;
                     }

@@ -256,7 +256,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("update-template/{id}")]
-        public async Task<IActionResult> CreateTemplate(string id, [FromForm] ProductTemplateCreateVM templateCreateVM)
+        public async Task<IActionResult> UpdateTemplate(string id, [FromForm] ProductTemplateCreateVM templateCreateVM)
         {
 
             try

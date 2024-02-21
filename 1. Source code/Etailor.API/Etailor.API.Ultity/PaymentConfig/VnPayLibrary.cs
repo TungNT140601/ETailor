@@ -66,6 +66,8 @@ namespace Etailor.API.Ultity.PaymentConfig
                 signData = signData.Remove(data.Length - 1, 1);
             }
             string vnp_SecureHash = Ultils.HmacSHA512(vnp_HashSecret, signData);
+            string vnp_SecureHash1 = Ultils.HmacSHA512(vnp_HashSecret, signData);
+            string vnp_SecureHash2 = Ultils.HmacSHA512(vnp_HashSecret, signData);
             baseUrl += "vnp_SecureHash=" + vnp_SecureHash;
 
             return baseUrl;

@@ -48,7 +48,14 @@ namespace Etailor.API.Service.Service
             {
                 if (payType == 1 && percent.HasValue)
                 {
-                    amount = (double)order.TotalPrice * (double)percent / 100;
+                    if (paymentRepository.GetAll(x => x.OrderId == order.Id && x.PayType == 1 && x.Status == 0).Any())
+                    {
+                        throw new UserException("Hóa đơn này đã được thanh toán cọc.");
+                    }
+                    else
+                    {
+                        amount = (double)order.TotalPrice * (double)percent / 100;
+                    }
                 }
                 else if (payType == 0)
                 {
@@ -370,7 +377,7 @@ namespace Etailor.API.Service.Service
             var vnp_IpAddr = GetServerIpAddress();
 
             var signData = vnp_RequestId + "|" + vnp_Version + "|" + vnp_Command + "|" + vnp_TmnCode + "|" + vnp_TransactionType + "|" + vnp_TxnRef + "|" + vnp_Amount + "|" + vnp_TransactionNo + "|" + vnp_TransactionDate + "|" + vnp_CreateBy + "|" + vnp_CreateDate + "|" + vnp_IpAddr + "|" + vnp_OrderInfo;
-            
+
             var vnp_SecureHash = Ultils.HmacSHA512(vnp_HashSecret, signData);
 
             var rfData = new

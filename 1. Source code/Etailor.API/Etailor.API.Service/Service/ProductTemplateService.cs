@@ -639,8 +639,13 @@ namespace Etailor.API.Service.Service
                                     template.Image = JsonSerializer.Serialize(listUrls);
                                 }
                             }
+                        }),
+                        Task.Run(() =>
+                        {
+                            template.Category = categoryRepository.Get(template.CategoryId);
                         })
                         );
+
                 return template;
             }
             return null;
