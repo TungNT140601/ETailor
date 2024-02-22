@@ -18,6 +18,8 @@
         public string? Name { get; set; }
 
         public string? CustomerId { get; set; }
+
+        List<Tuple<string, decimal>> valueBodyAttribute;
     }
 
     public class CreateProfileBodyByCustomerVM

@@ -28,42 +28,42 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("/add-profile-body-by-staff")]
-        public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyByStaffVM profileBodyVM)
+        
+        public async Task<IActionResult> AddProfileBodyByStaff([FromBody] List<Tuple<string, decimal>> valueBodyAttribute, string name)
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (!(role == RoleName.STAFF || role == RoleName.MANAGER))
-                {
-                    return Forbid("Không có quyền truy cập");
-                }
-                else
-                {
-                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        var profileBody = mapper.Map<ProfileBody>(profileBodyVM);
-                        if (string.IsNullOrWhiteSpace(profileBodyVM.Name))
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (!(role == RoleName.STAFF || role == RoleName.MANAGER))
+                //{
+                //    return Forbid("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(id, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                       
+                        if (string.IsNullOrWhiteSpace(name))
                         {
                             throw new UserException("Nhập tên hồ sơ số đo cơ thể");
                         }
                         else
                         {
-                            profileBody.StaffId = id;
-                            profileBody.IsLocked = true;
-                            return await profileBodyService.AddProfileBody(profileBody) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                            //profileBody.StaffId = id;
+                            return await profileBodyService.CreateProfileBody(name, valueBodyAttribute) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
                         }               
-                    }
-                }
+                //    }
+                //}
             }
             catch (UserException ex)
             {
