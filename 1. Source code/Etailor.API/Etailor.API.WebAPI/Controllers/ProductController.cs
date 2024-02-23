@@ -27,8 +27,8 @@ namespace Etailor.API.WebAPI.Controllers
             this.mapper = mapper;
         }
 
-        [HttpPost]
-        public async Task<IActionResult> AddProduct([FromBody] ProductVM product)
+        [HttpPost("{orderId}")]
+        public async Task<IActionResult> AddProduct(string orderId, [FromBody] List<ProductOrderVM> productVMs)
         {
             try
             {
@@ -43,16 +43,32 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                    //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    //if (!staffService.CheckSecrectKey(id, secrectKey))
-                    //{
-                    //    return Unauthorized("Chưa đăng nhập");
-                    //}
-                    //else
-                    //{
-                        return (await productService.AddProduct(mapper.Map<Product>(product))) ? Ok("Thêm sản phẩm vào thành công") : BadRequest("Thêm sản phẩm vào thất bại");
-                    //}
+                //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //if (!staffService.CheckSecrectKey(id, secrectKey))
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else
+                //{
+                //check quantity product
+                var check = new List<bool>();
+
+                foreach (var productVM in productVMs)
+                {
+                    var products = mapper.Map<Product>(productVM);
+                    var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
+                    check.Add(await productService.AddProduct(orderId, products, productComponents));
+                }
+                if (check.Any(x => x == false))
+                {
+                    return BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
+                }
+                else
+                {
+                    return Ok("Thêm sản phẩm vào hóa đơn thành công");
+                }
+                //}
                 //}
             }
             catch (UserException ex)
@@ -93,11 +109,11 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                        if (id == null || id != productVM.Id)
-                        {
-                            return NotFound("Id danh mục không tồn tại");
-                        }
-                        return (await productService.UpdateProduct(mapper.Map<Product>(productVM))) ? Ok("Cập nhật sản phẩm thành công") : BadRequest("Cập nhật sản phẩm thất bại");
+                if (id == null || id != productVM.Id)
+                {
+                    return NotFound("Id danh mục không tồn tại");
+                }
+                return (await productService.UpdateProduct(mapper.Map<Product>(productVM))) ? Ok("Cập nhật sản phẩm thành công") : BadRequest("Cập nhật sản phẩm thất bại");
                 //    }
                 //}
             }
@@ -131,19 +147,19 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                    //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    //if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                    //{
-                    //    return Unauthorized("Chưa đăng nhập");
-                    //}
-                    //else
-                    //{
-                        if (id == null)
-                        {
-                            return NotFound("Id sản phẩm không tồn tại");
-                        }
-                        return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
+                //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else
+                //{
+                if (id == null)
+                {
+                    return NotFound("Id sản phẩm không tồn tại");
+                }
+                return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
                 //    }
                 //}
             }

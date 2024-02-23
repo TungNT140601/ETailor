@@ -103,6 +103,8 @@ builder.Services.AddScoped<ITemplateBodySizeService, TemplateBodySizeService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 
+builder.Services.AddScoped<IProductStageRepository, ProductStageRepository>();
+
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 

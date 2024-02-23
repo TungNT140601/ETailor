@@ -15,36 +15,173 @@ namespace Etailor.API.Service.Service
     {
         private readonly IProductRepository productRepository;
         private readonly IProductTemplateRepository productTemplateRepository;
+        private readonly ITemplateStateRepository templateStateRepository;
         private readonly IOrderRepository orderRepository;
+        private readonly IComponentTypeRepository componentTypeRepository;
+        private readonly IComponentRepository componentRepository;
+        private readonly IComponentStageRepository componentStageRepository;
+        private readonly IProductStageRepository productStageRepository;
 
-        public ProductService(IProductRepository productRepository, IProductTemplateRepository productTemplateRepository, IOrderRepository orderRepository)
+        public ProductService(IProductRepository productRepository, IProductTemplateRepository productTemplateRepository,
+            IOrderRepository orderRepository, ITemplateStateRepository templateStateRepository, IComponentTypeRepository componentTypeRepository,
+            IComponentRepository componentRepository, IComponentStageRepository componentStageRepository, IProductStageRepository productStageRepository)
         {
             this.productRepository = productRepository;
             this.productTemplateRepository = productTemplateRepository;
             this.orderRepository = orderRepository;
+            this.templateStateRepository = templateStateRepository;
+            this.componentTypeRepository = componentTypeRepository;
+            this.componentRepository = componentRepository;
+            this.componentStageRepository = componentStageRepository;
+            this.productStageRepository = productStageRepository;
         }
 
-        public async Task<bool> AddProduct(Product product)
+        public async Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents)
         {
-            var checkDuplicateId = Task.Run(() =>
+            var order = orderRepository.Get(orderId);
+            if (order != null)
             {
-                if (productRepository.GetAll(x => x.Id == product.Id && x.IsActive == true).Any())
-                {
-                    throw new UserException("Mã Id Product đã được sử dụng");
-                }
-            });
-            var setValue = Task.Run(() =>
-            {
+                var tasks = new List<Task>();
+
                 product.Id = Ultils.GenGuidString();
-                product.CreatedTime = DateTime.Now;
-                product.LastestUpdatedTime = DateTime.Now;
-                product.InactiveTime = null;
-                product.IsActive = true;
-            });
 
-            await Task.WhenAll(checkDuplicateId, setValue);
+                if (product.ProductTemplateId == null)
+                {
+                    throw new UserException("Vui lòng chọn bản mẫu cho sản phẩm");
+                }
 
-            return productRepository.Create(product);
+                var template = productTemplateRepository.Get(product.ProductTemplateId);
+
+                if (template == null || template.IsActive == false)
+                {
+                    throw new UserException("Không tìm thấy bản mẫu");
+                }
+
+                var templateStages = templateStateRepository.GetAll(x => x.ProductTemplateId == product.ProductTemplateId && x.IsActive == true).ToList();
+
+                var componentStages = componentStageRepository.GetAll(x => templateStages.Select(t => t.Id).Contains(x.TemplateStageId)).ToList();
+
+                var templateComponentTypes = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true).ToList();
+
+                var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == template.Id && x.IsActive == true).ToList();
+
+                var productStages = new List<ProductStage>();
+
+                #region InitProduct
+                tasks.Add(Task.Run(() =>
+                        {
+                            if (templateStages != null && templateStages.Any())
+                            {
+                                productStages = templateStages.Select(x => new ProductStage()
+                                {
+                                    Id = Ultils.GenGuidString(),
+                                    InactiveTime = null,
+                                    Deadline = null,
+                                    StartTime = null,
+                                    FinishTime = null,
+                                    IsActive = true,
+                                    ProductId = product.Id,
+                                    StageNum = x.StageNum,
+                                    TaskIndex = 0,
+                                    StaffId = null,
+                                    TemplateStageId = x.Id,
+                                    Status = 1
+                                }).ToList();
+                            }
+                        }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.OrderId = orderId;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(product.Name))
+                    {
+                        product.Name = template.Name;
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(product.Note))
+                    {
+                        product.Note = "";
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.Price = template.Price;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.Status = 1;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.EvidenceImage = "";
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.FinishTime = null;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.CreatedTime = DateTime.Now;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.LastestUpdatedTime = DateTime.Now;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.InactiveTime = null;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    product.IsActive = true;
+                }));
+                #endregion
+
+                await Task.WhenAll(tasks);
+
+                if (productRepository.Create(product))
+                {
+                    if (productStages.Any())
+                    {
+                        if (productStageRepository.CreateRange(productStages))
+                        {
+
+                        }
+                        else
+                        {
+                            throw new SystemsException("Thêm quá trình của sản phẩm thất bại");
+                        }
+                    }
+                    else
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    throw new SystemsException("Thêm sản phẩm vào hóa đơn thất bại");
+                }
+                return false;
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
         }
 
         public async Task<bool> UpdateProduct(Product product)

@@ -55,12 +55,19 @@ namespace Etailor.API.Service.Service
                 order.CreatedTime = DateTime.Now;
                 order.LastestUpdatedTime = DateTime.Now;
                 order.InactiveTime = null;
-                order.IsActive = true;
+                order.IsActive = false;
             }));
 
             tasks.Add(Task.Run(() =>
             {
-                order.Status = 1;
+                if(role != RoleName.MANAGER)
+                {
+                    order.Status = 1;
+                }
+                else
+                {
+                    order.Status = 2;
+                }
             }));
 
             await Task.WhenAll(tasks);

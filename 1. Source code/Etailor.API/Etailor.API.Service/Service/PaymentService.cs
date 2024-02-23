@@ -240,9 +240,13 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public IEnumerable<Payment> GetAllPayments(string? orderId)
+        public IEnumerable<Payment> GetAllOrderPayments(string? orderId)
         {
-            return paymentRepository.GetAll(x => string.IsNullOrWhiteSpace(orderId) || orderId == x.OrderId);
+            return paymentRepository.GetAll(x => (string.IsNullOrWhiteSpace(orderId) || orderId == x.OrderId) && x.Status == 0);
+        }
+        public IEnumerable<Payment> GetAllPayments()
+        {
+            return paymentRepository.GetAll(x => x.Status == 0);
         }
 
         private string GetVNPayUrlPayment(Payment payment, string ip)

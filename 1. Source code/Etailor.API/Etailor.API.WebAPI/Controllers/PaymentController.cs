@@ -136,48 +136,66 @@ namespace Etailor.API.WebAPI.Controllers
         [HttpGet("result/vnp")]
         public IActionResult GetVNPayPaymentResult()
         {
-            var vnpayData = Request.Query;
-
-            var vnpLib = new VnPayLibrary();
-
-            if (vnpayData.Count > 0)
+            try
             {
-                foreach (var s in vnpayData)
+                var referer = Request.Headers["Referer"].ToString();
+
+                if (string.IsNullOrWhiteSpace(referer) || !referer.StartsWith(configuration.GetSection("VNPayConfig:vnp_Url_Result").Value))
                 {
-                    //get all querystring data
-                    if (!string.IsNullOrEmpty(s.Key) && s.Key.StartsWith("vnp_"))
+                    return NotFound();
+                }
+
+                var vnpayData = Request.Query;
+
+                var vnpLib = new VnPayLibrary();
+
+                if (vnpayData.Count > 0)
+                {
+                    foreach (var s in vnpayData)
                     {
-                        vnpLib.AddResponseData(s.Key, s.Value);
+                        //get all querystring data
+                        if (!string.IsNullOrEmpty(s.Key) && s.Key.StartsWith("vnp_"))
+                        {
+                            vnpLib.AddResponseData(s.Key, s.Value);
+                        }
                     }
                 }
-            }
 
-            var vnp_HashSecret = configuration.GetSection("VNPayConfig:vnp_HashSecret").Value;
+                var vnp_HashSecret = configuration.GetSection("VNPayConfig:vnp_HashSecret").Value;
 
-            var vnp_TxnRef = vnpLib.GetResponseData("vnp_TxnRef");
+                var vnp_TxnRef = vnpLib.GetResponseData("vnp_TxnRef");
 
-            string vnp_ResponseCode = vnpLib.GetResponseData("vnp_ResponseCode");
+                string vnp_ResponseCode = vnpLib.GetResponseData("vnp_ResponseCode");
 
-            string vnp_SecureHash = vnpLib.GetResponseData("vnp_SecureHash");
+                string vnp_SecureHash = vnpLib.GetResponseData("vnp_SecureHash");
 
-            if (vnpLib.ValidateSignature(vnp_SecureHash, vnp_HashSecret))
-            {
-                paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode));
-                return Ok(new
+                if (vnpLib.ValidateSignature(vnp_SecureHash, vnp_HashSecret))
                 {
-                    Message = "Success",
-                    Data = vnpayData
-                });
-            }
-            else
-            {
-                return BadRequest(new
+                    paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode));
+                    return Ok(new
+                    {
+                        Message = "Success",
+                        Data = vnpayData
+                    });
+                }
+                else
                 {
-                    Message = "Fail",
-                    Data = vnpayData
-                });
-            }
+                    return BadRequest(new
+                    {
+                        Message = "Fail",
+                        Data = vnpayData
+                    });
+                }
 
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

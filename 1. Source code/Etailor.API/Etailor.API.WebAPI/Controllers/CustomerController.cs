@@ -40,7 +40,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.CUSTOMER)
                 {
-                     return Forbid("Không có quyền truy cập");
+                    return Forbid("Không có quyền truy cập");
                 }
                 else
                 {
@@ -78,6 +78,39 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 return (await customerService.CusRegis(mapper.Map<Customer>(cus), cus.AvatarImage, _wwwrootPath)) ? Ok("Đăng ký thành công") : BadRequest("Đăng ký thất bại");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpGet]
+        public async Task<IActionResult> GetCustomers(string? search)
+        {
+            try
+            {
+                var customers = mapper.Map<IEnumerable<CustomerAllVM>>(customerService.FindPhoneOrEmail(search));
+                if (customers != null && customers.Any())
+                {
+                    var tasks = new List<Task>();
+                    foreach (var customer in customers)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+                return Ok(customers);
             }
             catch (UserException ex)
             {
