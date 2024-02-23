@@ -81,6 +81,10 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Title).HasMaxLength(255);
 
+                entity.Property(e => e.Hastag).HasMaxLength(255);
+
+                entity.Property(e => e.Thumbnail).HasColumnType("text");
+
                 entity.Property(e => e.UrlPath).HasMaxLength(255);
 
                 entity.HasOne(d => d.Staff)
@@ -384,7 +388,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.DiscountPercent).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.DiscountPercent).HasColumnType("float(18, 0)");
 
                 entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 0)");
 
@@ -534,6 +538,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.AfterDiscountPrice).HasColumnType("decimal(18, 0)");
 
+                entity.Property(e => e.ApproveTime).HasColumnType("datetime");
+
                 entity.Property(e => e.CancelTime).HasColumnType("datetime");
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
@@ -629,13 +635,19 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Amount).HasColumnType("decimal(18, 0)");
 
+                entity.Property(e => e.AmountAfterRefund).HasColumnType("decimal(18, 0)");
+
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
                 entity.Property(e => e.OrderId).HasMaxLength(30);
 
+                entity.Property(e => e.PaymentRefundId).HasMaxLength(30);
+
                 entity.Property(e => e.PayTime).HasColumnType("datetime");
 
                 entity.Property(e => e.Platform).HasMaxLength(50);
+
+                entity.Property(e => e.PayType).HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.Status).HasDefaultValueSql("((0))");
 
@@ -643,6 +655,11 @@ namespace Etailor.API.Repository.DataAccess
                     .WithMany(p => p.Payments)
                     .HasForeignKey(d => d.OrderId)
                     .HasConstraintName("FK__Payment__OrderId__0E8E2250");
+
+                entity.HasOne(d => d.PaymentRefund)
+                    .WithMany(d => d.RefundOfPayments)
+                    .HasForeignKey(d => d.PaymentRefundId)
+                    .HasConstraintName("FK__Payment__PaymentRefund__1A25A48");
             });
 
             modelBuilder.Entity<Product>(entity =>
@@ -672,6 +689,10 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
 
                 entity.Property(e => e.Status).HasDefaultValueSql("((1))");
+
+                entity.Property(e => e.Price)
+                    .HasColumnType("decimal(18, 0)")
+                    .HasDefaultValueSql("((0))");
 
                 entity.HasOne(d => d.Order)
                     .WithMany(p => p.Products)
@@ -890,6 +911,10 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.BodySizeId).HasMaxLength(30);
 
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
+
+                entity.Property(e => e.InactiveTime).HasColumnType("datetime");
+
+                entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
                 entity.HasOne(d => d.BodySize)
                     .WithMany(p => p.TemplateBodySizes)

@@ -63,7 +63,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -138,7 +138,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -175,7 +175,7 @@ namespace Etailor.API.WebAPI.Controllers
                         stages.Add(stage);
                     }
                 }
-                return (await templateStageService.UpdateTemplateStages(templateId, stages)) ? Ok() : BadRequest();
+                return (await templateStageService.UpdateTemplateStages(templateId, stages, _wwwroot)) ? Ok() : BadRequest();
                 //    }
                 //}
             }

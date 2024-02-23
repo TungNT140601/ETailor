@@ -9,6 +9,8 @@ namespace Etailor.API.Repository.EntityModels
         public string? Title { get; set; }
         public string? UrlPath { get; set; }
         public string? Content { get; set; }
+        public string? Hastag { get; set; }
+        public string? Thumbnail { get; set; }
         public DateTime? CreatedTime { get; set; }
         public string? StaffId { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }

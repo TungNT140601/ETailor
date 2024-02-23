@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Etailor.API.Ultity.CommonValue;
 
 namespace Etailor.API.Service.Service
 {
@@ -17,71 +18,487 @@ namespace Etailor.API.Service.Service
         private readonly IStaffRepository staffRepository;
         private readonly ICustomerRepository customerRepository;
         private readonly IOrderRepository orderRepository;
+        private readonly IDiscountRepository discountRepository;
+        private readonly IProductRepository productRepository;
+        private readonly IPaymentRepository paymentRepository;
 
-        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository)
+        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository, IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
             this.orderRepository = orderRepository;
+            this.discountRepository = discountRepository;
+            this.productRepository = productRepository;
+            this.paymentRepository = paymentRepository;
         }
 
-        public async Task<bool> CreateOrder(Order order)
+        public async Task<string> CreateOrder(Order order, string? role)
         {
-            var checkDuplicateId = Task.Run(() =>
+            var tasks = new List<Task>();
+            if (string.IsNullOrWhiteSpace(order.Id))
             {
-                if (orderRepository.GetAll(x => x.Id == order.Id && x.IsActive == true).Any())
+                if (!string.IsNullOrWhiteSpace(order.CustomerId))
                 {
-                    throw new UserException("Mã Id Order đã được sử dụng");
+                    var cus = customerRepository.Get(order.CustomerId);
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (cus == null || cus.IsActive == false)
+                        {
+                            throw new UserException("Không tìm thấy khách hàng");
+                        }
+                    }));
                 }
-            });
-            var setValue = Task.Run(() =>
+
+                tasks.Add(Task.Run(() =>
+                {
+                    order.Id = Ultils.GenGuidString();
+                    order.CreatedTime = DateTime.Now;
+                    order.LastestUpdatedTime = DateTime.Now;
+                    order.InactiveTime = null;
+                    order.IsActive = false;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (role != RoleName.MANAGER)
+                    {
+                        order.Status = 1;
+                    }
+                    else
+                    {
+                        order.Status = 2;
+                    }
+                }));
+
+                await Task.WhenAll(tasks);
+
+                return orderRepository.Create(order) ? order.Id : null;
+            }
+            else
             {
-                order.Id = Ultils.GenGuidString();
-                order.CreatedTime = DateTime.Now;
-                order.LastestUpdatedTime = DateTime.Now;
-                order.InactiveTime = null;
-                order.IsActive = true;
-            });
+                var dbOrder = orderRepository.Get(order.Id);
+                if (dbOrder != null && dbOrder.IsActive == false)
+                {
+                    if (!string.IsNullOrWhiteSpace(order.CustomerId))
+                    {
+                        var cus = customerRepository.Get(order.CustomerId);
 
-            await Task.WhenAll(checkDuplicateId, setValue);
+                        tasks.Add(Task.Run(() =>
+                        {
+                            if (cus == null || cus.IsActive == false)
+                            {
+                                throw new UserException("Không tìm thấy khách hàng");
+                            }
+                            else
+                            {
+                                order.CustomerId = cus.Id;
+                            }
+                        }));
+                    }
 
-            return orderRepository.Create(order);
+                    tasks.Add(Task.Run(() =>
+                    {
+                        order.LastestUpdatedTime = DateTime.Now;
+                        order.InactiveTime = null;
+                        order.IsActive = false;
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (role != RoleName.MANAGER)
+                        {
+                            order.Status = 1;
+                        }
+                        else
+                        {
+                            order.Status = 2;
+                        }
+                    }));
+
+                    await Task.WhenAll(tasks);
+
+                    return orderRepository.Update(dbOrder.Id, dbOrder) ? order.Id : null;
+                }
+                else
+                {
+                    throw new UserException("Id hóa đơn không tồn tại");
+                }
+            }
         }
 
-        public async Task<bool> UpdateOrder(Order order)
+        public async Task<string> UpdateOrder(Order order, string? role)
         {
             var dbOrder = orderRepository.Get(order.Id);
             if (dbOrder != null && dbOrder.IsActive == true)
             {
-                var setValue = Task.Run(() =>
+                if (dbOrder.Status < 2)
                 {
-                    //này lấy từ bảng product
-                    dbOrder.TotalProduct = order.TotalProduct;
-                    dbOrder.TotalPrice = order.TotalPrice;
+                    var tasks = new List<Task>();
 
-                    //này lấy từ bảng discount
-                    dbOrder.DiscountId = order.DiscountId;
-                    dbOrder.DiscountCode = order.DiscountCode;
-                    dbOrder.AfterDiscountPrice   = order.AfterDiscountPrice;
+                    if (string.IsNullOrWhiteSpace(order.CustomerId))
+                    {
+                        throw new UserException("Vui lòng chọn khách hàng");
+                    }
 
-                    //lấy từ bảng transaction
-                    dbOrder.PayDeposit = order.PayDeposit;
-                    dbOrder.Deposit = order.Deposit;
-                    dbOrder.PaidMoney = order.PaidMoney;
-                    dbOrder.UnPaidMoney = order.UnPaidMoney;
+                    var cus = customerRepository.Get(order.CustomerId);
 
-                    dbOrder.Status = order.Status;
-                    dbOrder.CancelTime = order.CancelTime;
+                    var discount = discountRepository.GetAll(x => order.DiscountCode != null && x.Code != null && x.Code.Trim().ToLower() == order.DiscountCode.Trim().ToLower()).FirstOrDefault();
 
-                    dbOrder.CreatedTime = null;
-                    dbOrder.LastestUpdatedTime = DateTime.Now;
-                    dbOrder.InactiveTime = null ;
-                    dbOrder.IsActive = true;
-                });
+                    var usedDiscountCode = orderRepository.GetAll(x => x.Id != dbOrder.Id && ((dbOrder.CustomerId != cus.Id && x.CustomerId == cus.Id) || (dbOrder.CustomerId == cus.Id && x.CustomerId == cus.Id)) && x.DiscountCode == order.DiscountCode && x.IsActive == true && x.Status != 0);
 
-                await Task.WhenAll(setValue);
+                    var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true && x.Status != 0).ToList();
+
+                    var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 0).ToList();
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (cus == null || cus.IsActive == false)
+                        {
+                            throw new UserException("Không tìm thấy khách hàng");
+                        }
+                        else
+                        {
+                            dbOrder.CustomerId = cus.Id;
+                        }
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (orderProducts.Any() && orderProducts.Count > 0)
+                        {
+                            dbOrder.TotalProduct = orderProducts.Count;
+
+                            dbOrder.TotalPrice = orderProducts.Sum(x => x.Price);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(order.DiscountCode))
+                        {
+                            if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.Now && discount.EndDate <= DateTime.Now)
+                            {
+                                throw new UserException("Mã giảm giá không đúng hoặc hết hạn");
+                            }
+                            else if (usedDiscountCode.Any())
+                            {
+                                throw new UserException("Mã giảm giá đã được sử dụng");
+                            }
+                            else
+                            {
+                                dbOrder.DiscountId = discount.Id;
+                                dbOrder.DiscountCode = discount.Code;
+                                if (discount.ConditionProductMin != null && discount.ConditionProductMin != 0)
+                                {
+                                    if (dbOrder.TotalProduct >= discount.ConditionProductMin)
+                                    {
+                                        if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                                        {
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
+                                        }
+                                        else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                                        {
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
+                                    }
+                                }
+                                else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax == null)
+                                {
+                                    if (order.TotalPrice >= discount.ConditionPriceMin)
+                                    {
+                                        if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                                        {
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
+                                        }
+                                        else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                                        {
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
+                                    }
+                                }
+                                else if (discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0 && discount.ConditionPriceMin == null)
+                                {
+                                    if (order.TotalPrice <= discount.ConditionPriceMax)
+                                    {
+                                        if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                                        {
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
+                                        }
+                                        else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                                        {
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
+                                    }
+                                }
+                                else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0)
+                                {
+                                    if (order.TotalPrice <= discount.ConditionPriceMax && order.TotalPrice >= discount.ConditionPriceMin)
+                                    {
+                                        if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                                        {
+                                            dbOrder.DiscountPrice = discount.DiscountPrice;
+                                        }
+                                        else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                                        {
+                                            dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        dbOrder.DiscountPrice = 0;
+                                    }
+                                }
+                                else
+                                {
+                                    dbOrder.DiscountPrice = 0;
+                                }
+                            }
+                        }
+
+
+                        if (orderPayments.Any() && orderPayments.Count > 0)
+                        {
+                            dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0).Sum(x => x.Amount);
+                            if (dbOrder.DiscountPrice > 0)
+                            {
+                                if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
+                                {
+                                    dbOrder.AfterDiscountPrice = dbOrder.TotalPrice - dbOrder.DiscountPrice;
+                                }
+                                else
+                                {
+                                    dbOrder.AfterDiscountPrice = 0;
+                                }
+                            }
+
+                            if (dbOrder.AfterDiscountPrice != 0)
+                            {
+                                dbOrder.UnPaidMoney = dbOrder.AfterDiscountPrice - dbOrder.PaidMoney;
+                            }
+                            else
+                            {
+                                dbOrder.UnPaidMoney = dbOrder.TotalPrice - dbOrder.PaidMoney;
+                            }
+                        }
+
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.CancelTime = null;
+                        dbOrder.InactiveTime = null;
+                        dbOrder.IsActive = true;
+                    }));
+
+                    await Task.WhenAll(tasks);
+
+                    return orderRepository.Update(dbOrder.Id, dbOrder) ? dbOrder.Id : null;
+                }
+                else
+                {
+                    throw new UserException("Hóa đơn đã được duyệt. Không thể cập nhập hóa đơn");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public bool PayDeposit(string orderId, decimal amount)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                dbOrder.Deposit = amount;
+                dbOrder.PayDeposit = true;
+
+                if (orderRepository.Update(dbOrder.Id, dbOrder))
+                {
+                    return CheckOrderPaid(orderId);
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public bool CheckOrderPaid(string id)
+        {
+            var dbOrder = orderRepository.Get(id);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                var discount = string.IsNullOrEmpty(dbOrder.DiscountId) ? null : discountRepository.Get(dbOrder.DiscountId);
+
+                var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true && x.Status != 0).ToList();
+
+                var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 0).ToList();
+
+                if (orderProducts.Any() && orderProducts.Count > 0)
+                {
+                    dbOrder.TotalProduct = orderProducts.Count;
+
+                    dbOrder.TotalPrice = orderProducts.Sum(x => x.Price);
+                }
+                else
+                {
+                    dbOrder.TotalProduct = 0;
+
+                    dbOrder.TotalPrice = 0;
+                }
+
+                if (discount != null)
+                {
+
+                    dbOrder.DiscountId = discount.Id;
+                    dbOrder.DiscountCode = discount.Code;
+                    if (discount.ConditionProductMin != null && discount.ConditionProductMin != 0)
+                    {
+                        if (dbOrder.TotalProduct >= discount.ConditionProductMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax == null)
+                    {
+                        if (dbOrder.TotalPrice >= discount.ConditionPriceMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0 && discount.ConditionPriceMin == null)
+                    {
+                        if (dbOrder.TotalPrice <= discount.ConditionPriceMax)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0)
+                    {
+                        if (dbOrder.TotalPrice <= discount.ConditionPriceMax && dbOrder.TotalPrice >= discount.ConditionPriceMin)
+                        {
+                            if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
+                            {
+                                dbOrder.DiscountPrice = discount.DiscountPrice;
+                            }
+                            else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
+                            {
+                                dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
+                            }
+                        }
+                        else
+                        {
+                            dbOrder.DiscountPrice = 0;
+                        }
+                    }
+                    else
+                    {
+                        dbOrder.DiscountPrice = 0;
+                    }
+                }
+
+                if (orderPayments.Any() && orderPayments.Count > 0)
+                {
+                    dbOrder.PaidMoney = orderPayments.Where(x => x.Amount > 0).Sum(x => x.Amount);
+                    if (dbOrder.DiscountPrice.HasValue && dbOrder.DiscountPrice > 0)
+                    {
+                        if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
+                        {
+                            dbOrder.AfterDiscountPrice = dbOrder.TotalPrice - dbOrder.DiscountPrice;
+                        }
+                        else
+                        {
+                            dbOrder.AfterDiscountPrice = 0;
+                        }
+                    }
+                    else
+                    {
+                        dbOrder.AfterDiscountPrice = 0;
+                        dbOrder.DiscountPrice = 0;
+                    }
+
+                    if (dbOrder.AfterDiscountPrice.HasValue && dbOrder.AfterDiscountPrice != 0)
+                    {
+                        dbOrder.UnPaidMoney = dbOrder.AfterDiscountPrice - dbOrder.PaidMoney;
+                    }
+                    else
+                    {
+                        dbOrder.UnPaidMoney = dbOrder.TotalPrice - dbOrder.PaidMoney;
+                    }
+                }
 
                 return orderRepository.Update(dbOrder.Id, dbOrder);
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public async Task<bool> ApproveOrder(string id)
+        {
+            var dbOrder = orderRepository.Get(id);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                if (dbOrder.Status >= 2)
+                {
+                    throw new UserException("Hóa đơn đã được duyệt. Không thể duyệt lại hóa đơn");
+                }
+                else
+                {
+                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.Status = 2;
+                    return orderRepository.Update(dbOrder.Id, dbOrder);
+                }
             }
             else
             {
@@ -89,29 +506,22 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> DeleteOrder(string id)
+        public bool DeleteOrder(string id)
         {
             var dbOrder = orderRepository.Get(id);
             if (dbOrder != null && dbOrder.IsActive == true)
             {
-                var checkChild = Task.Run(() =>
+                if (dbOrder.Status >= 4)
                 {
-                    //if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
-                    //{
-                    //    throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
-                    //}
-                });
-                var setValue = Task.Run(() =>
+                    throw new UserException("Không thể hủy hóa đơn: Hóa đơn đang trong giai đoạn thực hiện sản phẩm.");
+                }
+                else
                 {
-                    dbOrder.CreatedTime = null;
                     dbOrder.LastestUpdatedTime = DateTime.Now;
-                    dbOrder.IsActive = false;
-                    dbOrder.InactiveTime = DateTime.Now;
-                });
+                    dbOrder.Status = 0;
 
-                await Task.WhenAll(checkChild, setValue);
-
-                return orderRepository.Update(dbOrder.Id, dbOrder);
+                    return orderRepository.Update(dbOrder.Id, dbOrder);
+                }
             }
             else
             {
@@ -125,9 +535,14 @@ namespace Etailor.API.Service.Service
             return order == null ? null : order.IsActive == true ? order : null;
         }
 
-        public IEnumerable<Order> GetOrders(string? search)
+        public IEnumerable<Order> GetOrders()
         {
-            return orderRepository.GetAll(x => (search == null || (search != null && x.Id.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+            return orderRepository.GetAll(x => x.IsActive == true);
+        }
+
+        public IEnumerable<Order> GetOrdersByCustomer(string cusId)
+        {
+            return orderRepository.GetAll(x => x.CustomerId == cusId && x.Status != 0 && x.IsActive == true);
         }
     }
 }

@@ -15,12 +15,13 @@ namespace Etailor.API.WebAPI
 
             CreateMap<Customer, CusRegis>().ReverseMap();
             CreateMap<Customer, CustomerVM>().ReverseMap();
+            CreateMap<Customer, CustomerAllVM>().ReverseMap();
 
             CreateMap<MaterialType, MaterialTypeVM>().ReverseMap();
             CreateMap<MaterialType, MaterialTypeAllVM>().ReverseMap();
 
-
             CreateMap<Category, CategoryVM>().ReverseMap();
+            CreateMap<Category, CategoryAllVM>().ReverseMap();
             CreateMap<Category, CategoryAllTemplateVM>().ReverseMap();
 
             CreateMap<ComponentType, ComponentTypeVM>().ReverseMap();
@@ -31,26 +32,40 @@ namespace Etailor.API.WebAPI
             CreateMap<ComponentStage, ComponentStageVM>().ReverseMap();
 
             CreateMap<Discount, DiscountVM>().ReverseMap();
+            CreateMap<Discount, DiscountCreateVM>().ReverseMap();
+
             CreateMap<Order, OrderVM>().ReverseMap();
+            CreateMap<Order, OrderCreateVM>().ReverseMap();
 
             CreateMap<ProductTemplate, ProductTemplateALLVM>().ReverseMap();
             CreateMap<ProductTemplate, ProductTemplateCreateVM>().ReverseMap();
 
             CreateMap<Product, ProductVM>().ReverseMap();
+            CreateMap<Product, ProductOrderVM>().ReverseMap();
+
+            CreateMap<ProductComponent, ProductComponentOrderVM>().ReverseMap();
+
+            CreateMap<ProductComponentMaterial, ProductComponentMaterialOrderVM>().ReverseMap();
 
             CreateMap<BodySize, BodySizeVM>().ReverseMap();
+            CreateMap<BodySize, CreateUpdateBodySizeVM>().ReverseMap();
 
             CreateMap<ProfileBody, ProfileBodyVM>().ReverseMap();
+            CreateMap<ProfileBody, CreateProfileBodyByStaffVM>().ReverseMap();
+            CreateMap<ProfileBody, CreateProfileBodyByCustomerVM>().ReverseMap();
+            CreateMap<ProfileBody, UpdateProfileBodyVM>().ReverseMap();
 
             CreateMap<TemplateStage, TemplateStageCreateVM>().ReverseMap();
             CreateMap<TemplateStage, TemplateStageAllVM>().ReverseMap();
-
-
 
             CreateMap<BodyAttribute, BodyAttributeVM>().ReverseMap();
 
             CreateMap<Blog, BlogVM>().ReverseMap();
             CreateMap<Blog, ListOfBlogVM>().ReverseMap();
+            CreateMap<Blog, CreateBlogVM>().ReverseMap();
+            CreateMap<Blog, UpdateBlogVM>().ReverseMap();
+
+            CreateMap<Material, MaterialVM>().ReverseMap();
         }
     }
 }

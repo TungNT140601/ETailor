@@ -24,12 +24,12 @@ namespace Etailor.API.WebAPI.Controllers
         {
             this.mapper = mapper;
             this.staffService = staffService;
-            this.customerService = customerService; 
+            this.customerService = customerService;
             this.orderService = orderService;
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] OrderVM order)
+        public async Task<IActionResult> CreateOrder([FromBody] OrderCreateVM orderVM)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -52,7 +52,12 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return (await orderService.CreateOrder(mapper.Map<Order>(order))) ? Ok("Tạo mới hóa đơn thành công") : BadRequest("Tạo mới hóa đơn thất bại");
+                        var order = mapper.Map<Order>(orderVM);
+
+                        order.CreaterId = id;
+
+                        var orderId = await orderService.CreateOrder(order, role);
+                        return orderId != null ? Ok(orderId) : BadRequest("Tạo mới hóa đơn thất bại");
                     }
                 }
             }
@@ -71,7 +76,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrder(string id, [FromBody] OrderVM orderVM)
+        public async Task<IActionResult> UpdateOrder(string id, [FromBody] OrderCreateVM orderVM)
         {
             try
             {
@@ -82,7 +87,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -94,11 +99,13 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        if (id == null || id != orderVM.Id)
-                        {
-                            return NotFound("Id danh mục không tồn tại");
-                        }
-                        return (await orderService.UpdateOrder(mapper.Map<Order>(orderVM))) ? Ok("Cập nhật hóa đơn thành công") : BadRequest("Cập nhật hóa đơn thất bại");
+                        var order = mapper.Map<Order>(orderVM);
+
+                        order.CreaterId = id;
+
+                        var orderId = await orderService.UpdateOrder(order, role);
+
+                        return orderId != null ? Ok(orderId) : BadRequest("Cập nhật hóa đơn thất bại");
                     }
                 }
             }
@@ -116,7 +123,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("cancel/{id}")]
         public async Task<IActionResult> DeleteOrder(string id)
         {
             try
@@ -128,7 +135,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -140,11 +147,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        if (id == null)
-                        {
-                            return NotFound("Id hóa đơn không tồn tại");
-                        }
-                        return (await orderService.DeleteOrder(id)) ? Ok("Xóa hóa đơn thành công") : BadRequest("Xóa hóa đơn thất bại");
+                        return orderService.DeleteOrder(id) ? Ok("Hủy hóa đơn thành công") : BadRequest("Hủy hóa đơn thất bại");
                     }
                 }
             }
@@ -167,14 +170,32 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if (id == null)
+
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    return NotFound("Id Order không tồn tại");
+                    return Unauthorized("Chưa đăng nhập");
                 }
                 else
                 {
-                    var order = orderService.GetOrder(id);
-                    return order != null ? Ok(mapper.Map<OrderVM>(order)) : NotFound(id);
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if ((role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(staffid, secrectKey)) || (role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(staffid, secrectKey)))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var order = orderService.GetOrder(id);
+                        if (order != null && role == RoleName.CUSTOMER && order.CustomerId != staffid)
+                        {
+                            return NotFound(id);
+                        }
+                        else
+                        {
+                            return order != null ? Ok(mapper.Map<OrderVM>(order)) : NotFound(id);
+                        }
+                    }
                 }
             }
             catch (UserException ex)
@@ -190,12 +211,38 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpGet]
-        public async Task<IActionResult> GetOrders(string? search)
+        public async Task<IActionResult> GetOrders()
         {
             try
             {
-                return Ok(mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrders(search)));
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if ((role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(staffid, secrectKey)) || (role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(staffid, secrectKey)))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (role == RoleName.CUSTOMER)
+                        {
+                            var orders = mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrdersByCustomer(staffid));
+                            return Ok(orders);
+                        }
+                        else
+                        {
+                            return Ok(mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrders()));
+                        }
+                    }
+                }
             }
             catch (UserException ex)
             {

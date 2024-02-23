@@ -35,30 +35,30 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                //else if (role != RoleName.MANAGER)
-                else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
-                {
-                    return Forbid("Không có quyền truy cập");
-                }
-                else
-                {
-                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                ////else if (role != RoleName.MANAGER)
+                //else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(id, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
                         var staffCreate = mapper.Map<Staff>(staff);
                         return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage, staff.MasterySkill)) ? Ok("Tạo mới nhân viên thành công") : BadRequest("Tạo mới nhân viên thất bại");
-                    }
-                }
+                //    }
+                //}
             }
             catch (UserException ex)
             {
@@ -87,7 +87,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
                 else if (role == RoleName.CUSTOMER) //check role
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -148,7 +148,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER) // check role
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -197,7 +197,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -239,7 +239,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role == RoleName.CUSTOMER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -296,7 +296,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role == RoleName.CUSTOMER || role == RoleName.STAFF)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{

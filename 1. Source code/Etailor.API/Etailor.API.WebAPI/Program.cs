@@ -26,6 +26,8 @@ builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttri
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddControllers();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -101,6 +103,10 @@ builder.Services.AddScoped<ITemplateBodySizeService, TemplateBodySizeService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 
+builder.Services.AddScoped<IProductStageRepository, ProductStageRepository>();
+
+builder.Services.AddScoped<IProductComponentRepository, ProductComponentRepository>();
+
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
@@ -135,7 +141,7 @@ builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryReposito
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
-//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+builder.Services.AddScoped<IMaterialService, MaterialService>();
 
 builder.Services.AddScoped<IMasteryRepository, MasteryRepository>();
 //builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
@@ -146,9 +152,8 @@ builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>();
 //builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 
-
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-//builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));

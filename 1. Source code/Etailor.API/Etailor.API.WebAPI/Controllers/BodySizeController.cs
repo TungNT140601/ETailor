@@ -75,7 +75,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateBodySize([FromBody] BodySizeVM bodySizeVM)
+        public IActionResult CreateBodySize([FromBody] CreateUpdateBodySizeVM bodySizeVM)
         {
             try
             {
@@ -86,7 +86,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -124,7 +124,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateBodySize(string? id, [FromBody] BodySizeVM bodySizeVM)
+        public IActionResult UpdateBodySize(string? id, [FromBody] CreateUpdateBodySizeVM bodySizeVM)
         {
             try
             {
@@ -135,7 +135,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -191,7 +191,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{

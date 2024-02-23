@@ -147,6 +147,26 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        public IEnumerable<Customer> FindPhoneOrEmail(string? search)
+        {
+            try
+            {
+                return customerRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || (search != null && (x.Email != null && x.Email.Trim().ToLower().Contains(search.Trim().ToLower())) || (x.Phone != null && x.Phone.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive != null && x.IsActive == true));
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public Customer FindUsername(string username)
         {
             try

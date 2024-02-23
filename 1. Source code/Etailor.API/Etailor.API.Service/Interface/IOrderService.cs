@@ -9,10 +9,13 @@ namespace Etailor.API.Service.Interface
 {
     public interface IOrderService
     {
-        Task<bool> CreateOrder(Order order);
-        Task<bool> UpdateOrder(Order order);
-        Task<bool> DeleteOrder(string id);
+        Task<string> CreateOrder(Order order, string? role);
+        Task<string> UpdateOrder(Order order, string? role);
+        bool DeleteOrder(string id);
         Order GetOrder(string id);
-        IEnumerable<Order> GetOrders(string? search);
+        IEnumerable<Order> GetOrders();
+        IEnumerable<Order> GetOrdersByCustomer(string cusId);
+        bool PayDeposit(string orderId, decimal amount);
+        bool CheckOrderPaid(string id);
     }
 }

@@ -33,7 +33,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("get-all-template")]
-        public IActionResult GetAllTemplate()
+        public async Task<IActionResult> GetAllTemplate()
         {
             try
             {
@@ -41,17 +41,13 @@ namespace Etailor.API.WebAPI.Controllers
                 var returnData = new List<CategoryAllTemplateVM>();
                 if (categories != null && categories.Any())
                 {
-                    var listTask = new List<Task>();
                     foreach (var category in categories)
                     {
-                        listTask.Add(Task.Run(async () =>
+                        category.ProductTemplates = mapper.Map<IEnumerable<ProductTemplateALLVM>>(await productTemplateService.GetByCategory(category.Id));
+                        if (category.ProductTemplates != null && category.ProductTemplates.Any())
                         {
-                            category.ProductTemplates = mapper.Map<IEnumerable<ProductTemplateALLVM>>(await productTemplateService.GetByCategory(category.Id));
-                            if (category.ProductTemplates != null && category.ProductTemplates.Any())
-                            {
-                                returnData.Add(category);
-                            }
-                        }));
+                            returnData.Add(category);
+                        }
                     }
                 }
                 return Ok(returnData);
@@ -143,7 +139,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -186,7 +182,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -229,7 +225,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -260,7 +256,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("update-template/{id}")]
-        public async Task<IActionResult> CreateTemplate(string id, [FromForm] ProductTemplateCreateVM templateCreateVM)
+        public async Task<IActionResult> UpdateTemplate(string id, [FromForm] ProductTemplateCreateVM templateCreateVM)
         {
 
             try
@@ -272,7 +268,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -315,7 +311,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{

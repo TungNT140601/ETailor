@@ -34,6 +34,10 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<DateTime?>("CreatedTime")
                         .HasColumnType("datetime");
 
+                    b.Property<string>("Hastag")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTime?>("InactiveTime")
                         .HasColumnType("datetime");
 
@@ -48,6 +52,9 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("StaffId")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Thumbnail")
+                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .HasMaxLength(255)
@@ -505,8 +512,8 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<DateTime?>("CreatedTime")
                         .HasColumnType("datetime");
 
-                    b.Property<decimal?>("DiscountPercent")
-                        .HasColumnType("decimal(18,0)");
+                    b.Property<float?>("DiscountPercent")
+                        .HasColumnType("float(18)");
 
                     b.Property<decimal?>("DiscountPrice")
                         .HasColumnType("decimal(18,0)");
@@ -727,6 +734,9 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<decimal?>("AfterDiscountPrice")
                         .HasColumnType("decimal(18,0)");
 
+                    b.Property<DateTime?>("ApproveTime")
+                        .HasColumnType("datetime");
+
                     b.Property<DateTime?>("CancelTime")
                         .HasColumnType("datetime");
 
@@ -857,6 +867,9 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<decimal?>("Amount")
                         .HasColumnType("decimal(18,0)");
 
+                    b.Property<decimal?>("AmountAfterRefund")
+                        .HasColumnType("decimal(18,0)");
+
                     b.Property<DateTime?>("CreatedTime")
                         .HasColumnType("datetime");
 
@@ -866,6 +879,15 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.Property<DateTime?>("PayTime")
                         .HasColumnType("datetime");
+
+                    b.Property<int?>("PayType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValueSql("((0))");
+
+                    b.Property<string>("PaymentRefundId")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Platform")
                         .HasMaxLength(50)
@@ -879,6 +901,8 @@ namespace Etailor.API.WebAPI.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
+
+                    b.HasIndex("PaymentRefundId");
 
                     b.ToTable("Payment", (string)null);
                 });
@@ -920,6 +944,11 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("OrderId")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal?>("Price")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,0)")
+                        .HasDefaultValueSql("((0))");
 
                     b.Property<string>("ProductTemplateId")
                         .HasMaxLength(30)
@@ -1274,6 +1303,14 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<DateTime?>("InactiveTime")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool?>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValueSql("((1))");
+
                     b.Property<string>("ProductTemplateId")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
@@ -1543,7 +1580,14 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasForeignKey("OrderId")
                         .HasConstraintName("FK__Payment__OrderId__0E8E2250");
 
+                    b.HasOne("Etailor.API.Repository.EntityModels.Payment", "PaymentRefund")
+                        .WithMany("RefundOfPayments")
+                        .HasForeignKey("PaymentRefundId")
+                        .HasConstraintName("FK__Payment__PaymentRefund__1A25A48");
+
                     b.Navigation("Order");
+
+                    b.Navigation("PaymentRefund");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Product", b =>
@@ -1777,6 +1821,11 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Navigation("Payments");
 
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.Payment", b =>
+                {
+                    b.Navigation("RefundOfPayments");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Product", b =>

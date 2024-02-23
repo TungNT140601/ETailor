@@ -32,4 +32,13 @@ namespace Etailor.API.Ultity.CommonValue
         public static string PRODUCTTEMPLATE_CREATE_NAME_FAIL = "Mẫu sản phẩm đã có trong cửa hàng";
 
     }
+
+    public static class PlatformName
+    {
+        public static string OFFLINE = "Offline";
+        public static string VN_PAY = "VN Pay";
+        public static string MOMO = "MoMo";
+        public static string ZALO_PAY = "Zalo Pay";
+        public static string VIETQR = "VietQR";
+    }
 }
