@@ -33,7 +33,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -75,7 +75,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -121,7 +121,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{

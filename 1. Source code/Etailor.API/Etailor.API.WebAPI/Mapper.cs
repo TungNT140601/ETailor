@@ -35,6 +35,7 @@ namespace Etailor.API.WebAPI
             CreateMap<Discount, DiscountCreateVM>().ReverseMap();
 
             CreateMap<Order, OrderVM>().ReverseMap();
+            CreateMap<Order, OrderCreateVM>().ReverseMap();
 
             CreateMap<ProductTemplate, ProductTemplateALLVM>().ReverseMap();
             CreateMap<ProductTemplate, ProductTemplateCreateVM>().ReverseMap();

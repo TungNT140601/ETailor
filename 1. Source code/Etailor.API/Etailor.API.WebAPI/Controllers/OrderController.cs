@@ -29,7 +29,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] OrderVM order)
+        public async Task<IActionResult> CreateOrder([FromBody] OrderCreateVM orderVM)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -52,7 +52,11 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var orderId = await orderService.CreateOrder(mapper.Map<Order>(order), role);
+                        var order = mapper.Map<Order>(orderVM);
+
+                        order.CreaterId = id;
+
+                        var orderId = await orderService.CreateOrder(order, role);
                         return orderId != null ? Ok(orderId) : BadRequest("Tạo mới hóa đơn thất bại");
                     }
                 }
@@ -72,7 +76,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateOrder(string id, [FromBody] OrderVM orderVM)
+        public async Task<IActionResult> UpdateOrder(string id, [FromBody] OrderCreateVM orderVM)
         {
             try
             {
@@ -83,7 +87,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -95,7 +99,12 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var orderId = await orderService.UpdateOrder(mapper.Map<Order>(orderVM), role);
+                        var order = mapper.Map<Order>(orderVM);
+
+                        order.CreaterId = id;
+
+                        var orderId = await orderService.UpdateOrder(order, role);
+
                         return orderId != null ? Ok(orderId) : BadRequest("Cập nhật hóa đơn thất bại");
                     }
                 }
@@ -126,7 +135,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.MANAGER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -213,10 +222,6 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
-                {
-                    return Forbid("Không có quyền truy cập");
-                }
                 else
                 {
                     var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
@@ -229,7 +234,8 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         if (role == RoleName.CUSTOMER)
                         {
-                            return Ok(mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrdersByCustomer(staffid)));
+                            var orders = mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrdersByCustomer(staffid));
+                            return Ok(orders);
                         }
                         else
                         {

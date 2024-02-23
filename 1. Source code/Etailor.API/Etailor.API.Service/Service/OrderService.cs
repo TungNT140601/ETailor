@@ -35,44 +35,96 @@ namespace Etailor.API.Service.Service
         public async Task<string> CreateOrder(Order order, string? role)
         {
             var tasks = new List<Task>();
-
-            if (!string.IsNullOrWhiteSpace(order.CustomerId))
+            if (string.IsNullOrWhiteSpace(order.Id))
             {
-                var cus = customerRepository.Get(order.CustomerId);
+                if (!string.IsNullOrWhiteSpace(order.CustomerId))
+                {
+                    var cus = customerRepository.Get(order.CustomerId);
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (cus == null || cus.IsActive == false)
+                        {
+                            throw new UserException("Không tìm thấy khách hàng");
+                        }
+                    }));
+                }
 
                 tasks.Add(Task.Run(() =>
                 {
-                    if (cus == null || cus.IsActive == false)
+                    order.Id = Ultils.GenGuidString();
+                    order.CreatedTime = DateTime.Now;
+                    order.LastestUpdatedTime = DateTime.Now;
+                    order.InactiveTime = null;
+                    order.IsActive = false;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (role != RoleName.MANAGER)
                     {
-                        throw new UserException("Không tìm thấy khách hàng");
+                        order.Status = 1;
+                    }
+                    else
+                    {
+                        order.Status = 2;
                     }
                 }));
+
+                await Task.WhenAll(tasks);
+
+                return orderRepository.Create(order) ? order.Id : null;
             }
-
-            tasks.Add(Task.Run(() =>
+            else
             {
-                order.Id = Ultils.GenGuidString();
-                order.CreatedTime = DateTime.Now;
-                order.LastestUpdatedTime = DateTime.Now;
-                order.InactiveTime = null;
-                order.IsActive = false;
-            }));
-
-            tasks.Add(Task.Run(() =>
-            {
-                if(role != RoleName.MANAGER)
+                var dbOrder = orderRepository.Get(order.Id);
+                if (dbOrder != null && dbOrder.IsActive == false)
                 {
-                    order.Status = 1;
+                    if (!string.IsNullOrWhiteSpace(order.CustomerId))
+                    {
+                        var cus = customerRepository.Get(order.CustomerId);
+
+                        tasks.Add(Task.Run(() =>
+                        {
+                            if (cus == null || cus.IsActive == false)
+                            {
+                                throw new UserException("Không tìm thấy khách hàng");
+                            }
+                            else
+                            {
+                                order.CustomerId = cus.Id;
+                            }
+                        }));
+                    }
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        order.LastestUpdatedTime = DateTime.Now;
+                        order.InactiveTime = null;
+                        order.IsActive = false;
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (role != RoleName.MANAGER)
+                        {
+                            order.Status = 1;
+                        }
+                        else
+                        {
+                            order.Status = 2;
+                        }
+                    }));
+
+                    await Task.WhenAll(tasks);
+
+                    return orderRepository.Update(dbOrder.Id, dbOrder) ? order.Id : null;
                 }
                 else
                 {
-                    order.Status = 2;
+                    throw new UserException("Id hóa đơn không tồn tại");
                 }
-            }));
-
-            await Task.WhenAll(tasks);
-
-            return orderRepository.Create(order) ? order.Id : null;
+            }
         }
 
         public async Task<string> UpdateOrder(Order order, string? role)

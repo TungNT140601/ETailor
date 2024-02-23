@@ -21,10 +21,13 @@ namespace Etailor.API.Service.Service
         private readonly IComponentRepository componentRepository;
         private readonly IComponentStageRepository componentStageRepository;
         private readonly IProductStageRepository productStageRepository;
+        private readonly IProductComponentRepository productComponentRepository;
+        private readonly IMaterialRepository materialRepository;
 
         public ProductService(IProductRepository productRepository, IProductTemplateRepository productTemplateRepository,
             IOrderRepository orderRepository, ITemplateStateRepository templateStateRepository, IComponentTypeRepository componentTypeRepository,
-            IComponentRepository componentRepository, IComponentStageRepository componentStageRepository, IProductStageRepository productStageRepository)
+            IComponentRepository componentRepository, IComponentStageRepository componentStageRepository, IProductStageRepository productStageRepository,
+            IProductComponentRepository productComponentRepository, IMaterialRepository materialRepository)
         {
             this.productRepository = productRepository;
             this.productTemplateRepository = productTemplateRepository;
@@ -34,9 +37,11 @@ namespace Etailor.API.Service.Service
             this.componentRepository = componentRepository;
             this.componentStageRepository = componentStageRepository;
             this.productStageRepository = productStageRepository;
+            this.productComponentRepository = productComponentRepository;
+            this.materialRepository = materialRepository;
         }
 
-        public async Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents)
+        public async Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId)
         {
             var order = orderRepository.Get(orderId);
             if (order != null)
@@ -57,14 +62,24 @@ namespace Etailor.API.Service.Service
                     throw new UserException("Không tìm thấy bản mẫu");
                 }
 
+                // các bước mẫu
                 var templateStages = templateStateRepository.GetAll(x => x.ProductTemplateId == product.ProductTemplateId && x.IsActive == true).ToList();
 
+                // các bộ phận được xử lý trong bước mẫu
                 var componentStages = componentStageRepository.GetAll(x => templateStages.Select(t => t.Id).Contains(x.TemplateStageId)).ToList();
 
+                // các bộ phận của bản mẫu
                 var templateComponentTypes = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true).ToList();
 
+                // các kiểu bộ phận của bản mẫu
                 var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == template.Id && x.IsActive == true).ToList();
 
+                // các kiểu bộ phận của sản phẩm
+                var componentOfProducts = componentRepository.GetAll(x => productComponents.Select(c => c.ComponentId).Contains(x.Id)).ToList();
+
+                var storeMaterialIds = materialRepository.GetAll(x => x.Quantity > 0 && x.IsActive == true).Select(x => x.Id).ToList();
+
+                // khởi tạo các bước của sản phẩm
                 var productStages = new List<ProductStage>();
 
                 #region InitProduct
@@ -154,13 +169,132 @@ namespace Etailor.API.Service.Service
 
                 await Task.WhenAll(tasks);
 
+                // kiểm tra nếu tạo sản phẩm thành công
                 if (productRepository.Create(product))
                 {
+                    // kiểm tra nếu các bước của sản phẩm có
                     if (productStages.Any())
                     {
+                        // kiểm tra nếu tạo các bước của sản phẩm thành công
                         if (productStageRepository.CreateRange(productStages))
                         {
+                            // kiểm tra nếu các kiểu bộ phận của sản phẩm không khớp với các kiểu bộ phận của bản mẫu
+                            if (componentOfProducts.Where(x => !templateComponents.Select(c => c.Id).ToList().Contains(x.Id)).Any())
+                            {
+                                throw new SystemsException("Kiểu bộ phận không phù hợp");
+                            }
+                            else
+                            {
+                                // khởi tạo list product component để add db
+                                var productCompnentCreates = new List<ProductComponent>();
 
+                                // duyệt từng bước của bản mẫu
+                                foreach (var templateStage in templateStages)
+                                {
+                                    tasks.Add(Task.Run(async () =>
+                                    {
+                                        var createProductComponentTasks = new List<Task>();
+                                        var componentTypesInTemplateStageIds = new List<string>();
+                                        var componentTypesInTemplateStages = new List<ComponentType>();
+                                        var types = new List<Component>();
+
+                                        createProductComponentTasks.Add(Task.Run(() =>
+                                        {
+                                            // Lấy ds id các component type của bước mẫu
+                                            componentTypesInTemplateStageIds = componentStages.Where(x => x.TemplateStageId == templateStage.Id).Select(x => x.Id).ToList();
+                                        }));
+
+                                        createProductComponentTasks.Add(Task.Run(() =>
+                                        {
+                                            // Lấy ds các component của bước mẫu
+                                            componentTypesInTemplateStages = templateComponentTypes.Where(x => componentTypesInTemplateStageIds.Contains(x.Id)).ToList();
+                                        }));
+
+                                        createProductComponentTasks.Add(Task.Run(() =>
+                                        {
+                                            // lấy ra các kiểu bộ phận của sản phẩm tương ứng với bộ phận đó
+                                            var types = componentOfProducts.Where(x => componentTypesInTemplateStageIds.Contains(x.ComponentTypeId)).ToList();
+                                        }));
+
+                                        await Task.WhenAll(createProductComponentTasks);
+
+                                        // nếu có kiểu bộ phận tương ứng
+                                        if (types.Any())
+                                        {
+                                            // nếu có nhiều hơn 1 kiểu bộ phận
+                                            if (types.Count > 1)
+                                            {
+                                                throw new SystemsException("Mỗi bộ phận chỉ có thể chọn 1 kiểu");
+                                            }
+                                            else
+                                            {
+                                                // lấy phần tử đầu tiên
+                                                var type = types.First();
+                                                var productStage = new ProductStage();
+                                                var productComponent = new ProductComponent();
+
+                                                createProductComponentTasks.Add(Task.Run(() =>
+                                                {
+                                                    productStage = productStages.Where(x => x.StageNum == templateStage.StageNum).First();
+                                                }));
+                                                createProductComponentTasks.Add(Task.Run(() =>
+                                                {
+                                                    productComponent = productComponents.Where(x => x.ComponentId == type.Id).FirstOrDefault();
+                                                }));
+
+                                                await Task.WhenAll(createProductComponentTasks);
+
+                                                if (productComponent != null)
+                                                {
+                                                    productComponent.Id = Ultils.GenGuidString();
+                                                    createProductComponentTasks.Add(Task.Run(() =>
+                                                    {
+                                                        productComponent.Name = type.Name;
+                                                    }));
+                                                    createProductComponentTasks.Add(Task.Run(() =>
+                                                    {
+                                                        productComponent.ComponentId = type.Id;
+                                                    }));
+                                                    createProductComponentTasks.Add(Task.Run(() =>
+                                                    {
+                                                        productComponent.ProductStageId = productStage.Id;
+                                                    }));
+                                                    createProductComponentTasks.Add(Task.Run(() =>
+                                                    {
+                                                        productComponent.LastestUpdatedTime = DateTime.Now;
+                                                    }));
+
+                                                    await Task.WhenAll(createProductComponentTasks);
+
+                                                    if (!string.IsNullOrWhiteSpace(materialId) && storeMaterialIds.Contains(materialId))
+                                                    {
+                                                        productComponent.ProductComponentMaterials = new List<ProductComponentMaterial>()
+                                                        {
+                                                            new ProductComponentMaterial()
+                                                                {
+                                                                    Id = Ultils.GenGuidString(),
+                                                                    MaterialId = materialId,
+                                                                    ProductComponentId = productComponent.Id,
+                                                                    Quantity = 0
+                                                                }
+                                                        };
+                                                    }
+                                                    else
+                                                    {
+                                                        throw new UserException("Nguyên liệu không tồn tại trong hệ thống");
+                                                    }
+
+                                                    productCompnentCreates.Add(productComponent);
+                                                }
+                                            }
+                                        }
+                                    }));
+                                }
+
+                                await Task.WhenAll(tasks);
+
+                                return productComponentRepository.CreateRange(productCompnentCreates);
+                            }
                         }
                         else
                         {
@@ -184,33 +318,65 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> UpdateProduct(Product product)
+        public async Task<bool> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId)
         {
-            var dbProduct = productRepository.Get(product.Id);
-            if (dbProduct != null && dbProduct.IsActive == true)
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.IsActive == true)
             {
-                var setValue = Task.Run(() =>
+                if (dbOrder.Status >= 5)
                 {
-                    dbProduct.ProductTemplateId = product.ProductTemplateId;
-                    dbProduct.Name = product.Name;
-                    dbProduct.Note = product.Note;
-                    dbProduct.Status = product.Status;
-                    dbProduct.EvidenceImage = product.EvidenceImage;
-                    //dbProduct.FinishTime = DateTime.Now;
+                    throw new UserException("Đơn hàng đã vào giai đoạn hoàn thiện. Không thể chỉnh sửa");
+                }
+                else
+                {
+                    var dbProduct = productRepository.Get(product.Id);
+                    if (dbProduct != null && dbProduct.IsActive == true)
+                    {
+                        if (dbProduct.Status >= 2)
+                        {
+                            throw new UserException("Sản phẩm trong giai đoạn thực hiện. Không thể chỉnh sửa");
+                        }
+                        else
+                        {
+                            if (product.ProductTemplateId != dbProduct.ProductTemplateId)
+                            {
+                                throw new UserException("Không thể thay đổi bản mẫu của sản phẩm");
+                            }
+                            else
+                            {
+                                if (!string.IsNullOrWhiteSpace(product.Name))
+                                {
+                                    dbProduct.Name = product.Name;
+                                }
+                                if (!string.IsNullOrWhiteSpace(product.Note))
+                                {
+                                    dbProduct.Note = product.Note;
+                                }
 
-                    dbProduct.CreatedTime = null;
-                    dbProduct.LastestUpdatedTime = DateTime.Now;
-                    dbProduct.InactiveTime = null;
-                    dbProduct.IsActive = true;
-                });
+                                var dbProductStageIds = productStageRepository.GetAll(x => x.ProductId == dbProduct.Id && x.IsActive == true).Select(x => x.Id).ToList();
 
-                await Task.WhenAll(setValue);
+                                var dbProductComponents = productComponentRepository.GetAll(x => dbProductStageIds.Contains(x.Id)).ToList();
 
-                return productRepository.Update(dbProduct.Id, dbProduct);
+                                var dbProductComponentIds = dbProductComponents.Select(x => x.ComponentId).ToList();
+
+
+
+
+
+
+                                return false;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy sản phẩm");
+                    }
+                }
             }
             else
             {
-                throw new UserException("Không tìm thấy sản phầm");
+                throw new UserException("Không tìm thấy hóa đơn");
             }
         }
 

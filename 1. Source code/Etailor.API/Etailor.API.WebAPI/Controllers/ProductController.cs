@@ -39,7 +39,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -56,9 +56,9 @@ namespace Etailor.API.WebAPI.Controllers
 
                 foreach (var productVM in productVMs)
                 {
-                    var products = mapper.Map<Product>(productVM);
+                    var product = mapper.Map<Product>(productVM);
                     var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                    check.Add(await productService.AddProduct(orderId, products, productComponents));
+                    check.Add(await productService.AddProduct(orderId, product, productComponents, productVM.MaterialId));
                 }
                 if (check.Any(x => x == false))
                 {
@@ -85,8 +85,8 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProduct(string id, [FromBody] ProductVM productVM)
+        [HttpPut("{orderId}")]
+        public async Task<IActionResult> UpdateProduct(string orderId, [FromBody] List<ProductOrderVM> productVMs)
         {
             try
             {
@@ -97,7 +97,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -109,11 +109,22 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                if (id == null || id != productVM.Id)
+                var check = new List<bool>();
+
+                foreach (var productVM in productVMs)
                 {
-                    return NotFound("Id danh mục không tồn tại");
+                    var product = mapper.Map<Product>(productVM);
+                    var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
+                    check.Add(await productService.UpdateProduct(orderId, product, productComponents, productVM.MaterialId));
                 }
-                return (await productService.UpdateProduct(mapper.Map<Product>(productVM))) ? Ok("Cập nhật sản phẩm thành công") : BadRequest("Cập nhật sản phẩm thất bại");
+                if (check.Any(x => x == false))
+                {
+                    return BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
+                }
+                else
+                {
+                    return Ok("Thêm sản phẩm vào hóa đơn thành công");
+                }
                 //    }
                 //}
             }
@@ -143,7 +154,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.MANAGER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{

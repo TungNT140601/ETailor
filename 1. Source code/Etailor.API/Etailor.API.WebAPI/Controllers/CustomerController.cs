@@ -40,7 +40,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.CUSTOMER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -97,6 +97,25 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
                 var customers = mapper.Map<IEnumerable<CustomerAllVM>>(customerService.FindPhoneOrEmail(search));
                 if (customers != null && customers.Any())
                 {
@@ -111,6 +130,54 @@ namespace Etailor.API.WebAPI.Controllers
                     await Task.WhenAll(tasks);
                 }
                 return Ok(customers);
+                //    }
+                //}
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpGet("info/{id}")]
+        public async Task<IActionResult> StaffGetCustomer(string id)
+        {
+            try
+            {
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                var customer = mapper.Map<CustomerAllVM>(customerService.FindById(id));
+                if (customer != null)
+                {
+                    customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                }
+                return Ok(customer);
+                //    }
+                //}
             }
             catch (UserException ex)
             {

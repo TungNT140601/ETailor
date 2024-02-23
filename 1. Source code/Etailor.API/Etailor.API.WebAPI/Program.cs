@@ -105,6 +105,8 @@ builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddScoped<IProductStageRepository, ProductStageRepository>();
 
+builder.Services.AddScoped<IProductComponentRepository, ProductComponentRepository>();
+
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
