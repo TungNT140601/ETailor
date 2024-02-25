@@ -198,6 +198,7 @@ namespace Etailor.API.WebAPI.Controllers
                         await Task.WhenAll(setThumbnail);
 
                         var realOrder = mapper.Map<GetOrderVM>(order);
+                        realOrder.CreatedTime = order.CreatedTime;
                         realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
 
                         if (order != null && role == RoleName.CUSTOMER && order.CustomerId != staffid)
@@ -206,7 +207,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            return order != null ? Ok(mapper.Map<GetOrderVM>(realOrder)) : NotFound(id);
+                            return order != null ? Ok(realOrder) : NotFound(id);
                         }
                     }
                 }
