@@ -651,6 +651,55 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
+        public async Task<ProductTemplate> GetById(string Id)
+        {
+            var template = productTemplateRepository.Get(Id);
+            if (template != null)
+            {
+                await Task.WhenAll(
+                        Task.Run(async () =>
+                        {
+                            if (!string.IsNullOrEmpty(template.ThumbnailImage))
+                            {
+                                template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
+                            }
+                        }),
+                        Task.Run(async () =>
+                        {
+                            if (!string.IsNullOrEmpty(template.Image))
+                            {
+                                var listImages = JsonSerializer.Deserialize<List<string>>(template.Image);
+                                if (listImages != null && listImages.Count() > 0)
+                                {
+                                    var listTaskImages = new List<Task>();
+                                    var listUrls = new List<string>();
+                                    foreach (var image in listImages)
+                                    {
+                                        listTaskImages.Add(Task.Run(async () =>
+                                        {
+                                            listUrls.Add(await Ultils.GetUrlImage(image));
+                                        }));
+                                    }
+                                    await Task.WhenAll(listTaskImages);
+
+                                    template.Image = JsonSerializer.Serialize(listUrls);
+                                }
+                            }
+                        })
+                        );
+                return template;
+            }
+            return null;
+        }
+
+        public ProductTemplate GetByProductTemplateId(string Id)
+        {
+            var template = productTemplateRepository.Get(Id);
+
+            return template == null ? null : template.IsActive == true ? template : null;
+
+        }
+
         public bool DeleteTemplate(string id)
         {
             var dbTemplate = productTemplateRepository.Get(id);

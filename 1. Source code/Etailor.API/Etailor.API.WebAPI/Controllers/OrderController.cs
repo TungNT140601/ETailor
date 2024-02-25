@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
 using Etailor.API.Repository.EntityModels;
+using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
+using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
+using Google.Apis.Util;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -17,15 +20,19 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
         private readonly IOrderService orderService;
+        private readonly IProductService productService;
+        private readonly IProductTemplateService productTemplateService;
         private readonly IMapper mapper;
 
         public OrderController(IStaffService staffService, ICustomerService customerService,
-            IOrderService orderService, IMapper mapper)
+            IOrderService orderService, IMapper mapper, IProductService productService, IProductTemplateService productTemplateService)
         {
             this.mapper = mapper;
             this.staffService = staffService;
             this.customerService = customerService;
             this.orderService = orderService;
+            this.productService = productService;
+            this.productTemplateService = productTemplateService;
         }
 
         [HttpPost]
@@ -170,7 +177,6 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 if (role == null)
                 {
@@ -187,13 +193,30 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var order = orderService.GetOrder(id);
+                        var listProducts = productService.GetProductsByOrderId(order.Id).ToList();
+                        var productTemplateId = listProducts[0].ProductTemplateId;
+                        var productTemplate = productTemplateService.GetByProductTemplateId(productTemplateId);
+
+                        var setThumbnail = Task.Run(async () =>
+                        {
+                            if (!string.IsNullOrEmpty(productTemplate.ThumbnailImage))
+                            {
+                                productTemplate.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
+                            }
+                        });
+                        await Task.WhenAll(setThumbnail);
+
+                        var realOrder = mapper.Map<GetOrderVM>(order);
+                        realOrder.CreatedTime = order.CreatedTime;
+                        realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
+
                         if (order != null && role == RoleName.CUSTOMER && order.CustomerId != staffid)
                         {
                             return NotFound(id);
                         }
                         else
                         {
-                            return order != null ? Ok(mapper.Map<OrderVM>(order)) : NotFound(id);
+                            return order != null ? Ok(realOrder) : NotFound(id);
                         }
                     }
                 }

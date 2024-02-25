@@ -28,7 +28,8 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("/add-profile-body-by-staff")]
-        public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyByStaffVM profileBodyVM)
+        
+        public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyByStaffVM createProfileBodyByStaffVM, string customerId)
         {
             try
             {
@@ -51,17 +52,21 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var profileBody = mapper.Map<ProfileBody>(profileBodyVM);
-                        if (string.IsNullOrWhiteSpace(profileBodyVM.Name))
+
+                        if (string.IsNullOrWhiteSpace(createProfileBodyByStaffVM.Name))
                         {
                             throw new UserException("Nhập tên hồ sơ số đo cơ thể");
                         }
                         else
                         {
-                            profileBody.StaffId = id;
-                            profileBody.IsLocked = true;
-                            return await profileBodyService.AddProfileBody(profileBody) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
-                        }               
+                            List<(string id, decimal value)> list = new List<(string id, decimal value)>();
+                            var listBodyAttribute = createProfileBodyByStaffVM.valueBodyAttribute;
+                            foreach (var item in listBodyAttribute)
+                            {
+                                list.Add((item.Id, item.Value));
+                            }
+                            return await profileBodyService.CreateProfileBody(customerId, id, createProfileBodyByStaffVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                        }
                     }
                 }
             }

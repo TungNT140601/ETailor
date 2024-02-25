@@ -11,6 +11,8 @@ namespace Etailor.API.Service.Interface
     {
         Task<bool> AddProfileBody(ProfileBody ProfileBody);
 
+        Task<bool> CreateProfileBody(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId);
+
         Task<bool> UpdateProfileBody(ProfileBody ProfileBody);
 
         Task<bool> DeleteProfileBody(string id);
