@@ -10,6 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Etailor.API.Ultity.CommonValue;
+using Etailor.API.Service.Service;
+using System.Reflection.Metadata;
 
 namespace Etailor.API.Service.Service
 {
@@ -21,8 +23,11 @@ namespace Etailor.API.Service.Service
         private readonly IDiscountRepository discountRepository;
         private readonly IProductRepository productRepository;
         private readonly IPaymentRepository paymentRepository;
+        private readonly IProductTemplateRepository productTemplaTeRepository;
 
-        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository, IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository)
+        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository, 
+            IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository, 
+            IProductTemplateRepository productTemplaTeRepository)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
@@ -30,6 +35,7 @@ namespace Etailor.API.Service.Service
             this.discountRepository = discountRepository;
             this.productRepository = productRepository;
             this.paymentRepository = paymentRepository;
+            this.productTemplaTeRepository = productTemplaTeRepository;
         }
 
         public async Task<string> CreateOrder(Order order, string? role)

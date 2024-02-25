@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Etailor.API.Service.Service
 {
@@ -19,12 +20,14 @@ namespace Etailor.API.Service.Service
         private readonly IProfileBodyRepository profileBodyRepository;
         private readonly IBodySizeRepository bodySizeRepository;
         private readonly IBodyAttributeRepository bodyAttributeRepository;
-
-        public ProfileBodyService(ICustomerRepository customerRepository, IStaffRepository staffRepository, IProfileBodyRepository profileBodyRepository)
+        public ProfileBodyService(ICustomerRepository customerRepository, IStaffRepository staffRepository, IProfileBodyRepository profileBodyRepository,
+            IBodySizeRepository bodySizeRepository, IBodyAttributeRepository bodyAttributeRepository)
         {
             this.customerRepository = customerRepository;
             this.staffRepository = staffRepository;
             this.profileBodyRepository = profileBodyRepository;
+            this.bodySizeRepository = bodySizeRepository;
+            this.bodyAttributeRepository = bodyAttributeRepository;
         }
 
         public async Task<bool> AddProfileBody(ProfileBody ProfileBody)
@@ -50,56 +53,79 @@ namespace Etailor.API.Service.Service
             return profileBodyRepository.Create(ProfileBody);
         }
 
-        public async Task<bool> CreateTemplateBodySize(List<string> bodySizeId, string profileBodyId)
+        public async Task<bool> CreateProfileBody(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId)
         {
-            var profileBody = profileBodyRepository.Get(profileBodyId);
-            if (profileBody == null || profileBody.IsActive != false)
+            
+            string profileBodyId = Ultils.GenGuidString();
+            var checkDuplicateId = Task.Run(() =>
             {
-                throw new UserException("Không tìm thấy hồ sơ số đo cơ thể");
-            }
-            else
-            {
-                var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => x.Id).ToList();
-                var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBodyId && x.IsActive == true).Select(x => x.BodySizeId).ToList();
-
-                var bodyAttributeList = new List<BodyAttribute>();
-                var tasks = new List<Task>();
-                foreach (string id in bodySizeId)
+                if (profileBodyRepository.GetAll(x => x.Id == profileBodyId && x.IsActive == true).Any())
                 {
-                    tasks.Add(Task.Run(() =>
+                    throw new UserException("Mã Id Profile Body đã được sử dụng");
+                }
+            });
+
+            ProfileBody profileBody = new ProfileBody();
+
+            var setValue = Task.Run(() =>
+            {
+                profileBody.Id = profileBodyId;
+                profileBody.StaffId = staffId; 
+                profileBody.CustomerId = customerId;
+                profileBody.Name = name;
+                profileBody.IsLocked = true;
+                profileBody.CreatedTime = DateTime.Now;
+                profileBody.LastestUpdatedTime = DateTime.Now;
+                profileBody.InactiveTime = null;
+                profileBody.IsActive = true;
+            });
+
+            await Task.WhenAll(checkDuplicateId, setValue);
+
+            profileBodyRepository.Create(profileBody);
+
+            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id , x.MinValidValue, x.MaxValidValue} ).ToList();
+            var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBody.Id && x.IsActive == true).Select(x => x.BodySizeId).ToList();
+
+            var bodyAttributeList = new List<BodyAttribute>();
+            var tasks = new List<Task>();
+            foreach (var id in bodySizeId)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue  && id.value <= x.MaxValidValue))
                     {
-                        if (existBodySizeList.Contains(id))
+                        if (!existBodyAttributeList.Contains(id.id))
                         {
-                            if (!existBodyAttributeList.Contains(id))
+                            bodyAttributeList.Add(new BodyAttribute()
                             {
-                                bodyAttributeList.Add(new BodyAttribute()
-                                {
-                                    Id = Ultils.GenGuidString(),
-                                    BodySizeId = id,
-                                    ProfileBodyId = profileBodyId,
-                                    CreatedTime = DateTime.Now,
-                                    LastestUpdatedTime = null,
-                                    InactiveTime = null,
-                                    IsActive = true
-                                });
-                            }
-                            else
-                            {
-                                throw new UserException("Số đo đã tồn tại trong hệ thống");
-                            }
+                                Id = Ultils.GenGuidString(),
+                                BodySizeId = id.id,
+                                ProfileBodyId = profileBody.Id,
+                                Value = id.value,
+                                CreatedTime = DateTime.Now,
+                                LastestUpdatedTime = null,
+                                InactiveTime = null,
+                                IsActive = true
+                            });
                         }
                         else
                         {
-                            throw new UserException("Số đo không tồn tại trong hệ thống");
+                            throw new UserException("Số đo đã tồn tại trong hệ thống");
                         }
                     }
-                    ));
+                    else
+                    {
+                        throw new UserException("Số đo không tồn tại trong hệ thống");
+                    }
                 }
-
-                await Task.WhenAll(tasks);
-
-                return bodyAttributeRepository.CreateRange(bodyAttributeList);
+                ));
             }
+
+            await Task.WhenAll(tasks);
+
+            return bodyAttributeRepository.CreateRange(bodyAttributeList);
+            
         }
 
         public async Task<bool> UpdateProfileBody(ProfileBody ProfileBody)
