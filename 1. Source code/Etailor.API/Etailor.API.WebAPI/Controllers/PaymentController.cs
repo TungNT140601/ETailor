@@ -4,6 +4,7 @@ using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
+using Etailor.API.Ultity.PaymentConfig;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,11 +18,12 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private readonly IPaymentService paymentService;
         private readonly ICustomerService customerService;
-
-        public PaymentController(IPaymentService paymentService, ICustomerService customerService)
+        private readonly IConfiguration configuration;
+        public PaymentController(IPaymentService paymentService, ICustomerService customerService, IConfiguration configuration)
         {
             this.paymentService = paymentService;
             this.customerService = customerService;
+            this.configuration = configuration;
         }
         private string GetIpAddress()
         {
@@ -40,7 +42,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else if (role != RoleName.CUSTOMER)
                 //{
-                //    return Forbid("Không có quyền truy cập");
+                //    return Unauthorized("Không có quyền truy cập");
                 //}
                 //else
                 //{
@@ -79,32 +81,121 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("result/vnp")]
-        public IActionResult GetVNPayPaymentResult(string? vnp_TmnCode, string? vnp_Amount
-            , string? vnp_BankCode, string? vnp_BankTranNo, string? vnp_CardType, string? vnp_PayDate
-            , string? vnp_OrderInfo, string? vnp_TransactionNo, string? vnp_ResponseCode, string? vnp_TransactionStatus
-            , string? vnp_TxnRef, string? vnp_SecureHashType, string? vnp_SecureHash)
+        [HttpPost("refund/{paymentId}")]
+        public async Task<IActionResult> CreateRefund(string paymentId, int transactionType, decimal? amount)
         {
-            var responseData = new
+            try
             {
-                vnp_TmnCode,
-                vnp_Amount,
-                vnp_BankCode,
-                vnp_BankTranNo,
-                vnp_CardType,
-                vnp_PayDate,
-                vnp_OrderInfo,
-                vnp_TransactionNo,
-                vnp_ResponseCode,
-                vnp_TransactionStatus,
-                vnp_TxnRef,
-                vnp_SecureHashType,
-                vnp_SecureHash
-            };
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.CUSTOMER)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                var result = await paymentService.RefundMoneyVNPay(paymentId, transactionType, amount);
 
-            paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode));
+                if (result != null)
+                {
+                    //return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
+                    return Ok(result);
+                }
+                else
+                {
+                    throw new UserException("Tạo thanh toán thất bại");
+                }
+                //    }
+                //}
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
 
-            return Ok(responseData);
+        [HttpGet("result/vnp")]
+        public IActionResult GetVNPayPaymentResult()
+        {
+            try
+            {
+                var referer = Request.Headers["Referer"].ToString();
+
+                if (string.IsNullOrWhiteSpace(referer) || !referer.StartsWith(configuration.GetSection("VNPayConfig:vnp_Url_Result").Value))
+                {
+                    return NotFound();
+                }
+
+                var vnpayData = Request.Query;
+
+                var vnpLib = new VnPayLibrary();
+
+                if (vnpayData.Count > 0)
+                {
+                    foreach (var s in vnpayData)
+                    {
+                        //get all querystring data
+                        if (!string.IsNullOrEmpty(s.Key) && s.Key.StartsWith("vnp_"))
+                        {
+                            vnpLib.AddResponseData(s.Key, s.Value);
+                        }
+                    }
+                }
+
+                var vnp_HashSecret = configuration.GetSection("VNPayConfig:vnp_HashSecret").Value;
+
+                var vnp_TxnRef = vnpLib.GetResponseData("vnp_TxnRef");
+
+                string vnp_ResponseCode = vnpLib.GetResponseData("vnp_ResponseCode");
+
+                string vnp_SecureHash = vnpLib.GetResponseData("vnp_SecureHash");
+
+                if (vnpLib.ValidateSignature(vnp_SecureHash, vnp_HashSecret))
+                {
+                    paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode));
+                    return Ok(new
+                    {
+                        Message = "Success",
+                        Data = vnpayData
+                    });
+                }
+                else
+                {
+                    return BadRequest(new
+                    {
+                        Message = "Fail",
+                        Data = vnpayData
+                    });
+                }
+
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
 }

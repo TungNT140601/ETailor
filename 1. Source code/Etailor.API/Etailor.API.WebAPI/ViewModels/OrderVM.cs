@@ -2,6 +2,7 @@
 {
     public class OrderVM
     {
+
         public string Id { get; set; } = null!;
         public DateTime? CreatedTime { get; set; }
         public string? CustomerId { get; set; }
@@ -17,6 +18,11 @@
         public decimal? PaidMoney { get; set; }
         public decimal? UnPaidMoney { get; set; }
         public int? Status { get; set; }
+    }
+    public class OrderCreateVM
+    {
+        public string? Id { get; set; }
+        public string? CustomerId { get; set; }
     }
 
     public class GetOrderVM
