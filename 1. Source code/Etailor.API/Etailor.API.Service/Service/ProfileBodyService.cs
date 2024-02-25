@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Etailor.API.Service.Service
 {
@@ -19,7 +20,6 @@ namespace Etailor.API.Service.Service
         private readonly IProfileBodyRepository profileBodyRepository;
         private readonly IBodySizeRepository bodySizeRepository;
         private readonly IBodyAttributeRepository bodyAttributeRepository;
-
         public ProfileBodyService(ICustomerRepository customerRepository, IStaffRepository staffRepository, IProfileBodyRepository profileBodyRepository,
             IBodySizeRepository bodySizeRepository, IBodyAttributeRepository bodyAttributeRepository)
         {
@@ -53,8 +53,9 @@ namespace Etailor.API.Service.Service
             return profileBodyRepository.Create(ProfileBody);
         }
 
-        public async Task<bool> CreateProfileBody(string name, List<Tuple<string, decimal>> bodySizeId)
+        public async Task<bool> CreateProfileBody(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId)
         {
+            
             string profileBodyId = Ultils.GenGuidString();
             var checkDuplicateId = Task.Run(() =>
             {
@@ -69,6 +70,8 @@ namespace Etailor.API.Service.Service
             var setValue = Task.Run(() =>
             {
                 profileBody.Id = profileBodyId;
+                profileBody.StaffId = staffId; 
+                profileBody.CustomerId = customerId;
                 profileBody.Name = name;
                 profileBody.IsLocked = true;
                 profileBody.CreatedTime = DateTime.Now;
@@ -81,7 +84,7 @@ namespace Etailor.API.Service.Service
 
             profileBodyRepository.Create(profileBody);
 
-            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => x.Id).ToList();
+            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id , x.MinValidValue, x.MaxValidValue} ).ToList();
             var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBody.Id && x.IsActive == true).Select(x => x.BodySizeId).ToList();
 
             var bodyAttributeList = new List<BodyAttribute>();
@@ -90,16 +93,16 @@ namespace Etailor.API.Service.Service
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    if (existBodySizeList.Contains(id.Item1))
+                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue  && id.value <= x.MaxValidValue))
                     {
-                        if (!existBodyAttributeList.Contains(id.Item1))
+                        if (!existBodyAttributeList.Contains(id.id))
                         {
                             bodyAttributeList.Add(new BodyAttribute()
                             {
                                 Id = Ultils.GenGuidString(),
-                                BodySizeId = id.Item1,
+                                BodySizeId = id.id,
                                 ProfileBodyId = profileBody.Id,
-                                Value = id.Item2,
+                                Value = id.value,
                                 CreatedTime = DateTime.Now,
                                 LastestUpdatedTime = null,
                                 InactiveTime = null,
