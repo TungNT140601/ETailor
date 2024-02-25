@@ -111,5 +111,10 @@ namespace Etailor.API.Service.Service
         {
             return materialRepository.GetAll(x => ((search != null && x.MaterialCategoryId.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
         }
+
+        public IEnumerable<Material> GetMaterials(string? search)
+        {
+            return materialRepository.GetAll(x => ((search != null && x.Name.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+        }
     }
 }

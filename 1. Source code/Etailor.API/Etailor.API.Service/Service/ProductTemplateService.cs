@@ -604,7 +604,7 @@ namespace Etailor.API.Service.Service
                 return null;
             }
         }
-
+        
         public async Task<ProductTemplate> GetByUrlPath(string urlPath)
         {
             var template = productTemplateRepository.GetAll(x => x.UrlPath == urlPath && x.IsActive == true).FirstOrDefault();

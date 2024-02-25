@@ -82,7 +82,14 @@ namespace Etailor.API.Repository.Repository
         {
             try
             {
-                return dbSet.Find(id);
+                if (string.IsNullOrEmpty(id))
+                {
+                    return null;
+                }
+                else
+                {
+                    return dbSet.Find(id);
+                }
             }
             catch (Exception ex)
             {

@@ -253,7 +253,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("/get-profile-body-by-customer-id")]
+        [HttpGet("/customer/{customerId}")]
         public async Task<IActionResult> GetProfileBodysByCustomerId(string? customerId)
         {
             try

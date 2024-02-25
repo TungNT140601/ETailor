@@ -13,6 +13,7 @@ namespace Etailor.API.Service.Service
 {
     public class ProductService : IProductService
     {
+        private readonly IProductBodySizeService productBodySizeService;
         private readonly IProductRepository productRepository;
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly ITemplateStateRepository templateStateRepository;
@@ -23,11 +24,13 @@ namespace Etailor.API.Service.Service
         private readonly IProductStageRepository productStageRepository;
         private readonly IProductComponentRepository productComponentRepository;
         private readonly IMaterialRepository materialRepository;
+        private readonly IProfileBodyRepository profileBodyRepository;
 
         public ProductService(IProductRepository productRepository, IProductTemplateRepository productTemplateRepository,
             IOrderRepository orderRepository, ITemplateStateRepository templateStateRepository, IComponentTypeRepository componentTypeRepository,
             IComponentRepository componentRepository, IComponentStageRepository componentStageRepository, IProductStageRepository productStageRepository,
-            IProductComponentRepository productComponentRepository, IMaterialRepository materialRepository)
+            IProductComponentRepository productComponentRepository, IMaterialRepository materialRepository, IProfileBodyRepository profileBodyRepository,
+            IProductBodySizeService productBodySizeService)
         {
             this.productRepository = productRepository;
             this.productTemplateRepository = productTemplateRepository;
@@ -39,9 +42,11 @@ namespace Etailor.API.Service.Service
             this.productStageRepository = productStageRepository;
             this.productComponentRepository = productComponentRepository;
             this.materialRepository = materialRepository;
+            this.profileBodyRepository = profileBodyRepository;
+            this.productBodySizeService = productBodySizeService;
         }
 
-        public async Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId)
+        public async Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId)
         {
             var order = orderRepository.Get(orderId);
             if (order != null)
@@ -172,6 +177,8 @@ namespace Etailor.API.Service.Service
                 // kiểm tra nếu tạo sản phẩm thành công
                 if (productRepository.Create(product))
                 {
+                    await productBodySizeService.CreateProductBodySize(product.Id, template.Id, profileId, order.CustomerId);
+
                     // kiểm tra nếu các bước của sản phẩm có
                     if (productStages.Any())
                     {
@@ -318,7 +325,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId)
+        public async Task<bool> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId)
         {
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null && dbOrder.IsActive == true)

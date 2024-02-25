@@ -122,6 +122,9 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
 builder.Services.AddScoped<IProductTemplateService, ProductTemplateService>();
 
+builder.Services.AddScoped<IProductBodySizeRepository, ProductBodySizeRepository>();
+builder.Services.AddScoped<IProductBodySizeService, ProductBodySizeService>();
+
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
