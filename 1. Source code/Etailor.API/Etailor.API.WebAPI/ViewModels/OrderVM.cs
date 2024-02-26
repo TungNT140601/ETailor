@@ -44,4 +44,15 @@
         public int? Status { get; set; }  
         public string? ThumbnailImage { get; set; }
     }
+
+    public class OrderByCustomerVM
+    {
+        public string Id { get; set; } = null!;
+        public string? Name { get; set; }
+        public string? ThumbnailImage { get; set; }
+        public int? TotalProduct { get; set; }
+        public int? Status { get; set; }
+        public decimal? AfterDiscountPrice { get; set; }
+        public DateTime? CreatedTime { get; set; }
+    }
 }
