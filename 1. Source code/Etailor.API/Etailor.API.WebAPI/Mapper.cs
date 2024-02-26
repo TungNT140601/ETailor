@@ -26,8 +26,10 @@ namespace Etailor.API.WebAPI
 
             CreateMap<ComponentType, ComponentTypeVM>().ReverseMap();
             CreateMap<ComponentType, ComponentTypeFormVM>().ReverseMap();
+            CreateMap<ComponentType, ComponentTypeOrderVM>().ReverseMap();
 
             CreateMap<Component, ComponentVM>().ReverseMap();
+            CreateMap<Component, ComponentOrderVM>().ReverseMap();
 
             CreateMap<ComponentStage, ComponentStageVM>().ReverseMap();
 
@@ -39,7 +41,8 @@ namespace Etailor.API.WebAPI
             CreateMap<Order, OrderCreateVM>().ReverseMap();
 
 
-            CreateMap<ProductTemplate, ProductTemplateALLVM>().ReverseMap();
+            CreateMap<ProductTemplate, ProductTemplateALLVM>();
+            CreateMap<ProductTemplateALLVM, ProductTemplate>();
             CreateMap<ProductTemplate, ProductTemplateCreateVM>().ReverseMap();
 
             CreateMap<Product, ProductVM>().ReverseMap();

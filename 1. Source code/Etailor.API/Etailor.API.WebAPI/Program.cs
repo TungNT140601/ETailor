@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Hosting;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Repository;
+using Etailor.API.WebAPI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -160,6 +161,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
+
 FirebaseApp.Create(new AppOptions { Credential = credentials });
 
 var app = builder.Build();

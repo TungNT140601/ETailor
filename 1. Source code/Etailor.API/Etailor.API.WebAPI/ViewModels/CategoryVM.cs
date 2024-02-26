@@ -16,6 +16,6 @@
         public string? Id { get; set; }
         public string? Name { get; set; }
 
-        public IEnumerable<ProductTemplateALLVM>? ProductTemplates { get; set; }
+        public List<ProductTemplateALLVM>? ProductTemplates { get; set; }
     }
 }
