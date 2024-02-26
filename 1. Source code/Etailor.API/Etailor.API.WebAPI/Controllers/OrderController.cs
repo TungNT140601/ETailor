@@ -252,6 +252,28 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         if (role == RoleName.CUSTOMER)
                         {
+                            //var order = orderService.GetOrders();
+                            //var listProducts = productService.GetProductsByOrderId(order.Id).ToList();
+                            //var productTemplateId = listProducts[0].ProductTemplateId;
+                            //var productTemplate = productTemplateService.GetByProductTemplateId(productTemplateId);
+
+                            //var setThumbnail = Task.Run(async () =>
+                            //{
+                            //    if (!string.IsNullOrEmpty(productTemplate.ThumbnailImage))
+                            //    {
+                            //        productTemplate.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
+                            //    }
+                            //});
+                            //await Task.WhenAll(setThumbnail);
+
+                            //var realOrder = mapper.Map<GetOrderVM>(order);
+                            ////realOrder.CreatedTime = order.CreatedTime;
+                            //realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
+
+                            
+
+                            
+                            
                             return Ok(mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrdersByCustomer(staffid)));
                         }
                         else

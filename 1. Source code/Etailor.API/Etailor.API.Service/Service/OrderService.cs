@@ -478,6 +478,17 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<Order> GetOrdersByCustomer(string cusId)
         {
+            //var orders = orderService.GetOrdersByCustomer(staffid).ToList();
+            //IEnumerable<Product> listProduct;
+            //foreach (var order in orders)
+            //{
+            //    listProduct = productService.GetProductsByOrderId(order.Id).ToList();
+            //    foreach (var product in listProduct)
+            //    {
+            //        var productTemplate = productTemplateService.GetByProductTemplateId(product.ProductTemplateId);
+            //    }
+
+            //}
             return orderRepository.GetAll(x => x.CustomerId == cusId && x.Status != 0 && x.IsActive == true);
         }
     }
