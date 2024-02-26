@@ -748,7 +748,7 @@ namespace Etailor.API.Service.Service
                         Image = Ultils.GetUrlImage(c.Image).Result,
                         Name = c.Name,
                         Index = c.Index
-                    }).ToList();
+                    }).OrderBy(x => x.Index).OrderBy(x => x.Name).ToList();
                 }
 
                 return componentTypes;

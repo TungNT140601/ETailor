@@ -22,6 +22,6 @@
     {
         public string? Id { get; set; }
         public string? Name { get; set; }
-        public List<ComponentVM>? Components { get; set; }
+        public List<ComponentOrderVM>? Components { get; set; }
     }
 }
