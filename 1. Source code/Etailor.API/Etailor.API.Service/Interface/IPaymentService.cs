@@ -11,6 +11,8 @@ namespace Etailor.API.Service.Interface
     {
         string CreatePayment(string orderId, int? percent, int payType, string platform, string ip);
         bool UpdatePayment(string paymentId, int status);
-        IEnumerable<Payment> GetAllPayments(string? orderId);
+        IEnumerable<Payment> GetAllPayments();
+        IEnumerable<Payment> GetAllOrderPayments(string? orderId);
+        Task<bool> RefundMoneyVNPay(string paymentId, int transactionType, decimal? amount);
     }
 }

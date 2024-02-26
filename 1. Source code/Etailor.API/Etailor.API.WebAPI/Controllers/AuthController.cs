@@ -241,7 +241,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role != RoleName.CUSTOMER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -278,7 +278,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 if (role != RoleName.CUSTOMER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 return customerService.ChangePassword(id, changePassModel.OldPassword, changePassModel.NewPassword) ? Ok("Đổi mật khẩu thành công!!!") : BadRequest("Đổi mật khẩu thất bại");
             }
@@ -362,7 +362,7 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else if (role == RoleName.CUSTOMER)
                 {
-                    return Forbid("Không có quyền truy cập");
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {

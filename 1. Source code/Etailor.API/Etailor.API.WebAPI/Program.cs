@@ -26,6 +26,8 @@ builder.Services.AddControllers(options => options.SuppressImplicitRequiredAttri
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddControllers();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -100,6 +102,10 @@ builder.Services.AddScoped<ITemplateBodySizeService, TemplateBodySizeService>();
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
+
+builder.Services.AddScoped<IProductStageRepository, ProductStageRepository>();
+
+builder.Services.AddScoped<IProductComponentRepository, ProductComponentRepository>();
 
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();

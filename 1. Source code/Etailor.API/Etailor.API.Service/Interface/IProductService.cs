@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Etailor.API.Service.Interface
 {
-    public interface IProductService 
+    public interface IProductService
     {
-        Task<bool> AddProduct(Product Product);
+        Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId);
 
-        Task<bool> UpdateProduct(Product Product);
+        Task<bool> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId);
 
         Task<bool> DeleteProduct(string id);
 

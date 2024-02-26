@@ -13,6 +13,7 @@ namespace Etailor.API.Service.Interface
         Task<Customer> Login(string emailOrUsername, string password, string ip, string clientToken);
         Customer FindEmail(string email);
         Customer FindPhone(string phone);
+        IEnumerable<Customer> FindPhoneOrEmail(string? search);
         Customer FindUsername(string username);
 
         Customer FindById(string id);
