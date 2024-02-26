@@ -23,4 +23,16 @@
         public decimal? MinValidValue { get; set; }
         public decimal? MaxValidValue { get; set; }
     }
+
+    public class CreateBodySizeVM
+    {
+        public string Id { get; set; }
+        public string? BodyPart { get; set; }
+        public int? BodyIndex { get; set; }
+        public string? Name { get; set; }
+        public IFormFile? Image { get; set; }
+        public string? GuideVideoLink { get; set; }
+        public decimal? MinValidValue { get; set; }
+        public decimal? MaxValidValue { get; set; }
+    }
 }

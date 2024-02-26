@@ -16,11 +16,13 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private readonly IBodySizeService bodySizeService;
         private readonly IMapper mapper;
+        private readonly string _wwwrootPath;
 
-        public BodySizeController(IBodySizeService bodySizeService, IMapper mapper)
+        public BodySizeController(IBodySizeService bodySizeService, IMapper mapper, IWebHostEnvironment webHost)
         {
             this.bodySizeService = bodySizeService;
             this.mapper = mapper;
+            _wwwrootPath = webHost.WebRootPath;
         }
 
         [HttpGet("{id}")]
@@ -75,7 +77,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateBodySize([FromBody] CreateUpdateBodySizeVM bodySizeVM)
+        public async Task<IActionResult> CreateBodySize([FromForm] CreateBodySizeVM bodySizeVM)
         {
             try
             {
@@ -104,7 +106,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            return bodySizeService.CreateBodySize(mapper.Map<BodySize>(bodySizeVM)) ? Ok("Tạo mới thuật ngữ số đo cơ thể thành công") : BadRequest("Tạo mới thuật ngữ số đo cơ thể thất bại");
+                            return (await bodySizeService.CreateBodySize(mapper.Map<BodySize>(bodySizeVM), _wwwrootPath, bodySizeVM.Image)) ? Ok("Tạo mới thuật ngữ số đo cơ thể thành công") : BadRequest("Tạo mới thuật ngữ số đo cơ thể thất bại");
                         }
                 //    }
                 //}

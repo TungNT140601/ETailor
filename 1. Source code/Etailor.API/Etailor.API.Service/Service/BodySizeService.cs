@@ -4,9 +4,11 @@ using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -26,9 +28,25 @@ namespace Etailor.API.Service.Service
             this.templateBodySizeRepository = templateBodySizeRepository;
         }
 
-        public bool CreateBodySize(BodySize bodySize)
+        public async Task<bool> CreateBodySize(BodySize bodySize, string wwwroot, IFormFile? image)
         {
             bodySize.Id = Ultils.GenGuidString();
+
+            var setThumbnail = Task.Run(async () =>
+            {
+                if (image != null)
+                {
+                    bodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize/", image, null);
+                }
+                else
+                {
+                    bodySize.Image = string.Empty;
+                    //blog.Thumbnail = await Ultils.GetUrlImage("https://drive.google.com/file/d/100YI-uovn5PdEhn4IeB1RYj4B41kcFIi/view");
+                }
+            });
+            await Task.WhenAll(setThumbnail);
+
+            
             bodySize.LastestUpdatedTime = DateTime.Now;
             bodySize.CreatedTime = DateTime.Now;
             bodySize.InactiveTime = null;
