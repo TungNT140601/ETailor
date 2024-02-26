@@ -18,5 +18,6 @@ namespace Etailor.API.Service.Interface
         Material GetMaterial(string id);
 
         IEnumerable<Material> GetMaterialsByMaterialCategory(string? search);
+        IEnumerable<Material> GetMaterials(string? search);
     }
 }

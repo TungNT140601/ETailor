@@ -19,12 +19,17 @@ namespace Etailor.API.Service.Service
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly ITemplateBodySizeService templateBodySizeService;
+        private readonly IComponentRepository componentRepository;
+        private readonly IComponentTypeRepository componentTypeRepository;
 
-        public ProductTemplateService(IProductTemplateRepository productTemplateRepository, ICategoryRepository categoryRepository, ITemplateBodySizeService templateBodySizeService)
+        public ProductTemplateService(IProductTemplateRepository productTemplateRepository, ICategoryRepository categoryRepository, ITemplateBodySizeService templateBodySizeService,
+            IComponentTypeRepository componentTypeRepository, IComponentRepository componentRepository)
         {
             this.productTemplateRepository = productTemplateRepository;
             this.categoryRepository = categoryRepository;
             this.templateBodySizeService = templateBodySizeService;
+            this.componentRepository = componentRepository;
+            this.componentTypeRepository = componentTypeRepository;
         }
 
         public async Task<string> AddTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
@@ -604,7 +609,7 @@ namespace Etailor.API.Service.Service
                 return null;
             }
         }
-
+        
         public async Task<ProductTemplate> GetByUrlPath(string urlPath)
         {
             var template = productTemplateRepository.GetAll(x => x.UrlPath == urlPath && x.IsActive == true).FirstOrDefault();
@@ -716,6 +721,23 @@ namespace Etailor.API.Service.Service
             else
             {
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
+            }
+        }
+
+        public IEnumerable<ComponentType> GetTemplateComponent(string templateId)
+        {
+            var template = productTemplateRepository.Get(templateId);
+            if(template == null || template.IsActive == false)
+            {
+                throw new UserException("Bản mẫu không tìm thấy");
+            }
+            else
+            {
+                var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();
+
+                var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key).ToList();
+
+                return null;
             }
         }
     }

@@ -58,7 +58,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var product = mapper.Map<Product>(productVM);
                     var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                    check.Add(await productService.AddProduct(orderId, product, productComponents, productVM.MaterialId));
+                    check.Add(await productService.AddProduct(orderId, product, productComponents, productVM.MaterialId, productVM.ProfileId));
                 }
                 if (check.Any(x => x == false))
                 {
@@ -115,7 +115,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var product = mapper.Map<Product>(productVM);
                     var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                    check.Add(await productService.UpdateProduct(orderId, product, productComponents, productVM.MaterialId));
+                    check.Add(await productService.UpdateProduct(orderId, product, productComponents, productVM.MaterialId, productVM.ProfileId));
                 }
                 if (check.Any(x => x == false))
                 {

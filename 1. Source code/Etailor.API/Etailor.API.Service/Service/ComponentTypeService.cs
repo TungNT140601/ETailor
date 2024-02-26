@@ -16,7 +16,8 @@ namespace Etailor.API.Service.Service
         private readonly ICategoryRepository categoryRepository;
         private readonly IComponentTypeRepository componentTypeRepository;
         private readonly IComponentRepository componentRepository;
-        public ComponentTypeService(ICategoryRepository categoryRepository, IComponentTypeRepository componentTypeRepository, IComponentRepository componentRepository)
+        public ComponentTypeService(ICategoryRepository categoryRepository, IComponentTypeRepository componentTypeRepository, 
+            IComponentRepository componentRepository)
         {
             this.categoryRepository = categoryRepository;
             this.componentTypeRepository = componentTypeRepository;

@@ -9,4 +9,10 @@
         //public string? Image { get; set; }
         public IFormFile? ImageFile { get; set; }
     }
+    public class ComponentOrderVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Image { get; set; }
+    }
 }
