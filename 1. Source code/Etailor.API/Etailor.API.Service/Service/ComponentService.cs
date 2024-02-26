@@ -26,6 +26,13 @@ namespace Etailor.API.Service.Service
 
         public async Task<string> AddComponent(Component component, IFormFile? image, string wwwroot)
         {
+            var componentType = componentTypeRepository.Get(component.ComponentTypeId);
+            var template = productTemplateRepository.Get(component.ProductTemplateId);
+            var componentNames = componentRepository.GetAll(x => x.ProductTemplateId == component.ProductTemplateId && x.Name == component.Name && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true).ToList();
+            var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == component.ProductTemplateId && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true).ToList();
+
+            var changeDefaultComponent = new Component();
+
             var tasks = new List<Task>();
 
             tasks.Add(Task.Run(() =>
@@ -39,31 +46,69 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Kiểu bộ phận không tồn tại");
                 }
-                var componentType = componentTypeRepository.Get(component.ComponentTypeId);
+            }));
+
+            tasks.Add(Task.Run(() =>
+            {
                 if (componentType == null || componentType.IsActive != true)
                 {
                     throw new UserException("Kiểu bộ phận không tồn tại");
                 }
+            }));
 
+            tasks.Add(Task.Run(() =>
+            {
                 if (string.IsNullOrEmpty(component.ProductTemplateId))
                 {
                     throw new UserException("Mẫu sản phẩm không tồn tại");
                 }
-                var template = productTemplateRepository.Get(component.ProductTemplateId);
+            }));
+
+            tasks.Add(Task.Run(() =>
+            {
                 if (template == null)
                 {
                     throw new UserException("Mẫu sản phẩm không tồn tại");
                 }
+            }));
 
+            tasks.Add(Task.Run(() =>
+            {
                 if (string.IsNullOrWhiteSpace(component.Name))
                 {
                     throw new UserException("Tên bộ phận không được để trống");
                 }
                 else
                 {
-                    if (componentRepository.GetAll(x => x.Name == component.Name && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true).Any())
+                    if (componentNames.Any())
                     {
                         throw new UserException($"Tên bộ phận đã được sử dụng");
+                    }
+                }
+            }));
+
+            tasks.Add(Task.Run(() =>
+            {
+                if (component.Default.HasValue)
+                {
+                    if (component.Default.Value)
+                    {
+                        if (templateComponents.Any(c => c.Default == true))
+                        {
+                            changeDefaultComponent = templateComponents.Single(x => x.Default.Value == true);
+                            changeDefaultComponent.Default = false;
+                        }
+                    }
+                }
+                else
+                {
+                    if (templateComponents.Any(c => c.Default == true))
+                    {
+                        component.Default = false;
+                    }
+                    else
+                    {
+                        component.Default = true;
                     }
                 }
             }));
@@ -195,6 +240,36 @@ namespace Etailor.API.Service.Service
                 await Task.WhenAll(tasks);
             }
             return components;
+        }
+
+        public async Task<bool> CheckDefaultComponent(string templateId)
+        {
+            var tasks = new List<Task>();
+            var template = productTemplateRepository.Get(templateId);
+
+            if (template == null)
+            {
+                throw new UserException("Mẫu sản phẩm không tồn tại");
+            }
+
+            var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();
+
+            var componentTypesOfTemplates = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true).ToList();
+
+            foreach (var componentTypesOfTemplate in componentTypesOfTemplates)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!templateComponents.Any(x => x.IsActive == true && x.Default == true))
+                    {
+                        throw new UserException("Vui lòng chọn kiểu mặc định cho mỗi bộ phận của bản mẫu");
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+
+            return true;
         }
     }
 }
