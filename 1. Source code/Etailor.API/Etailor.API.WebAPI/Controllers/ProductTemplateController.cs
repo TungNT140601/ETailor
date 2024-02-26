@@ -154,7 +154,11 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else
                 {
-                    return Ok(mapper.Map<ProductTemplateALLVM>(template));
+                    return Ok(new
+                    {
+                        Template = mapper.Map<ProductTemplateALLVM>(template),
+                        Component = mapper.Map<IEnumerable<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(template.Id))
+                    });
                 }
             }
             catch (UserException ex)

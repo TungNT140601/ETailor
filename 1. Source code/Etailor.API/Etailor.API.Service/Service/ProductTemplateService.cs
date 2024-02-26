@@ -609,7 +609,7 @@ namespace Etailor.API.Service.Service
                 return null;
             }
         }
-        
+
         public async Task<ProductTemplate> GetByUrlPath(string urlPath)
         {
             var template = productTemplateRepository.GetAll(x => x.UrlPath == urlPath && x.IsActive == true).FirstOrDefault();
@@ -727,7 +727,7 @@ namespace Etailor.API.Service.Service
         public IEnumerable<ComponentType> GetTemplateComponent(string templateId)
         {
             var template = productTemplateRepository.Get(templateId);
-            if(template == null || template.IsActive == false)
+            if (template == null || template.IsActive == false)
             {
                 throw new UserException("Bản mẫu không tìm thấy");
             }
@@ -737,7 +737,21 @@ namespace Etailor.API.Service.Service
 
                 var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key).ToList();
 
-                return null;
+                var componentTypes = componentTypeRepository.GetAll(x => templateComponentTypeIds.Contains(x.Id)).ToList();
+
+                foreach (var componentType in componentTypes)
+                {
+                    componentType.Components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).Select(c => new Component()
+                    {
+                        Id = c.Id,
+                        Default = c.Default,
+                        Image = Ultils.GetUrlImage(c.Image).Result,
+                        Name = c.Name,
+                        Index = c.Index
+                    }).ToList();
+                }
+
+                return componentTypes;
             }
         }
     }

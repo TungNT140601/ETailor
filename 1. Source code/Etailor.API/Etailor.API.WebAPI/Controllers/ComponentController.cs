@@ -5,6 +5,8 @@ using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel;
+using Component = Etailor.API.Repository.EntityModels.Component;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -146,6 +148,27 @@ namespace Etailor.API.WebAPI.Controllers
                 return Ok(componentService.DeleteComponent(id));
                 //    }
                 //}
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("/api/template/{id}/check/component-types")]
+        public async Task<IActionResult> CheckDefaultComponent(string id)
+        {
+            try
+            {
+                return await componentService.CheckDefaultComponent(id) ? Ok() : BadRequest();
             }
             catch (UserException ex)
             {
