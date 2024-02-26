@@ -24,10 +24,12 @@ namespace Etailor.API.Service.Service
         private readonly IProductRepository productRepository;
         private readonly IPaymentRepository paymentRepository;
         private readonly IProductTemplateRepository productTemplaTeRepository;
+        private readonly IProductService productService;
+        private readonly IProductTemplateService productTemplateService;
 
         public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository, 
             IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository, 
-            IProductTemplateRepository productTemplaTeRepository)
+            IProductTemplateRepository productTemplaTeRepository, IProductService productService, IProductTemplateService productTemplateService)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
@@ -36,6 +38,8 @@ namespace Etailor.API.Service.Service
             this.productRepository = productRepository;
             this.paymentRepository = paymentRepository;
             this.productTemplaTeRepository = productTemplaTeRepository;
+            this.productService = productService;
+            this.productTemplateService = productTemplateService;
         }
 
         public async Task<string> CreateOrder(Order order, string? role)

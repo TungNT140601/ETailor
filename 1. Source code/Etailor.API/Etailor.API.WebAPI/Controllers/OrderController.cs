@@ -257,7 +257,20 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         if (role == RoleName.CUSTOMER)
                         {
-                            var orders = mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrdersByCustomer(staffid));
+                            IEnumerable<Product> listProducts;
+                            ProductTemplate productTemplate;
+                            var orders = mapper.Map<IEnumerable<OrderByCustomerVM>>(orderService.GetOrdersByCustomer(staffid).ToList());
+                            foreach (var order in orders)
+                            {
+                                listProducts = productService.GetProductsByOrderId(order.Id).ToList();
+                                foreach (var product in listProducts)
+                                {
+                                    order.Name = product.Name;
+                                    productTemplate = productTemplateService.GetByProductTemplateId(product.ProductTemplateId);
+                                    order.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
+                                }
+                                
+                            }
                             return Ok(orders);
                         }
                         else
