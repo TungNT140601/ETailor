@@ -16,8 +16,8 @@ namespace Etailor.API.Service.Interface
 
         bool DeleteBodySize(string id);
 
-        BodySize GetBodySize(string id);
+        Task<BodySize> GetBodySize(string id);
 
-        IEnumerable<BodySize> GetBodySizes(string? search);
+        Task<IEnumerable<BodySize>> GetBodySizes(string? search);
     }
 }

@@ -26,11 +26,11 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("{id}")]
-        public IActionResult Get(string id)
+        public async Task<IActionResult> Get(string id)
         {
             try
             {
-                var bodySize = bodySizeService.GetBodySize(id);
+                var bodySize = await bodySizeService.GetBodySize(id);
                 if (bodySize == null)
                 {
                     return NotFound("không tìm thấy thuật ngữ số đo cơ thể này");
@@ -55,11 +55,11 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAll(string? search)
+        public async  Task<IActionResult> GetAll(string? search)
         {
             try
             {
-                var bodySizes = bodySizeService.GetBodySizes(search);
+                var bodySizes = await bodySizeService.GetBodySizes(search);
                 return Ok(mapper.Map<IEnumerable<BodySizeVM>>(bodySizes));
             }
             catch (UserException ex)

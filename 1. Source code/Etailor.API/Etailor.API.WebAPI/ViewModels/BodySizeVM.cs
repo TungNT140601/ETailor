@@ -26,7 +26,6 @@
 
     public class CreateBodySizeVM
     {
-        public string Id { get; set; }
         public string? BodyPart { get; set; }
         public int? BodyIndex { get; set; }
         public string? Name { get; set; }

@@ -93,15 +93,45 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public BodySize GetBodySize(string id)
+        public async Task<BodySize> GetBodySize(string id)
         {
             var bodySize = bodySizeRepository.Get(id);
+
+            var setThumbnail = Task.Run(async () =>
+            {
+                if (string.IsNullOrEmpty(bodySize.Image))
+                {
+                    bodySize.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                }
+                else
+                {
+                    bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+                }
+            });
+            await Task.WhenAll(setThumbnail);
+
             return bodySize == null ? null : bodySize.IsActive == true ? bodySize : null;
         }
 
-        public IEnumerable<BodySize> GetBodySizes(string? search)
+        public async Task<IEnumerable<BodySize>> GetBodySizes(string? search)
         {
-            return bodySizeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            IEnumerable<BodySize> ListOfBodySize = bodySizeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            foreach (BodySize bodySize in ListOfBodySize)
+            {
+                var setThumbnail = Task.Run(async () =>
+                {
+                    if (string.IsNullOrEmpty(bodySize.Image))
+                    {
+                        bodySize.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                    }
+                    else
+                    {
+                        bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+                    }
+                });
+                await Task.WhenAll(setThumbnail);
+            };
+            return ListOfBodySize;
         }
     }
 }
