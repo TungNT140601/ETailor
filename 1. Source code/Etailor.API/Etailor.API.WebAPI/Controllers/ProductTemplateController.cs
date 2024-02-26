@@ -48,25 +48,28 @@ namespace Etailor.API.WebAPI.Controllers
                         category.ProductTemplates = new List<ProductTemplateALLVM>();
 
                         var templates = await productTemplateService.GetByCategory(category.Id);
-                        foreach (var template in templates)
+                        if(templates != null)
                         {
-                            var templateVM = mapper.Map<ProductTemplateALLVM>(template);
-
-                            await Task.WhenAll(Task.Run(() =>
+                            foreach (var template in templates)
                             {
-                                if (!string.IsNullOrWhiteSpace(template.Image))
-                                {
-                                    templateVM.Images = JsonConvert.DeserializeObject<List<string>>(template.Image);
-                                }
-                            }), Task.Run(() =>
-                            {
-                                if (!string.IsNullOrWhiteSpace(template.CollectionImage))
-                                {
-                                    templateVM.CollectionImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
-                                }
-                            }));
+                                var templateVM = mapper.Map<ProductTemplateALLVM>(template);
 
-                            category.ProductTemplates.Add(templateVM);
+                                await Task.WhenAll(Task.Run(() =>
+                                {
+                                    if (!string.IsNullOrWhiteSpace(template.Image))
+                                    {
+                                        templateVM.Images = JsonConvert.DeserializeObject<List<string>>(template.Image);
+                                    }
+                                }), Task.Run(() =>
+                                {
+                                    if (!string.IsNullOrWhiteSpace(template.CollectionImage))
+                                    {
+                                        templateVM.CollectionImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
+                                    }
+                                }));
+
+                                category.ProductTemplates.Add(templateVM);
+                            }
                         }
                         if (category.ProductTemplates != null && category.ProductTemplates.Any())
                         {
