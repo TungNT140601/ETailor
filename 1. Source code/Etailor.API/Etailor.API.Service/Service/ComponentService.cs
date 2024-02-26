@@ -117,7 +117,7 @@ namespace Etailor.API.Service.Service
             {
                 if (image != null)
                 {
-                    component.Image = await Ultils.UploadImage(wwwroot, "ComponentType", image, null);
+                    component.Image = await Ultils.UploadImage(wwwroot, "Component", image, null);
                 }
             }));
 
