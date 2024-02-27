@@ -204,5 +204,26 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet()]
+        public async Task<IActionResult> GetMaterials(string? search)
+        {
+            try
+            {
+                return Ok(mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterials(search)));
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

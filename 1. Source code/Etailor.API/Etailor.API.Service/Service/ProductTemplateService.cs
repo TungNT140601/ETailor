@@ -19,12 +19,17 @@ namespace Etailor.API.Service.Service
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly ITemplateBodySizeService templateBodySizeService;
+        private readonly IComponentRepository componentRepository;
+        private readonly IComponentTypeRepository componentTypeRepository;
 
-        public ProductTemplateService(IProductTemplateRepository productTemplateRepository, ICategoryRepository categoryRepository, ITemplateBodySizeService templateBodySizeService)
+        public ProductTemplateService(IProductTemplateRepository productTemplateRepository, ICategoryRepository categoryRepository, ITemplateBodySizeService templateBodySizeService,
+            IComponentTypeRepository componentTypeRepository, IComponentRepository componentRepository)
         {
             this.productTemplateRepository = productTemplateRepository;
             this.categoryRepository = categoryRepository;
             this.templateBodySizeService = templateBodySizeService;
+            this.componentRepository = componentRepository;
+            this.componentTypeRepository = componentTypeRepository;
         }
 
         public async Task<string> AddTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
@@ -716,6 +721,37 @@ namespace Etailor.API.Service.Service
             else
             {
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
+            }
+        }
+
+        public IEnumerable<ComponentType> GetTemplateComponent(string templateId)
+        {
+            var template = productTemplateRepository.Get(templateId);
+            if (template == null || template.IsActive == false)
+            {
+                throw new UserException("Bản mẫu không tìm thấy");
+            }
+            else
+            {
+                var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();
+
+                var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key).ToList();
+
+                var componentTypes = componentTypeRepository.GetAll(x => templateComponentTypeIds.Contains(x.Id)).ToList();
+
+                foreach (var componentType in componentTypes)
+                {
+                    componentType.Components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).Select(c => new Component()
+                    {
+                        Id = c.Id,
+                        Default = c.Default,
+                        Image = Ultils.GetUrlImage(c.Image).Result,
+                        Name = c.Name,
+                        Index = c.Index
+                    }).OrderBy(x => new { x.Index, x.Name }).ToList();
+                }
+
+                return componentTypes;
             }
         }
     }

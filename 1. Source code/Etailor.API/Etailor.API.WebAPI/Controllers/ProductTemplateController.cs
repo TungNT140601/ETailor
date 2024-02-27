@@ -8,8 +8,10 @@ using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -43,7 +45,32 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     foreach (var category in categories)
                     {
-                        category.ProductTemplates = mapper.Map<IEnumerable<ProductTemplateALLVM>>(await productTemplateService.GetByCategory(category.Id));
+                        category.ProductTemplates = new List<ProductTemplateALLVM>();
+
+                        var templates = await productTemplateService.GetByCategory(category.Id);
+                        if(templates != null)
+                        {
+                            foreach (var template in templates)
+                            {
+                                var templateVM = mapper.Map<ProductTemplateALLVM>(template);
+
+                                await Task.WhenAll(Task.Run(() =>
+                                {
+                                    if (!string.IsNullOrWhiteSpace(template.Image))
+                                    {
+                                        templateVM.Images = JsonConvert.DeserializeObject<List<string>>(template.Image);
+                                    }
+                                }), Task.Run(() =>
+                                {
+                                    if (!string.IsNullOrWhiteSpace(template.CollectionImage))
+                                    {
+                                        templateVM.CollectionImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
+                                    }
+                                }));
+
+                                category.ProductTemplates.Add(templateVM);
+                            }
+                        }
                         if (category.ProductTemplates != null && category.ProductTemplates.Any())
                         {
                             returnData.Add(category);
@@ -74,7 +101,28 @@ namespace Etailor.API.WebAPI.Controllers
                 if (categoryService.GetCategory(id) != null)
                 {
                     var category = mapper.Map<CategoryAllTemplateVM>(categoryService.GetCategory(id));
-                    category.ProductTemplates = mapper.Map<IEnumerable<ProductTemplateALLVM>>(await productTemplateService.GetByCategory(category.Id));
+
+                    var templates = await productTemplateService.GetByCategory(category.Id);
+
+                    foreach (var template in templates)
+                    {
+                        var templateVM = mapper.Map<ProductTemplateALLVM>(template);
+                        await Task.WhenAll(Task.Run(() =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(template.Image))
+                            {
+                                templateVM.Images = JsonConvert.DeserializeObject<List<string>>(template.Image);
+                            }
+                        }), Task.Run(() =>
+                        {
+                            if (!string.IsNullOrWhiteSpace(template.CollectionImage))
+                            {
+                                templateVM.CollectionImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
+                            }
+                        }));
+
+                        category.ProductTemplates.Add(templateVM);
+                    }
 
                     return Ok(category);
                 }
@@ -109,7 +157,11 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else
                 {
-                    return Ok(mapper.Map<ProductTemplateALLVM>(template));
+                    return Ok(new
+                    {
+                        Template = mapper.Map<ProductTemplateALLVM>(template),
+                        Component = mapper.Map<IEnumerable<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(template.Id))
+                    });
                 }
             }
             catch (UserException ex)
