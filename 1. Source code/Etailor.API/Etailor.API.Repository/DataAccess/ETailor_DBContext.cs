@@ -604,6 +604,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
+                entity.Property(e => e.IsCusMaterial).HasDefaultValueSql("((0))");
+
                 entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");

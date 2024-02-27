@@ -58,7 +58,9 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var product = mapper.Map<Product>(productVM);
                     var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                    check.Add(await productService.AddProduct(orderId, product, productComponents, productVM.MaterialId, productVM.ProfileId));
+                    check.Add(await productService.AddProduct(orderId, product, productComponents,
+                        productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
+                        productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0));
                 }
                 if (check.Any(x => x == false))
                 {
@@ -115,15 +117,17 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var product = mapper.Map<Product>(productVM);
                     var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                    check.Add(await productService.UpdateProduct(orderId, product, productComponents, productVM.MaterialId, productVM.ProfileId));
+                    check.Add(await productService.UpdateProduct(orderId, product, productComponents,
+                        productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
+                        productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0));
                 }
                 if (check.Any(x => x == false))
                 {
-                    return BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
+                    return BadRequest("Cập nhật sản phẩm thất bại");
                 }
                 else
                 {
-                    return Ok("Thêm sản phẩm vào hóa đơn thành công");
+                    return Ok("Cập nhật sản phẩm thành công");
                 }
                 //    }
                 //}

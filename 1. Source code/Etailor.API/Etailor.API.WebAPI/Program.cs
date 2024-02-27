@@ -159,6 +159,8 @@ builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>(
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
+builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
+
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
 
