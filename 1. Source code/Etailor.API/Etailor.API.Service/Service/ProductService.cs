@@ -58,7 +58,7 @@ namespace Etailor.API.Service.Service
             this.orderMaterialRepository = orderMaterialRepository;
         }
 
-        public async Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
+        public async Task<string> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
             var order = orderRepository.Get(orderId);
             if (order != null)
@@ -255,13 +255,13 @@ namespace Etailor.API.Service.Service
 
                 if (productRepository.Create(product))
                 {
-                    return await productBodySizeService.CreateProductBodySize(product.Id, template.Id, profileId, order.CustomerId);
+                    return await productBodySizeService.CreateProductBodySize(product.Id, template.Id, profileId, order.CustomerId) ? product.Id : null;
                 }
                 else
                 {
                     throw new SystemsException("Lỗi trong quá trình tạo sản phẩm");
                 }
-                return false;
+                return null;
             }
             else
             {
@@ -269,7 +269,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
+        public async Task<string> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null && dbOrder.IsActive == true)
@@ -427,13 +427,13 @@ namespace Etailor.API.Service.Service
 
                                 if (productRepository.Update(dbProduct.Id, dbProduct))
                                 {
-                                    return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, dbOrder.CustomerId);
+                                    return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, dbOrder.CustomerId) ? dbProduct.Id : null;
                                 }
                                 else
                                 {
                                     throw new SystemsException("Lỗi trong quá trình cập nhật sản phẩm");
                                 }
-                                return false;
+                                return null;
                             }
                         }
                     }
@@ -485,9 +485,22 @@ namespace Etailor.API.Service.Service
             return product == null ? null : product.IsActive == true ? product : null;
         }
 
-        public IEnumerable<Product> GetProductsByOrderId(string? search)
+        public IEnumerable<Product> GetProductsByOrderId(string? orderId)
         {
-            return productRepository.GetAll(x => ((search != null && x.OrderId.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+            return productRepository.GetAll(x => ((orderId != null && x.OrderId.Trim().ToLower() == orderId.ToLower().Trim())) && x.IsActive == true);
+        }
+
+        public IEnumerable<Product> GetProductsByOrderIdOfCus(string? orderId, string cusId)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.CustomerId == cusId && dbOrder.IsActive == true && dbOrder.Status >= 1)
+            {
+                return productRepository.GetAll(x => ((orderId != null && x.OrderId.Trim().ToLower() == orderId.ToLower().Trim())) && x.IsActive == true);
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }
