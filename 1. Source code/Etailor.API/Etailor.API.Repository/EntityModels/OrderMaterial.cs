@@ -10,6 +10,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? OrderId { get; set; }
         public string? Image { get; set; }
         public decimal? Value { get; set; }
+        public bool? IsCusMaterial { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }

@@ -10,6 +10,7 @@ namespace Etailor.API.Service.Interface
     public interface IProductBodySizeService
     {
         Task<bool> CreateProductBodySize(string productId, string templateId, string profileId, string cusId);
+        Task<bool> UpdateProductBodySize(string productId, string templateId, string profileId, string cusId);
         bool UpdateSingle(ProductBodySize productBodySize);
     }
 }

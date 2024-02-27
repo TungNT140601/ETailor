@@ -9,9 +9,9 @@ namespace Etailor.API.Service.Interface
 {
     public interface IProductService
     {
-        Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId);
+        Task<bool> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity);
 
-        Task<bool> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId);
+        Task<bool> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity);
 
         Task<bool> DeleteProduct(string id);
 
