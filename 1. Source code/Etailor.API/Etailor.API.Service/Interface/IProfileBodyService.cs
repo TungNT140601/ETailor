@@ -9,9 +9,11 @@ namespace Etailor.API.Service.Interface
 {
     public interface IProfileBodyService
     {
-        Task<bool> AddProfileBody(ProfileBody ProfileBody);
+        //Task<bool> AddProfileBody(ProfileBody ProfileBody);
 
-        Task<bool> CreateProfileBody(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId);
+        Task<bool> CreateProfileBodyByStaff(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId);
+
+        Task<bool> CreateProfileBodyByCustomer(string customerId, string name, List<(string id, decimal value)> bodySizeId);
 
         Task<bool> UpdateProfileBody(ProfileBody ProfileBody);
 

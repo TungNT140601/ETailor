@@ -30,30 +30,30 @@ namespace Etailor.API.Service.Service
             this.bodyAttributeRepository = bodyAttributeRepository;
         }
 
-        public async Task<bool> AddProfileBody(ProfileBody ProfileBody)
-        {
-            var checkDuplicateId = Task.Run(() =>
-            {
-                if (profileBodyRepository.GetAll(x => x.Id == ProfileBody.Id && x.IsActive == true).Any())
-                {
-                    throw new UserException("Mã Id Profile Body đã được sử dụng");
-                }
-            });
-            var setValue = Task.Run(() =>
-            {
-                ProfileBody.Id = Ultils.GenGuidString();
-                ProfileBody.CreatedTime = DateTime.Now;
-                ProfileBody.LastestUpdatedTime = DateTime.Now;
-                ProfileBody.InactiveTime = null;
-                ProfileBody.IsActive = true;
-            });
+        ////public async Task<bool> AddProfileBody(ProfileBody ProfileBody)
+        ////{
+        ////    var checkDuplicateId = Task.Run(() =>
+        ////    {
+        ////        if (profileBodyRepository.GetAll(x => x.Id == ProfileBody.Id && x.IsActive == true).Any())
+        ////        {
+        ////            throw new UserException("Mã Id Profile Body đã được sử dụng");
+        ////        }
+        ////    });
+        ////    var setValue = Task.Run(() =>
+        ////    {
+        ////        ProfileBody.Id = Ultils.GenGuidString();
+        ////        ProfileBody.CreatedTime = DateTime.Now;
+        ////        ProfileBody.LastestUpdatedTime = DateTime.Now;
+        ////        ProfileBody.InactiveTime = null;
+        ////        ProfileBody.IsActive = true;
+        ////    });
 
-            await Task.WhenAll(checkDuplicateId, setValue);
+        ////    await Task.WhenAll(checkDuplicateId, setValue);
 
-            return profileBodyRepository.Create(ProfileBody);
-        }
+        ////    return profileBodyRepository.Create(ProfileBody);
+        ////}
 
-        public async Task<bool> CreateProfileBody(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId)
+        public async Task<bool> CreateProfileBodyByStaff(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId)
         {
             
             string profileBodyId = Ultils.GenGuidString();
@@ -124,8 +124,80 @@ namespace Etailor.API.Service.Service
 
             await Task.WhenAll(tasks);
 
+            return bodyAttributeRepository.CreateRange(bodyAttributeList);   
+        }
+
+        public async Task<bool> CreateProfileBodyByCustomer(string customerId, string name, List<(string id, decimal value)> bodySizeId)
+        {
+            string profileBodyId = Ultils.GenGuidString();
+            var checkDuplicateId = Task.Run(() =>
+            {
+                if (profileBodyRepository.GetAll(x => x.Id == profileBodyId && x.IsActive == true).Any())
+                {
+                    throw new UserException("Mã Id Profile Body đã được sử dụng");
+                }
+            });
+
+            ProfileBody profileBody = new ProfileBody();
+
+            var setValue = Task.Run(() =>
+            {
+                profileBody.Id = profileBodyId;
+                profileBody.StaffId = null;
+                profileBody.CustomerId = customerId;
+                profileBody.Name = name;
+                profileBody.IsLocked = false;
+                profileBody.CreatedTime = DateTime.Now;
+                profileBody.LastestUpdatedTime = DateTime.Now;
+                profileBody.InactiveTime = null;
+                profileBody.IsActive = true;
+            });
+
+            await Task.WhenAll(checkDuplicateId, setValue);
+
+            profileBodyRepository.Create(profileBody);
+
+            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
+            var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBody.Id && x.IsActive == true).Select(x => x.BodySizeId).ToList();
+
+            var bodyAttributeList = new List<BodyAttribute>();
+            var tasks = new List<Task>();
+            foreach (var id in bodySizeId)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                    {
+                        if (!existBodyAttributeList.Contains(id.id))
+                        {
+                            bodyAttributeList.Add(new BodyAttribute()
+                            {
+                                Id = Ultils.GenGuidString(),
+                                BodySizeId = id.id,
+                                ProfileBodyId = profileBody.Id,
+                                Value = id.value,
+                                CreatedTime = DateTime.Now,
+                                LastestUpdatedTime = null,
+                                InactiveTime = null,
+                                IsActive = true
+                            });
+                        }
+                        else
+                        {
+                            throw new UserException("Số đo đã tồn tại trong hệ thống");
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Số đo không tồn tại trong hệ thống");
+                    }
+                }
+                ));
+            }
+
+            await Task.WhenAll(tasks);
+
             return bodyAttributeRepository.CreateRange(bodyAttributeList);
-            
         }
 
         public async Task<bool> UpdateProfileBody(ProfileBody ProfileBody)

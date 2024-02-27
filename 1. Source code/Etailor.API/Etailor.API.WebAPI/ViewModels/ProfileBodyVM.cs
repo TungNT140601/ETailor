@@ -12,10 +12,10 @@ namespace Etailor.API.WebAPI.ViewModels
         public bool? IsLocked { get; set; }
     }
 
-    public class CreateProfileBodyByStaffVM 
+    public class CreateProfileBodyVM 
     {
         public string? Name { get; set; }
-        //public string customerId {  get; set; }
+        public string CustomerId { get; set; }
 
         public List<ValueBodyAttribute> valueBodyAttribute { get; set; }
     }
@@ -26,10 +26,12 @@ namespace Etailor.API.WebAPI.ViewModels
         public decimal Value { get; set; }
     }
 
-    public class CreateProfileBodyByCustomerVM
-    {
-        public string? Name { get; set; }
-    }
+    //public class CreateProfileBodyByCustomerVM
+    //{
+    //    public string? Name { get; set; }
+
+    //    public List<ValueBodyAttribute> valueBodyAttribute { get; set; }
+    //}
 
     public class UpdateProfileBodyVM
     {
