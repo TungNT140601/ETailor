@@ -229,7 +229,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             returnData = productService.GetProductsByOrderId(orderId).ToList();
                         }
-                        return Ok(mapper.Map<IEnumerable<ProductVM>>());
+                        return Ok(mapper.Map<IEnumerable<ProductVM>>(returnData));
                     }
                 }
             }
