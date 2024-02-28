@@ -89,7 +89,7 @@ namespace Etailor.API.Service.Service
 
                 var materialCategory = new MaterialCategory();
 
-                if(material != null)
+                if (material != null)
                 {
                     materialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
                 }
@@ -172,44 +172,46 @@ namespace Etailor.API.Service.Service
                     product.IsActive = true;
                 }));
 
-                tasks.Add(Task.Run(async () =>
+                //tasks.Add(Task.Run(async () =>
+                //{
+                var tasksSetComponents = new List<Task>();
+
+                var saveOrderComponents = new List<ProductComponent>();
+
+                if (templateComponentTypes.Any())
                 {
-                    var tasksSetComponents = new List<Task>();
-
-                    var saveOrderComponents = new List<ProductComponent>();
-
-                    if (templateComponentTypes.Any())
+                    foreach (var type in templateComponentTypes)
                     {
-                        foreach (var type in templateComponentTypes)
+                        //tasksSetComponents.Add(Task.Run(() =>
+                        //{
+                        var productComponentAdds = templateComponents.Where(x => x.ComponentTypeId == type.Id && productComponents.Select(c => c.ComponentId).Contains(x.Id));
+                        var component = new Component();
+                        if (productComponentAdds != null && productComponentAdds.Any())
                         {
-                            tasksSetComponents.Add(Task.Run(() =>
+                            if (productComponentAdds.Count() > 1)
                             {
-                                var productComponentAdds = templateComponents.Where(x => x.ComponentTypeId == type.Id && productComponents.Select(c => c.ComponentId).Contains(x.Id));
-                                var component = new Component();
-                                if (productComponentAdds != null && productComponentAdds.Any())
-                                {
-                                    if (productComponentAdds.Count() > 1)
-                                    {
-                                        throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
-                                    }
-                                    else
-                                    {
-                                        component = productComponentAdds.First();
-                                    }
-                                }
-                                else
-                                {
-                                    component = templateComponents.Single(x => x.ComponentTypeId == type.Id && x.Default == true);
-                                }
-                                saveOrderComponents.Add(new ProductComponent()
-                                {
-                                    ComponentId = component.Id,
-                                    Id = Ultils.GenGuidString(),
-                                    LastestUpdatedTime = DateTime.Now,
-                                    Name = component.Name,
-                                    Image = "",
-                                    ProductStageId = null,
-                                    ProductComponentMaterials = new List<ProductComponentMaterial>()
+                                throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
+                            }
+                            else
+                            {
+                                component = productComponentAdds.First();
+                            }
+                        }
+                        else
+                        {
+                            component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
+                        }
+                        if (component != null)
+                        {
+                            saveOrderComponents.Add(new ProductComponent()
+                            {
+                                ComponentId = component.Id,
+                                Id = Ultils.GenGuidString(),
+                                LastestUpdatedTime = DateTime.Now,
+                                Name = component.Name,
+                                Image = "",
+                                ProductStageId = null,
+                                ProductComponentMaterials = new List<ProductComponentMaterial>()
                                     {
                                      new ProductComponentMaterial()
                                      {
@@ -217,27 +219,30 @@ namespace Etailor.API.Service.Service
                                          MaterialId = materialId
                                      }
                                     }
-                                });
-                            }));
+                            });
                         }
+                        //}));
                     }
-                    else
+                }
+                else
+                {
+                    foreach (var type in templateComponentTypes)
                     {
-                        foreach (var type in templateComponentTypes)
-                        {
-                            tasksSetComponents.Add(Task.Run(() =>
-                            {
-                                var component = templateComponents.Single(x => x.ComponentTypeId == type.Id && x.Default == true);
+                        //tasksSetComponents.Add(Task.Run(() =>
+                        //{
+                        var component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
 
-                                saveOrderComponents.Add(new ProductComponent()
-                                {
-                                    ComponentId = component.Id,
-                                    Id = Ultils.GenGuidString(),
-                                    LastestUpdatedTime = DateTime.Now,
-                                    Name = component.Name,
-                                    Image = "",
-                                    ProductStageId = null,
-                                    ProductComponentMaterials = new List<ProductComponentMaterial>()
+                        if (component != null)
+                        {
+                            saveOrderComponents.Add(new ProductComponent()
+                            {
+                                ComponentId = component.Id,
+                                Id = Ultils.GenGuidString(),
+                                LastestUpdatedTime = DateTime.Now,
+                                Name = component.Name,
+                                Image = "",
+                                ProductStageId = null,
+                                ProductComponentMaterials = new List<ProductComponentMaterial>()
                                     {
                                      new ProductComponentMaterial()
                                      {
@@ -245,22 +250,23 @@ namespace Etailor.API.Service.Service
                                          MaterialId = materialId
                                      }
                                     }
-                                });
-                            }));
+                            });
                         }
+                        //}));
                     }
+                }
 
-                    await Task.WhenAll(tasksSetComponents);
+                await Task.WhenAll(tasksSetComponents);
 
-                    product.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
-                }));
+                product.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
+                //}));
                 #endregion
 
                 await Task.WhenAll(tasks);
 
                 if (productRepository.Create(product))
                 {
-                    return await productBodySizeService.CreateProductBodySize(product.Id, template.Id, profileId, order.CustomerId) ? product.Id : null;
+                    return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, order.CustomerId) ? product.Id : null;
                 }
                 else
                 {
@@ -374,17 +380,20 @@ namespace Etailor.API.Service.Service
                                                 }
                                                 else
                                                 {
-                                                    component = templateComponents.Single(x => x.ComponentTypeId == type.Id && x.Default == true);
+                                                    component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
                                                 }
-                                                saveOrderComponents.Add(new ProductComponent()
+
+                                                if (component != null)
                                                 {
-                                                    ComponentId = component.Id,
-                                                    Id = Ultils.GenGuidString(),
-                                                    LastestUpdatedTime = DateTime.Now,
-                                                    Name = component.Name,
-                                                    Image = "",
-                                                    ProductStageId = null,
-                                                    ProductComponentMaterials = new List<ProductComponentMaterial>()
+                                                    saveOrderComponents.Add(new ProductComponent()
+                                                    {
+                                                        ComponentId = component.Id,
+                                                        Id = Ultils.GenGuidString(),
+                                                        LastestUpdatedTime = DateTime.Now,
+                                                        Name = component.Name,
+                                                        Image = "",
+                                                        ProductStageId = null,
+                                                        ProductComponentMaterials = new List<ProductComponentMaterial>()
                                                     {
                                                      new ProductComponentMaterial()
                                                      {
@@ -392,7 +401,8 @@ namespace Etailor.API.Service.Service
                                                          MaterialId = materialId
                                                      }
                                                     }
-                                                });
+                                                    });
+                                                }
                                             }));
                                         }
                                     }
@@ -402,17 +412,19 @@ namespace Etailor.API.Service.Service
                                         {
                                             tasksSetComponents.Add(Task.Run(() =>
                                             {
-                                                var component = templateComponents.Single(x => x.ComponentTypeId == type.Id && x.Default == true);
+                                                var component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
 
-                                                saveOrderComponents.Add(new ProductComponent()
+                                                if (component != null)
                                                 {
-                                                    ComponentId = component.Id,
-                                                    Id = Ultils.GenGuidString(),
-                                                    LastestUpdatedTime = DateTime.Now,
-                                                    Name = component.Name,
-                                                    Image = "",
-                                                    ProductStageId = null,
-                                                    ProductComponentMaterials = new List<ProductComponentMaterial>()
+                                                    saveOrderComponents.Add(new ProductComponent()
+                                                    {
+                                                        ComponentId = component.Id,
+                                                        Id = Ultils.GenGuidString(),
+                                                        LastestUpdatedTime = DateTime.Now,
+                                                        Name = component.Name,
+                                                        Image = "",
+                                                        ProductStageId = null,
+                                                        ProductComponentMaterials = new List<ProductComponentMaterial>()
                                                     {
                                                      new ProductComponentMaterial()
                                                      {
@@ -420,7 +432,8 @@ namespace Etailor.API.Service.Service
                                                          MaterialId = materialId
                                                      }
                                                     }
-                                                });
+                                                    });
+                                                }
                                             }));
                                         }
                                     }

@@ -183,13 +183,13 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                return null;
+                return new List<Material>();
             }
         }
 
         public IEnumerable<Material> GetMaterials(string? search)
         {
-            return materialRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+            return materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || (search != null && x.Name.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
         }
 
         public IEnumerable<Material> GetMaterialsByMaterialType(string materialTypeId)
@@ -204,7 +204,22 @@ namespace Etailor.API.Service.Service
                     return materialRepository.GetAll(x => materialCategories.Select(m => m.Id).Contains(x.MaterialCategoryId) && x.IsActive == true);
                 }
             }
-            return null;
+            return new List<Material>();
+        }
+
+        public IEnumerable<Material> GetFabricMaterials(string? search)
+        {
+            var materialTypes = materialTypeRepository.GetAll(x => (x.Name.Trim().ToLower().Contains("vai") || x.Name.Trim().ToLower().Contains("vải") || x.Name.Trim().ToLower().Contains("vãi")) && x.IsActive == true).ToList();
+            if (materialTypes.Any() && materialTypes.Count > 0)
+            {
+                var materialCategories = materialCategoryRepository.GetAll(x => materialTypes.Select(m => m.Id).Contains(x.MaterialTypeId) && x.IsActive == true).ToList();
+
+                if (materialCategories.Any() && materialCategories.Count > 0)
+                {
+                    return materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || x.Name.Trim().ToLower().Contains(search.Trim().ToLower())) && materialCategories.Select(m => m.Id).Contains(x.MaterialCategoryId) && x.IsActive == true);
+                }
+            }
+            return new List<Material>();
         }
     }
 }
