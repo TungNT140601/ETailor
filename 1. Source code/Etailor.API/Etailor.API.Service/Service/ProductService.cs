@@ -87,7 +87,12 @@ namespace Etailor.API.Service.Service
 
                 var material = materialRepository.Get(materialId);
 
-                var materialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
+                var materialCategory = new MaterialCategory();
+
+                if(material != null)
+                {
+                    materialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
+                }
 
                 #region InitProduct
 
