@@ -14,10 +14,9 @@ namespace Etailor.API.Service.Interface
         Task<string> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity);
 
         Task<bool> DeleteProduct(string id);
-
-        Product GetProduct(string id);
-
-        IEnumerable<Product> GetProductsByOrderId(string? orderId);
-        IEnumerable<Product> GetProductsByOrderIdOfCus(string? orderId, string cusId);
+        Task<Product> GetProductOrder(string id, string orderId);
+        Task<Product> GetProductOrderByCus(string id, string orderId,string cusId);
+        Task<IEnumerable<Product>> GetProductsByOrderId(string orderId);
+        Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId);
     }
 }
