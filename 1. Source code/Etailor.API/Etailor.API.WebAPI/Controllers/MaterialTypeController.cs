@@ -34,22 +34,8 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if (id == null)
-                {
-                    return NotFound("không tìm thấy loại nguyên liệu");
-                }
-                else
-                {
-                    var materialType = materialTypeService.GetMaterialType(id);
-                    if (materialType == null)
-                    {
-                        return NotFound("không tìm thấy loại nguyên liệu");
-                    }
-                    else
-                    {
-                        return Ok(mapper.Map<MaterialTypeVM>(materialType));
-                    }
-                }
+                var materialType = materialTypeService.GetMaterialType(id);
+                return materialType != null ? Ok(mapper.Map<MaterialTypeVM>(materialType)) : NotFound("không tìm thấy loại nguyên liệu");
             }
             catch (UserException ex)
             {
@@ -88,39 +74,32 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateMaterialType([FromBody] MaterialTypeVM materialType)
+        public async Task<IActionResult> CreateMaterialType([FromBody] MaterialTypeVM materialType)
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (role != RoleName.MANAGER)
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
-                {
-                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        if (string.IsNullOrWhiteSpace(materialType.Name))
-                        {
-                            throw new UserException("Nhập tên loại nguyên liệu.");
-                        }
-                        else
-                        {
-                            return materialTypeService.CreateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok("Tạo mới loại nguyên liệu thành công") : BadRequest("Tạo mới loại nguyên liệu thất bại");
-                        }
-                    }
-                }
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.MANAGER)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                return await materialTypeService.CreateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok("Tạo mới loại nguyên liệu thành công") : BadRequest("Tạo mới loại nguyên liệu thất bại");
+                //    }
+                //}
             }
             catch (UserException ex)
             {
@@ -137,50 +116,32 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateMaterialType(string? id, [FromBody] MaterialTypeVM materialType)
+        public async Task<IActionResult> UpdateMaterialType(string? id, [FromBody] MaterialTypeVM materialType)
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (role != RoleName.MANAGER)
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
-                {
-                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        if (string.IsNullOrWhiteSpace(materialType.Name))
-                        {
-                            throw new UserException("Nhập tên loại nguyên liệu.");
-                        }
-                        else
-                        {
-                            if (string.IsNullOrWhiteSpace(materialType.Name))
-                            {
-                                throw new UserException("Nhập tên loại nguyên liệu.");
-                            }
-                            else if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(materialType.Id) || id != materialType.Id)
-                            {
-                                return NotFound("Không tìm thấy loại nguyên liệu");
-                            }
-                            else
-                            {
-                                return materialTypeService.UpdateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok("Cập nhật loại nguyên liệu thành công") : BadRequest("Cập nhật loại nguyên liệu thất bại");
-                            }
-                        }
-                    }
-                }
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.MANAGER)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                return await materialTypeService.UpdateMaterialType(mapper.Map<MaterialType>(materialType)) ? Ok("Cập nhật loại nguyên liệu thành công") : BadRequest("Cập nhật loại nguyên liệu thất bại");
+                //    }
+                //}
             }
             catch (UserException ex)
             {
@@ -201,35 +162,28 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (role != RoleName.MANAGER)
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
-                {
-                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        if (string.IsNullOrEmpty(id))
-                        {
-                            return NotFound("Không tìm thấy loại nguyên liệu");
-                        }
-                        else
-                        {
-                            return materialTypeService.DeleteMaterialType(id) ? Ok("Xóa loại nguyên liệu thành công") : BadRequest("Xóa loại nguyên liệu thất bại");
-                        }
-                    }
-                }
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.MANAGER)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                return materialTypeService.DeleteMaterialType(id) ? Ok("Xóa loại nguyên liệu thành công") : BadRequest("Xóa loại nguyên liệu thất bại");
+                //    }
+                //}
             }
             catch (UserException ex)
             {
