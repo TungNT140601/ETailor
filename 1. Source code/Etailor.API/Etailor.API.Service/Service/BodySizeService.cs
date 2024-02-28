@@ -36,7 +36,7 @@ namespace Etailor.API.Service.Service
             {
                 if (image != null)
                 {
-                    bodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize/", image, null);
+                    bodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, null);
                 }
                 else
                 {
@@ -54,13 +54,16 @@ namespace Etailor.API.Service.Service
             return bodySizeRepository.Create(bodySize);
         }
 
-        public bool UpdateBodySize(BodySize bodySize)
+        public async Task<bool> UpdateBodySize(BodySize bodySize, string wwwroot, IFormFile? image)
         {
             var existBodySize= bodySizeRepository.Get(bodySize.Id);
             if (existBodySize != null)
             {
                 existBodySize.Name = bodySize.Name;
-                existBodySize.Image = bodySize.Image;
+                if (image != null)
+                {
+                    bodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, bodySize.Image);
+                }
                 existBodySize.GuideVideoLink = bodySize.GuideVideoLink;
                 existBodySize.MinValidValue = bodySize.MinValidValue;
                 existBodySize.MaxValidValue = bodySize.MaxValidValue;
