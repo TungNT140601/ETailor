@@ -62,7 +62,7 @@ namespace Etailor.API.Service.Service
                 existBodySize.Name = bodySize.Name;
                 if (image != null)
                 {
-                    bodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, bodySize.Image);
+                    existBodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, bodySize.Image);
                 }
                 existBodySize.GuideVideoLink = bodySize.GuideVideoLink;
                 existBodySize.MinValidValue = bodySize.MinValidValue;
@@ -109,6 +109,7 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+                    
                 }
             });
             await Task.WhenAll(setThumbnail);
@@ -130,6 +131,7 @@ namespace Etailor.API.Service.Service
                     else
                     {
                         bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+
                     }
                 });
                 await Task.WhenAll(setThumbnail);
