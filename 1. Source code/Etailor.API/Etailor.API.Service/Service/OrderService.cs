@@ -27,8 +27,8 @@ namespace Etailor.API.Service.Service
         private readonly IProductService productService;
         private readonly IProductTemplateService productTemplateService;
 
-        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository, 
-            IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository, 
+        public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository,
+            IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository,
             IProductTemplateRepository productTemplaTeRepository, IProductService productService, IProductTemplateService productTemplateService)
         {
             this.staffRepository = staffRepository;
@@ -71,14 +71,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    if (role != RoleName.MANAGER)
-                    {
-                        order.Status = 1;
-                    }
-                    else
-                    {
-                        order.Status = 2;
-                    }
+                    order.Status = 1;
                 }));
 
                 await Task.WhenAll(tasks);
@@ -116,14 +109,7 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        if (role != RoleName.MANAGER)
-                        {
-                            order.Status = 1;
-                        }
-                        else
-                        {
-                            order.Status = 2;
-                        }
+                        order.Status = 1;
                     }));
 
                     await Task.WhenAll(tasks);
@@ -134,6 +120,28 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Id hóa đơn không tồn tại");
                 }
+            }
+        }
+
+        public bool FinishOrder(string orderId, string role)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                if (dbOrder.Status >= 2)
+                {
+                    throw new UserException("Đơn hàng đã duyệt. Không thể chỉnh sửa");
+                }
+                else
+                {
+                    dbOrder.Status = role == RoleName.STAFF ? 1 : role == RoleName.MANAGER ? 2 : 0;
+
+                    return orderRepository.Update(dbOrder.Id, dbOrder);
+                }
+            }
+            else
+            {
+                throw new UserException("Id hóa đơn không tồn tại");
             }
         }
 

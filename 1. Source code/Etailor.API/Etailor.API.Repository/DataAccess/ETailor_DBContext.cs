@@ -604,6 +604,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
+                entity.Property(e => e.IsCusMaterial).HasDefaultValueSql("((0))");
+
                 entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
@@ -671,6 +673,8 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
                 entity.Property(e => e.EvidenceImage).HasColumnType("text");
+
+                entity.Property(e => e.SaveOrderComponents).HasColumnType("text");
 
                 entity.Property(e => e.FinishTime).HasColumnType("datetime");
 
