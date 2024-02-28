@@ -1,4 +1,5 @@
 ﻿using Etailor.API.Repository.EntityModels;
+using Etailor.API.Service.Service;
 using System.Text.Json.Serialization;
 
 namespace Etailor.API.WebAPI.ViewModels
@@ -38,5 +39,23 @@ namespace Etailor.API.WebAPI.ViewModels
         public string Id { get; set; }
 
         public string? Name { get; set; }
+    }
+
+    public class DetailProfileBody
+    {
+        public string Id { get; set; }
+        public string? Name { get; set; }
+        public decimal Value { get; set; }
+        public string? Image { get; set; }
+
+    }
+
+    public class GetDetailProfileBodyVM
+    {
+        public string? CustomerId { get; set; }
+        public string? StaffId { get; set; }
+        public string? Name { get; set; }
+        public bool? IsLocked { get; set; }
+        public List<DetailProfileBody> valueBodyAttribute { get; set; }
     }
 }

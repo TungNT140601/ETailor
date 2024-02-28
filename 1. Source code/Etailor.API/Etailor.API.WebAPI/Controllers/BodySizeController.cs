@@ -126,7 +126,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateBodySize(string? id, [FromBody] CreateUpdateBodySizeVM bodySizeVM)
+        public async Task<IActionResult> UpdateBodySize(string? id, [FromForm] CreateUpdateBodySizeVM bodySizeVM)
         {
             try
             {
@@ -161,7 +161,7 @@ namespace Etailor.API.WebAPI.Controllers
                             }
                             else
                             {
-                                return bodySizeService.UpdateBodySize(mapper.Map<BodySize>(bodySizeVM)) ? Ok("Cập nhật thuật ngữ số đo cơ thể thành công") : BadRequest("Cập nhật thuật ngữ số đo cơ thể thất bại");
+                                return await bodySizeService.UpdateBodySize(mapper.Map<BodySize>(bodySizeVM), _wwwrootPath, bodySizeVM.Image) ? Ok("Cập nhật thuật ngữ số đo cơ thể thành công") : BadRequest("Cập nhật thuật ngữ số đo cơ thể thất bại");
                             }
                 //        }
                 //    }

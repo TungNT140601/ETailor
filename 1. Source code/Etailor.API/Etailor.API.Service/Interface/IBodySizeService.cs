@@ -12,7 +12,7 @@ namespace Etailor.API.Service.Interface
     {
         Task<bool> CreateBodySize(BodySize bodySize, string wwwroot, IFormFile? image);
 
-        bool UpdateBodySize(BodySize bodySize);
+        Task<bool> UpdateBodySize(BodySize bodySize, string wwwroot, IFormFile? image);
 
         bool DeleteBodySize(string id);
 
