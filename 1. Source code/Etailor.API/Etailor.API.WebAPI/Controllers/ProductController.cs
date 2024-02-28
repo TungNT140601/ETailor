@@ -6,6 +6,7 @@ using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System.Security.Claims;
 
 namespace Etailor.API.WebAPI.Controllers
@@ -172,20 +173,76 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetProduct(string id)
+        [HttpGet("order/{orderId}/{id}")]
+        public async Task<IActionResult> GetProduct(string orderId, string id)
         {
             try
             {
-                if (id == null)
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else
+                //{
+                //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if ((role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(staffid, secrectKey)) || (role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(staffid, secrectKey)))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                var product = new Product();
+                //if (role == RoleName.CUSTOMER)
+                //{
+                //    product = await productService.GetProductOrderByCus(id, orderId, staffid);
+                //}
+                //else
+                //{
+                product = await productService.GetProductOrder(id, orderId);
+                //}
+
+                if (product != null)
                 {
-                    return NotFound("Id Product không tồn tại");
+                    var productVM = mapper.Map<ProductDetailOrderVM>(product);
+
+                    if (!string.IsNullOrWhiteSpace(product.SaveOrderComponents))
+                    {
+                        var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(product.SaveOrderComponents);
+
+                        if (productComponents != null && productComponents.Any() && productComponents.Count > 0)
+                        {
+                            var componentIds = productComponents.Select(c => c.ComponentId).ToList();
+
+                            productVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(product.ProductTemplateId).ToList());
+
+                            if (productVM.ComponentTypeOrders != null && productVM.ComponentTypeOrders.Any() && productVM.ComponentTypeOrders.Count > 0)
+                            {
+                                var tasks = new List<Task>();
+                                foreach (var component in productVM.ComponentTypeOrders)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        if (component.Components != null && component.Components.Any() && component.Components.Count > 0)
+                                        {
+                                            component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                        }
+                                    }));
+                                }
+                                await Task.WhenAll(tasks);
+                            }
+
+                            productVM.MaterialId = productComponents.First().ProductComponentMaterials.First().MaterialId;
+                        }
+                    }
+
+                    return Ok(productVM);
                 }
-                else
-                {
-                    var product = productService.GetProduct(id);
-                    return product != null ? Ok(mapper.Map<ProductVM>(product)) : NotFound(id);
-                }
+
+                return NotFound(id);
+                //    }
+                //}
             }
             catch (UserException ex)
             {
@@ -200,7 +257,9 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-        [HttpGet("/get-product-by-order-id")]
+
+
+        [HttpGet("order/{orderId}")]
         public async Task<IActionResult> GetProductsByOrderId(string? orderId)
         {
             try
@@ -223,11 +282,11 @@ namespace Etailor.API.WebAPI.Controllers
                         var returnData = new List<Product>();
                         if (role == RoleName.CUSTOMER)
                         {
-                            returnData = productService.GetProductsByOrderIdOfCus(orderId, staffid).ToList();
+                            returnData = (await productService.GetProductsByOrderIdOfCus(orderId, staffid)).ToList();
                         }
                         else
                         {
-                            returnData = productService.GetProductsByOrderId(orderId).ToList();
+                            returnData = (await productService.GetProductsByOrderId(orderId)).ToList();
                         }
                         return Ok(mapper.Map<IEnumerable<ProductVM>>(returnData));
                     }

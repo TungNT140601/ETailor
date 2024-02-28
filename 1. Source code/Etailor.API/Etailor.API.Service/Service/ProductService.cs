@@ -510,28 +510,108 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Product GetProduct(string id)
+        public async Task<Product> GetProductOrder(string id, string orderId)
         {
-            var product = productRepository.Get(id);
-            return product == null ? null : product.IsActive == true ? product : null;
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.Status >= 1)
+            {
+                var product = productRepository.Get(id);
+                if (product != null && product.IsActive == true)
+                {
+                    product.ProductTemplate = productTemplateRepository.Get(product.ProductTemplateId);
+                    if (product.ProductTemplate != null)
+                    {
+                        product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                    }
+                    return product;
+                }
+            }
+            return null;
         }
 
-        public IEnumerable<Product> GetProductsByOrderId(string? orderId)
+        public async Task<Product> GetProductOrderByCus(string id, string orderId, string cusId)
         {
-            return productRepository.GetAll(x => ((orderId != null && x.OrderId.Trim().ToLower() == orderId.ToLower().Trim())) && x.IsActive == true);
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.IsActive == true && dbOrder.Status >= 1 && dbOrder.CustomerId == cusId)
+            {
+                var product = productRepository.Get(id);
+                if (product != null && product.IsActive == true)
+                {
+                    product.ProductTemplate = productTemplateRepository.Get(product.ProductTemplateId);
+                    if (product.ProductTemplate != null)
+                    {
+                        product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                    }
+                    return product;
+                }
+            }
+            return null;
         }
 
-        public IEnumerable<Product> GetProductsByOrderIdOfCus(string? orderId, string cusId)
+        public async Task<IEnumerable<Product>> GetProductsByOrderId(string orderId)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.IsActive == true && dbOrder.Status >= 1)
+            {
+                var products = productRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true).ToList();
+
+                if (products.Any() && products.Count > 0)
+                {
+                    var templates = productTemplateRepository.GetAll(x => products.Select(p => p.ProductTemplateId).Contains(x.Id)).ToList();
+
+                    var tasks = new List<Task>();
+
+                    foreach (var product in products)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+                            if (product.ProductTemplate != null)
+                            {
+                                product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                            }
+                        }));
+                    }
+
+                    await Task.WhenAll(tasks);
+
+                    return products;
+                }
+            }
+            return null;
+        }
+
+        public async Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId)
         {
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null && dbOrder.CustomerId == cusId && dbOrder.IsActive == true && dbOrder.Status >= 1)
             {
-                return productRepository.GetAll(x => ((orderId != null && x.OrderId.Trim().ToLower() == orderId.ToLower().Trim())) && x.IsActive == true);
+                var products = productRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true).ToList();
+
+                if (products.Any() && products.Count > 0)
+                {
+                    var templates = productTemplateRepository.GetAll(x => products.Select(p => p.ProductTemplateId).Contains(x.Id)).ToList();
+
+                    var tasks = new List<Task>();
+
+                    foreach (var product in products)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+                            if (product.ProductTemplate != null)
+                            {
+                                product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                            }
+                        }));
+                    }
+
+                    await Task.WhenAll(tasks);
+
+                    return products;
+                }
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
     }
 }
