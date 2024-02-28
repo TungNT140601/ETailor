@@ -9,8 +9,8 @@ namespace Etailor.API.Service.Interface
 {
     public interface IMaterialTypeService
     {
-        bool CreateMaterialType(MaterialType materialType);
-        bool UpdateMaterialType(MaterialType materialType);
+        Task<bool> CreateMaterialType(MaterialType materialType);
+        Task<bool> UpdateMaterialType(MaterialType materialType);
         bool DeleteMaterialType(string id);
         MaterialType GetMaterialType(string id);
         IEnumerable<MaterialType> GetMaterialTypes(string? search);

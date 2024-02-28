@@ -2,6 +2,7 @@
 using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
+using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -20,11 +21,11 @@ namespace Etailor.API.WebAPI.Controllers
         {
             this.materialService = materialService;
             this.mapper = mapper;
-            this._wwwroot = webHost.ContentRootPath;
+            this._wwwroot = webHost.WebRootPath;
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddMaterial([FromForm] MaterialVM materialVM)
+        public async Task<IActionResult> AddMaterial([FromForm] MaterialFormVM materialVM)
         {
             try
             {
@@ -66,7 +67,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateMaterial(string id, [FromForm] MaterialVM materialVM)
+        public async Task<IActionResult> UpdateMaterial(string id, [FromForm] MaterialFormVM materialVM)
         {
             try
             {
@@ -228,12 +229,62 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet()]
+        [HttpGet]
         public async Task<IActionResult> GetMaterials(string? search)
         {
             try
             {
-                return Ok(mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterials(search)));
+                var materials = materialService.GetMaterials(search).ToList();
+                if (materials.Any() && materials.Count > 0)
+                {
+                    var tasks = new List<Task>();
+                    foreach (var material in materials)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            material.Image = await Ultils.GetUrlImage(material.Image);
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+
+                return Ok(mapper.Map<IEnumerable<MaterialVM>>(materials));
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("fabric")]
+        public async Task<IActionResult> GetAllFabricMaterials(string? search)
+        {
+            try
+            {
+                var materials = materialService.GetFabricMaterials(search).ToList();
+
+                if (materials.Any() && materials.Count() > 0)
+                {
+                    var tasks = new List<Task>();
+                    foreach (var material in materials)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            material.Image = await Ultils.GetUrlImage(material.Image);
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+
+                return Ok(mapper.Map<IEnumerable<MaterialVM>>(materials));
             }
             catch (UserException ex)
             {
