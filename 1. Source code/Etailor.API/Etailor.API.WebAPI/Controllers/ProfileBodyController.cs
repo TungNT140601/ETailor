@@ -248,8 +248,8 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("staff/customer")]
-        public async Task<IActionResult> GetProfileBodysByCustomerId()
+        [HttpGet("staff/customer/{customerId}")]
+        public async Task<IActionResult> GetProfileBodysByCustomerId(string customerId)
         {
             try
             {
@@ -258,7 +258,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (!(role == RoleName.CUSTOMER))
+                else if (role == RoleName.CUSTOMER || role == RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -266,13 +266,13 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!customerService.CheckSecerctKey(id, secrectKey))
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
-                        return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(id)));
+                        return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
                     }
                 }
 
@@ -292,7 +292,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("staff/{staffId}")]
-        public async Task<IActionResult> GetProfileBodysByStaffId(string? staffId)
+        public async Task<IActionResult> GetProfileBodysByStaffId(string? staffId) //Lay ProfileBody theo staffId, -> ai dam nhiem
         {
             try
             {
@@ -313,7 +313,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet()]
-        public async Task<IActionResult> GetProfileBodysOfCustomer()
+        public async Task<IActionResult> GetProfileBodysOfCustomer() 
         {
             try
             {
