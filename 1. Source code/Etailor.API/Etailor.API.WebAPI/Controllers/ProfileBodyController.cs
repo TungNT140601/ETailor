@@ -219,14 +219,15 @@ namespace Etailor.API.WebAPI.Controllers
                     //var bodySizeList = bodySizeService.GetBodySize("");
 
                     ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                    profileBody.valueBodyAttribute = new List<DetailProfileBody>();
 
                     foreach (var bodyAttribute in bodyAttributeList)
                     {
                         bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
                         detailProfileBody.Id = bodyAttribute.BodySizeId;
-                        detailProfileBody.Name = bodyAttribute.BodySize.Name;
+                        detailProfileBody.Name = bodySize.Name;
                         detailProfileBody.Value = (decimal) bodyAttribute.Value;
-                        detailProfileBody.Image = "";
+                        detailProfileBody.Image = bodySize.Image;
                         profileBody.valueBodyAttribute.Add(detailProfileBody);
                     }
 

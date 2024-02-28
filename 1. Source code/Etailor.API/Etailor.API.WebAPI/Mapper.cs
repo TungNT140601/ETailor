@@ -62,6 +62,8 @@ namespace Etailor.API.WebAPI
             CreateMap<ProfileBody, CreateProfileBodyVM>().ReverseMap();
             //CreateMap<ProfileBody, CreateProfileBodyByCustomerVM>().ReverseMap();
             CreateMap<ProfileBody, UpdateProfileBodyVM>().ReverseMap();
+            CreateMap<ProfileBody, GetDetailProfileBodyVM>().ReverseMap();
+            
 
             CreateMap<TemplateStage, TemplateStageCreateVM>().ReverseMap();
             CreateMap<TemplateStage, TemplateStageAllVM>().ReverseMap();
