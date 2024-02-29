@@ -29,7 +29,7 @@ namespace Etailor.API.WebAPI.ViewModels
 
     public class GetOrderVM
     {
-        public string Id { get; set; } = null!;
+        public string? Id { get; set; }
         public DateTime? CreatedTime { get; set; }
         public string? CustomerId { get; set; }
         public string? CreaterId { get; set; }
@@ -43,13 +43,13 @@ namespace Etailor.API.WebAPI.ViewModels
         public decimal? Deposit { get; set; }
         public decimal? PaidMoney { get; set; }
         public decimal? UnPaidMoney { get; set; }
-        public int? Status { get; set; }  
+        public int? Status { get; set; }
         public string? ThumbnailImage { get; set; }
     }
 
     public class OrderByCustomerVM
     {
-        public string Id { get; set; } = null!;
+        public string? Id { get; set; }
         public string? Name { get; set; }
         public string? ThumbnailImage { get; set; }
         public int? TotalProduct { get; set; }
@@ -73,7 +73,8 @@ namespace Etailor.API.WebAPI.ViewModels
         public decimal? PaidMoney { get; set; }
         public decimal? UnPaidMoney { get; set; }
         public int? Status { get; set; }
-        public DiscountVM? Discount { get; set; }
+        public CustomerAllVM? Customer { get; set; }
+        public DiscountOrderDetailVM? Discount { get; set; }
         //public virtual ICollection<Payment> Payments { get; set; }
         public List<ProductListOrderDetailVM>? Products { get; set; }
     }

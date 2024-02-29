@@ -34,7 +34,6 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost()]
-
         public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyVM createProfileBodyByStaffVM)
         {
             try
@@ -101,8 +100,6 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-
-
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProfileBody(string id, [FromBody] UpdateProfileBodyVM profileBodyVM)
@@ -220,15 +217,17 @@ namespace Etailor.API.WebAPI.Controllers
 
                     ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
                     profileBody.valueBodyAttribute = new List<DetailProfileBody>();
-
-                    foreach (var bodyAttribute in bodyAttributeList)
+                    if(bodyAttributeList != null && bodyAttributeList.Count > 0)
                     {
-                        bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
-                        detailProfileBody.Id = bodyAttribute.BodySizeId;
-                        detailProfileBody.Name = bodySize.Name;
-                        detailProfileBody.Value = (decimal) bodyAttribute.Value;
-                        detailProfileBody.Image = bodySize.Image;
-                        profileBody.valueBodyAttribute.Add(detailProfileBody);
+                        foreach (var bodyAttribute in bodyAttributeList)
+                        {
+                            bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                            detailProfileBody.Id = bodyAttribute.BodySizeId;
+                            detailProfileBody.Name = bodySize.Name;
+                            detailProfileBody.Value = (decimal)bodyAttribute.Value;
+                            detailProfileBody.Image = bodySize.Image;
+                            profileBody.valueBodyAttribute.Add(detailProfileBody);
+                        }
                     }
 
                     return pB != null ? Ok(profileBody) : NotFound(id);

@@ -2,7 +2,7 @@
 {
     public class DiscountVM
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public string? Name { get; set; }
         public string? Code { get; set; }
         public DateTime? StartDate { get; set; }
@@ -25,5 +25,11 @@
         public decimal? ConditionPriceMin { get; set; }
         public decimal? ConditionPriceMax { get; set; }
         public int? ConditionProductMin { get; set; }
+    }
+    public class DiscountOrderDetailVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Code { get; set; }
     }
 }

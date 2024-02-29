@@ -15,14 +15,16 @@ namespace Etailor.API.WebAPI.Controllers
     public class DiscountController : ControllerBase
     {
         private readonly IDiscountService discountService;
+        private readonly IOrderService orderService;
         private readonly IStaffService staffService;
         private readonly IMapper mapper;
 
-        public DiscountController(IDiscountService discountService, IStaffService staffService, IMapper mapper)
+        public DiscountController(IDiscountService discountService, IStaffService staffService, IMapper mapper, IOrderService orderService)
         {
             this.mapper = mapper;
             this.discountService = discountService;
             this.staffService = staffService;
+            this.orderService = orderService;
         }
 
         [HttpGet("{id}")]
@@ -161,7 +163,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMaterialType(string? id)
+        public async Task<IActionResult> DisableDiscount(string? id)
         {
             try
             {
@@ -187,6 +189,48 @@ namespace Etailor.API.WebAPI.Controllers
                 return discountService.DeleteDiscount(id) ? Ok("Xóa phiếu giảm giá thành công") : BadRequest("Xóa phiếu giảm giá thất bại");
                 //    }
                 //}
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPatch("order/{orderId}/discount")]
+        public async Task<IActionResult> ApplyDiscountToOrder(string orderId, string? code)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await orderService.ApplyDiscount(orderId, code) ? Ok("Áp mã giảm giá thành công") : BadRequest("Áp mã giảm giá thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
