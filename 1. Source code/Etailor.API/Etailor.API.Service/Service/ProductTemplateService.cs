@@ -741,14 +741,6 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public ProductTemplate GetByProductTemplateId(string Id)
-        {
-            var template = productTemplateRepository.Get(Id);
-
-            return template == null ? null : template.IsActive == true ? template : null;
-
-        }
-
         public bool DeleteTemplate(string id)
         {
             var dbTemplate = productTemplateRepository.Get(id);

@@ -34,7 +34,6 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost()]
-
         public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyVM createProfileBodyByStaffVM)
         {
             try
@@ -101,8 +100,6 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-
-
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateProfileBody(string id, [FromBody] UpdateProfileBodyVM profileBodyVM)
