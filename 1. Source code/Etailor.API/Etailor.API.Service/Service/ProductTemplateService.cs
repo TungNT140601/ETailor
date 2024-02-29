@@ -648,6 +648,28 @@ namespace Etailor.API.Service.Service
                         Task.Run(() =>
                         {
                             template.Category = categoryRepository.Get(template.CategoryId);
+                        }),
+                        Task.Run(async () =>
+                        {
+                            if (!string.IsNullOrEmpty(template.CollectionImage))
+                            {
+                                var listImages = JsonSerializer.Deserialize<List<string>>(template.CollectionImage);
+                                if (listImages != null && listImages.Count() > 0)
+                                {
+                                    var listTaskImages = new List<Task>();
+                                    var listUrls = new List<string>();
+                                    foreach (var image in listImages)
+                                    {
+                                        listTaskImages.Add(Task.Run(async () =>
+                                        {
+                                            listUrls.Add(await Ultils.GetUrlImage(image));
+                                        }));
+                                    }
+                                    await Task.WhenAll(listTaskImages);
+
+                                    template.CollectionImage = JsonSerializer.Serialize(listUrls);
+                                }
+                            }
                         })
                         );
 
@@ -688,6 +710,28 @@ namespace Etailor.API.Service.Service
                                     await Task.WhenAll(listTaskImages);
 
                                     template.Image = JsonSerializer.Serialize(listUrls);
+                                }
+                            }
+                        }),
+                        Task.Run(async () =>
+                        {
+                            if (!string.IsNullOrEmpty(template.CollectionImage))
+                            {
+                                var listImages = JsonSerializer.Deserialize<List<string>>(template.CollectionImage);
+                                if (listImages != null && listImages.Count() > 0)
+                                {
+                                    var listTaskImages = new List<Task>();
+                                    var listUrls = new List<string>();
+                                    foreach (var image in listImages)
+                                    {
+                                        listTaskImages.Add(Task.Run(async () =>
+                                        {
+                                            listUrls.Add(await Ultils.GetUrlImage(image));
+                                        }));
+                                    }
+                                    await Task.WhenAll(listTaskImages);
+
+                                    template.CollectionImage = JsonSerializer.Serialize(listUrls);
                                 }
                             }
                         })

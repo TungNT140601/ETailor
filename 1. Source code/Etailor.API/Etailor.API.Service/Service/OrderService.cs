@@ -136,6 +136,8 @@ namespace Etailor.API.Service.Service
                 {
                     dbOrder.Status = role == RoleName.STAFF ? 1 : role == RoleName.MANAGER ? 2 : 0;
 
+                    dbOrder.IsActive = true;
+
                     return orderRepository.Update(dbOrder.Id, dbOrder);
                 }
             }
@@ -537,6 +539,7 @@ namespace Etailor.API.Service.Service
                 {
                     dbOrder.LastestUpdatedTime = DateTime.Now;
                     dbOrder.Status = 0;
+                    dbOrder.IsActive = false;
 
                     return orderRepository.Update(dbOrder.Id, dbOrder);
                 }
@@ -550,17 +553,21 @@ namespace Etailor.API.Service.Service
         public Order GetOrder(string id)
         {
             var order = orderRepository.Get(id);
-            return order == null ? null : order.IsActive == true ? order : null;
-        }
-
-        public IEnumerable<Order> GetOrders()
-        {
-            return orderRepository.GetAll(x => x.IsActive == true);
+            return order == null ? null : order.Status >= 1 ? order : null;
         }
 
         public IEnumerable<Order> GetOrdersByCustomer(string cusId)
         {
-            return orderRepository.GetAll(x => x.CustomerId == cusId && x.Status != 0 && x.IsActive == true);
+            return orderRepository.GetAll(x => x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true);
+        }
+        public Order GetOrderByCustomer(string cusId, string orderId)
+        {
+            return orderRepository.GetAll(x => x.Id == orderId && x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true).FirstOrDefault();
+        }
+
+        public IEnumerable<Order> GetOrders()
+        {
+            return orderRepository.GetAll(x => x.Status >= 1);
         }
     }
 }

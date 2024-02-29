@@ -37,4 +37,17 @@
         public string? Note { get; set; }
         public List<ComponentTypeOrderVM>? ComponentTypeOrders { get; set; }
     }
+    public class ProductListOrderDetailVM
+    {
+        public string? Id { get; set; }
+        public string? OrderId { get; set; }
+        public string? MaterialId { get; set; }
+        public string? ProfileId { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? TemplateThumnailImage { get; set; }
+        public bool? IsCusMaterial { get; set; }
+        public double? MaterialQuantity { get; set; }
+        public string? Name { get; set; }
+        public string? Note { get; set; }
+    }
 }
