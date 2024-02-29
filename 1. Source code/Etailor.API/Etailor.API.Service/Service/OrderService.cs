@@ -94,9 +94,9 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
-                                if (order.CustomerId != cus.Id)
+                                if (dbOrder.CustomerId != cus.Id)
                                 {
-                                    order.CustomerId = cus.Id;
+                                    dbOrder.CustomerId = cus.Id;
                                     diffCus = true;
                                 }
                                 else
@@ -109,24 +109,24 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        order.LastestUpdatedTime = DateTime.Now;
-                        order.InactiveTime = null;
-                        order.IsActive = false;
+                        dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.InactiveTime = null;
+                        dbOrder.IsActive = false;
                     }));
 
                     tasks.Add(Task.Run(() =>
                     {
-                        order.Status = 1;
+                        dbOrder.Status = 1;
                     }));
 
                     await Task.WhenAll(tasks);
 
                     if (diffCus)
                     {
-                        await ClearOrder(order.Id);
+                        await ClearOrder(dbOrder.Id);
                     }
 
-                    return orderRepository.Update(dbOrder.Id, dbOrder) ? order.Id : null;
+                    return orderRepository.Update(dbOrder.Id, dbOrder) ? dbOrder.Id : null;
                 }
                 else
                 {
