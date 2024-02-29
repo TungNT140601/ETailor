@@ -13,6 +13,17 @@ namespace Etailor.API.WebAPI.ViewModels
         public bool? IsLocked { get; set; }
     }
 
+    public class GetAllProfileBodyOfCustomerVM
+    {
+        public string? Id { get; set; }
+        public string? CustomerName { get; set; }
+        public string? StaffId { get; set; }
+        public string? StaffName { get; set; }
+        public string? Name { get; set; }
+        public bool? IsLocked { get; set; }
+        public DateTime? CreatedTime { get; set; }
+    }
+
     public class CreateProfileBodyVM 
     {
         public string? Name { get; set; }
