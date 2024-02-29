@@ -25,14 +25,14 @@ using Etailor.API.Ultity.CustomException;
 namespace Etailor.API.WebAPI.Controllers
 {
     [ApiController]
-    [Route("api/[controller]/[action]")]
-    public class WeatherForecastController : ControllerBase
+    [Route("api/test/[action]")]
+    public class TestController : ControllerBase
     {
         private string FilePath = "";
         private IConfiguration _configuration;
         private readonly string _wwwrootPath;
 
-        public WeatherForecastController(IConfiguration configuration, IWebHostEnvironment webHost)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -349,7 +349,18 @@ namespace Etailor.API.WebAPI.Controllers
             vnpay.AddRequestData("vnp_OrderInfo", "Thanh toan don hang:" + orderId);
             vnpay.AddRequestData("vnp_OrderType", "other"); //default value: other
 
-            vnpay.AddRequestData("vnp_ReturnUrl", vnp_Returnurl);
+            string scheme = HttpContext.Request.Scheme;
+            string host = HttpContext.Request.Host.Host;
+            int? port = HttpContext.Request.Host.Port;
+
+            string fullUrl = $"{scheme}://{host}";
+
+            if (port.HasValue && port != 80 && port != 443)
+            {
+                fullUrl += $":{port}";
+            }
+
+            vnpay.AddRequestData("vnp_ReturnUrl", fullUrl + "/vnpay/payment-result");
             vnpay.AddRequestData("vnp_TxnRef", orderId); // Mã tham chiếu của giao dịch tại hệ thống của merchant. Mã này là duy nhất dùng để phân biệt các đơn hàng gửi sang VNPAY. Không được trùng lặp trong ngày
 
             //Add Params of 2.1.0 Version
@@ -360,7 +371,7 @@ namespace Etailor.API.WebAPI.Controllers
             return Ok(paymentUrl);
         }
 
-        [HttpGet]
+        [HttpGet("/vnpay/payment-result")]
         public IActionResult GetVNPayPaymentResult(string? vnp_TmnCode, string? vnp_Amount
             , string? vnp_BankCode, string? vnp_BankTranNo, string? vnp_CardType, string? vnp_PayDate
             , string? vnp_OrderInfo, string? vnp_TransactionNo, string? vnp_ResponseCode, string? vnp_TransactionStatus

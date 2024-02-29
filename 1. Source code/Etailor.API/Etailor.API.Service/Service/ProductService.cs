@@ -33,13 +33,14 @@ namespace Etailor.API.Service.Service
         private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IOrderMaterialRepository orderMaterialRepository;
+        private readonly IOrderService orderService;
 
         public ProductService(IProductRepository productRepository, IProductTemplateRepository productTemplateRepository,
             IOrderRepository orderRepository, ITemplateStateRepository templateStateRepository, IComponentTypeRepository componentTypeRepository,
             IComponentRepository componentRepository, IComponentStageRepository componentStageRepository, IProductStageRepository productStageRepository,
             IProductComponentRepository productComponentRepository, IMaterialRepository materialRepository, IProfileBodyRepository profileBodyRepository,
             IProductBodySizeService productBodySizeService, IMaterialTypeRepository materialTypeRepository, IMaterialCategoryRepository materialCategoryRepository,
-            IOrderMaterialRepository orderMaterialRepository)
+            IOrderMaterialRepository orderMaterialRepository, IOrderService orderService)
         {
             this.productRepository = productRepository;
             this.productTemplateRepository = productTemplateRepository;
@@ -56,6 +57,7 @@ namespace Etailor.API.Service.Service
             this.materialTypeRepository = materialTypeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
             this.orderMaterialRepository = orderMaterialRepository;
+            this.orderService = orderService;
         }
 
         public async Task<string> AddProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
@@ -266,19 +268,26 @@ namespace Etailor.API.Service.Service
 
                 if (productRepository.Create(product))
                 {
-                    try
+                    if (await orderService.CheckOrderPaid(product.OrderId))
                     {
-                        return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, order.CustomerId) ? product.Id : null;
-                    }
-                    catch (UserException uex)
-                    {
-                        product.IsActive = false;
-                        product.InactiveTime = DateTime.Now;
-
-                        if (productRepository.Update(product.Id, product))
+                        try
                         {
-                            throw new UserException(uex.Message);
+                            return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, order.CustomerId) ? product.Id : null;
                         }
+                        catch (UserException uex)
+                        {
+                            product.IsActive = false;
+                            product.InactiveTime = DateTime.Now;
+
+                            if (productRepository.Update(product.Id, product))
+                            {
+                                throw new UserException(uex.Message);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
                     }
                 }
                 else
@@ -458,7 +467,14 @@ namespace Etailor.API.Service.Service
 
                                 if (productRepository.Update(dbProduct.Id, dbProduct))
                                 {
-                                    return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, dbOrder.CustomerId) ? dbProduct.Id : null;
+                                    if (await orderService.CheckOrderPaid(dbProduct.OrderId))
+                                    {
+                                        return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, dbOrder.CustomerId) ? dbProduct.Id : null;
+                                    }
+                                    else
+                                    {
+                                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                                    }
                                 }
                                 else
                                 {
