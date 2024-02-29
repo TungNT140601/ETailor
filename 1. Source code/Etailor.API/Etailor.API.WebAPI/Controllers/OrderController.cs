@@ -192,34 +192,49 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var order = orderService.GetOrder(id);
-                        var listProducts = (await productService.GetProductsByOrderId(order.Id)).ToList();
-                        if (listProducts.Any() && listProducts.Count > 0)
+                        if (role == RoleName.CUSTOMER)
                         {
-                            var productTemplate = productTemplateService.GetByProductTemplateId(listProducts.First().ProductTemplateId);
-
-                            if (!string.IsNullOrEmpty(productTemplate.ThumbnailImage))
+                            var order = mapper.Map<OrderByCustomerVM>(orderService.GetOrderByCustomer(staffid, id));
+                            if (order != null)
                             {
-                                productTemplate.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
-                            }
-
-                            var realOrder = mapper.Map<GetOrderVM>(order);
-                            realOrder.CreatedTime = order.CreatedTime;
-                            realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
-
-                            if (order != null && role == RoleName.CUSTOMER && order.CustomerId != staffid)
-                            {
-                                return NotFound(id);
-                            }
-                            else
-                            {
-                                return order != null ? Ok(realOrder) : NotFound(id);
+                                var listProducts = await productService.GetProductsByOrderId(order.Id);
+                                if (listProducts != null && listProducts.Any() && listProducts.Count() > 0)
+                                {
+                                    foreach (var product in listProducts)
+                                    {
+                                        order.Name = product.Name;
+                                        var productTemplate = productTemplateService.GetByProductTemplateId(product.ProductTemplateId);
+                                        if (productTemplate != null)
+                                        {
+                                            order.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
+                                        }
+                                    }
+                                }
+                                return Ok(order);
                             }
                         }
                         else
                         {
-                            return NotFound(id);
+                            var order = mapper.Map<OrderByCustomerVM>(orderService.GetOrder(id));
+                            if (order != null)
+                            {
+                                var listProducts = await productService.GetProductsByOrderId(order.Id);
+                                if (listProducts != null && listProducts.Any() && listProducts.Count() > 0)
+                                {
+                                    foreach (var product in listProducts)
+                                    {
+                                        order.Name = product.Name;
+                                        var productTemplate = productTemplateService.GetByProductTemplateId(product.ProductTemplateId);
+                                        if (productTemplate != null)
+                                        {
+                                            order.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
+                                        }
+                                    }
+                                }
+                                return Ok(order);
+                            }
                         }
+                        return NotFound();
                     }
                 }
             }
@@ -257,32 +272,59 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
+                        var getOrderVMs = new List<GetOrderVM>();
                         if (role == RoleName.CUSTOMER)
                         {
-                            var orders = mapper.Map<IEnumerable<OrderByCustomerVM>>(orderService.GetOrdersByCustomer(staffid).ToList());
-                            foreach (var order in orders)
+                            var orders = orderService.GetOrdersByCustomer(staffid).ToList();
+                            if (orders != null && orders.Any() && orders.Count > 0)
                             {
-                                var listProducts = (await productService.GetProductsByOrderId(order.Id)).ToList();
-                                if(listProducts.Any() && listProducts.Count > 0)
+                                foreach (var order in orders)
                                 {
-                                    foreach (var product in listProducts)
+                                    var realOrder = mapper.Map<GetOrderVM>(order);
+                                    var listProducts = await productService.GetProductsByOrderId(order.Id);
+                                    if (listProducts != null && listProducts.Any() && listProducts.Count() > 0)
                                     {
-                                        order.Name = product.Name;
-                                        var productTemplate = productTemplateService.GetByProductTemplateId(product.ProductTemplateId);
-                                        if(productTemplate != null)
-                                        {
-                                            order.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
-                                        }
-                                    }
-                                }
+                                        var productTemplate = productTemplateService.GetByProductTemplateId(listProducts.First().ProductTemplateId);
 
+                                        if (!string.IsNullOrEmpty(productTemplate.ThumbnailImage))
+                                        {
+                                            productTemplate.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
+                                        }
+
+                                        realOrder.CreatedTime = order.CreatedTime;
+                                        realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
+                                    }
+                                    getOrderVMs.Add(realOrder);
+                                }
                             }
-                            return Ok(orders);
+                            return Ok(getOrderVMs);
                         }
                         else
                         {
-                            return Ok(mapper.Map<IEnumerable<OrderVM>>(orderService.GetOrders()));
+                            var orders = orderService.GetOrders().ToList();
+                            if (orders != null && orders.Any() && orders.Count > 0)
+                            {
+                                foreach (var order in orders)
+                                {
+                                    var realOrder = mapper.Map<GetOrderVM>(order);
+                                    var listProducts = await productService.GetProductsByOrderId(order.Id);
+                                    if (listProducts != null && listProducts.Any() && listProducts.Count() > 0)
+                                    {
+                                        var productTemplate = productTemplateService.GetByProductTemplateId(listProducts.First().ProductTemplateId);
+
+                                        if (!string.IsNullOrEmpty(productTemplate.ThumbnailImage))
+                                        {
+                                            productTemplate.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
+                                        }
+
+                                        realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
+                                    }
+                                    getOrderVMs.Add(realOrder);
+                                }
+                            }
+                            return Ok(getOrderVMs);
                         }
+                        return NotFound();
                     }
                 }
             }

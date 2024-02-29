@@ -54,20 +54,6 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 var templateVM = mapper.Map<ProductTemplateALLVM>(template);
 
-                                await Task.WhenAll(Task.Run(() =>
-                                {
-                                    if (!string.IsNullOrWhiteSpace(template.Image))
-                                    {
-                                        templateVM.Images = JsonConvert.DeserializeObject<List<string>>(template.Image);
-                                    }
-                                }), Task.Run(() =>
-                                {
-                                    if (!string.IsNullOrWhiteSpace(template.CollectionImage))
-                                    {
-                                        templateVM.CollectionImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
-                                    }
-                                }));
-
                                 category.ProductTemplates.Add(templateVM);
                             }
                         }
@@ -107,19 +93,6 @@ namespace Etailor.API.WebAPI.Controllers
                     foreach (var template in templates)
                     {
                         var templateVM = mapper.Map<ProductTemplateALLVM>(template);
-                        await Task.WhenAll(Task.Run(() =>
-                        {
-                            if (!string.IsNullOrWhiteSpace(template.Image))
-                            {
-                                templateVM.Images = JsonConvert.DeserializeObject<List<string>>(template.Image);
-                            }
-                        }), Task.Run(() =>
-                        {
-                            if (!string.IsNullOrWhiteSpace(template.CollectionImage))
-                            {
-                                templateVM.CollectionImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
-                            }
-                        }));
 
                         category.ProductTemplates.Add(templateVM);
                     }

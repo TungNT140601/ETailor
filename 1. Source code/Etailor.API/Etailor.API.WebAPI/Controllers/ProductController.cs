@@ -7,6 +7,7 @@ using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using System.Security.Claims;
 
 namespace Etailor.API.WebAPI.Controllers
@@ -279,16 +280,44 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var returnData = new List<Product>();
                         if (role == RoleName.CUSTOMER)
                         {
-                            returnData = (await productService.GetProductsByOrderIdOfCus(orderId, staffid)).ToList();
+                            var products = await productService.GetProductsByOrderIdOfCus(orderId, staffid);
+                            List<ProductListOrderDetailVM> productVms = new List<ProductListOrderDetailVM>();
+                            foreach (var product in products)
+                            {
+                                var productVM = mapper.Map<ProductListOrderDetailVM>(product);
+                                var template = await productTemplateService.GetById(product.ProductTemplateId);
+                                if (template != null)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(template.ThumbnailImage))
+                                    {
+                                        productVM.TemplateThumnailImage = template.ThumbnailImage;
+                                    }
+                                }
+                                productVms.Add(productVM);
+                            }
+                            return Ok(productVms);
                         }
                         else
                         {
-                            returnData = (await productService.GetProductsByOrderId(orderId)).ToList();
+                            var products = await productService.GetProductsByOrderId(orderId);
+                            List<ProductListOrderDetailVM> productVms = new List<ProductListOrderDetailVM>();
+                            foreach (var product in products)
+                            {
+                                var productVM = mapper.Map<ProductListOrderDetailVM>(product);
+                                var template = await productTemplateService.GetById(product.ProductTemplateId);
+                                if (template != null)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(template.ThumbnailImage))
+                                    {
+                                        productVM.TemplateThumnailImage = template.ThumbnailImage;
+                                    }
+                                }
+                                productVms.Add(productVM);
+                            }
+                            return Ok(productVms);
                         }
-                        return Ok(mapper.Map<IEnumerable<ProductVM>>(returnData));
                     }
                 }
             }

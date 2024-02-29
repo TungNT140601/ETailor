@@ -551,7 +551,7 @@ namespace Etailor.API.Service.Service
         public async Task<IEnumerable<Product>> GetProductsByOrderId(string orderId)
         {
             var dbOrder = orderRepository.Get(orderId);
-            if (dbOrder != null && dbOrder.IsActive == true && dbOrder.Status >= 1)
+            if (dbOrder != null && dbOrder.Status >= 1)
             {
                 var products = productRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true).ToList();
 
