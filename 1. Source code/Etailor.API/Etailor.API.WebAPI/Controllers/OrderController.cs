@@ -233,6 +233,7 @@ namespace Etailor.API.WebAPI.Controllers
                                         product.ProductTemplate = await productTemplateService.GetById(product.ProductTemplateId);
                                     }
                                     productVM.TemplateThumnailImage = product.ProductTemplate.ThumbnailImage;
+                                    productVM.TemplateName = product.ProductTemplate.Name;
 
                                     order.Products.Add(productVM);
                                 }

@@ -79,8 +79,9 @@ namespace Etailor.API.Service.Service
             else
             {
                 var dbOrder = orderRepository.Get(order.Id);
-                if (dbOrder != null && dbOrder.IsActive == false)
+                if (dbOrder != null && dbOrder.IsActive == false && dbOrder.Status <= 2 && dbOrder.InactiveTime == null)
                 {
+                    var diffCus = false;
                     if (!string.IsNullOrWhiteSpace(order.CustomerId))
                     {
                         var cus = customerRepository.Get(order.CustomerId);
@@ -93,32 +94,75 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
-                                order.CustomerId = cus.Id;
+                                if (dbOrder.CustomerId != cus.Id)
+                                {
+                                    dbOrder.CustomerId = cus.Id;
+                                    diffCus = true;
+                                }
+                                else
+                                {
+                                    diffCus = false;
+                                }
                             }
                         }));
                     }
 
                     tasks.Add(Task.Run(() =>
                     {
-                        order.LastestUpdatedTime = DateTime.Now;
-                        order.InactiveTime = null;
-                        order.IsActive = false;
+                        dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.InactiveTime = null;
+                        dbOrder.IsActive = false;
                     }));
 
                     tasks.Add(Task.Run(() =>
                     {
-                        order.Status = 1;
+                        dbOrder.Status = 1;
                     }));
 
                     await Task.WhenAll(tasks);
 
-                    return orderRepository.Update(dbOrder.Id, dbOrder) ? order.Id : null;
+                    if (diffCus)
+                    {
+                        await ClearOrder(dbOrder.Id);
+                    }
+
+                    return orderRepository.Update(dbOrder.Id, dbOrder) ? dbOrder.Id : null;
                 }
                 else
                 {
                     throw new UserException("Id hóa đơn không tồn tại");
                 }
             }
+        }
+
+        private async Task<bool> ClearOrder(string orderId)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null)
+            {
+                var orderProducts = productRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+                if (orderProducts != null && orderProducts.Any())
+                {
+                    var tasks = new List<Task>();
+                    foreach (var product in orderProducts.ToList())
+                    {
+                        tasks.Add(Task.Run(() =>
+                        {
+                            product.IsActive = false;
+                            product.InactiveTime = DateTime.Now;
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+
+                    var checks = new List<bool>();
+                    foreach (var product in orderProducts.ToList())
+                    {
+                        checks.Add(productRepository.Update(product.Id, product));
+                    }
+                    return !checks.Any(x => x == false);
+                }
+            }
+            return false;
         }
 
         public bool FinishOrder(string orderId, string role)

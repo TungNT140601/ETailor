@@ -43,8 +43,11 @@
         public string? OrderId { get; set; }
         public string? MaterialId { get; set; }
         public string? ProductTemplateId { get; set; }
+        public string? TemplateName { get; set; }
         public string? TemplateThumnailImage { get; set; }
         public string? Name { get; set; }
         public string? Note { get; set; }
+        public decimal? Price { get; set; }
+        public int? Status { get; set; }
     }
 }
