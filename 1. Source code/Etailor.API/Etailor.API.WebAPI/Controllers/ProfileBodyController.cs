@@ -336,7 +336,28 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(id)));
+                        var profileBodyList = mapper.Map<IEnumerable<GetAllProfileBodyOfCustomerVM>>(profileBodyService.GetProfileBodysByCustomerId(id));
+                        foreach (var profileBody in profileBodyList)
+                        {
+                            if (staffService.GetStaff(profileBody.StaffId) != null)
+                            {
+                                profileBody.StaffName = staffService.GetStaff(profileBody.StaffId).Fullname;
+                            }
+                            else
+                            {
+                                profileBody.StaffName = null;
+                            }
+                            if (customerService.FindById(id) != null)
+                            {
+                                profileBody.CustomerName = customerService.FindById(id).Fullname;
+                            }
+                            else
+                            {
+                                profileBody.CustomerName = null;
+                            }
+                            
+                        }
+                        return Ok(profileBodyList);
                     }
                 }
             }
@@ -377,7 +398,7 @@ namespace Etailor.API.WebAPI.Controllers
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
-                    {
+                    {                      
                         return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
                     }
                 }

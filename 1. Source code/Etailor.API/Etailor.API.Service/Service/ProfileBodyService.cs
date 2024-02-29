@@ -369,6 +369,12 @@ namespace Etailor.API.Service.Service
             return profileBody == null ? null : profileBody.IsActive == true ? profileBody : null;
         }
 
+        public IEnumerable<ProfileBody> GetProfileBodysOfCustomerId(string? search)
+        {
+
+            return profileBodyRepository.GetAll(x => ((search != null && x.CustomerId != null && x.CustomerId.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+        }
+
         public IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string? search)
         {
             return profileBodyRepository.GetAll(x => ((search != null && x.CustomerId != null && x.CustomerId.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
