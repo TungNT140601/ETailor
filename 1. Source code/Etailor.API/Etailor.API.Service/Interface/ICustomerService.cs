@@ -15,11 +15,8 @@ namespace Etailor.API.Service.Interface
         Customer FindPhone(string phone);
         IEnumerable<Customer> FindPhoneOrEmail(string? search);
         Customer FindUsername(string username);
-
         Customer FindById(string id);
-
         bool CreateCustomer(Customer customer);
-
         Task<bool> UpdatePersonalProfileCustomer(Customer customer, IFormFile? avatar, string wwwroot);
         bool UpdateCustomerEmail(Customer customer);
         bool UpdateCustomerPhone(Customer customer);

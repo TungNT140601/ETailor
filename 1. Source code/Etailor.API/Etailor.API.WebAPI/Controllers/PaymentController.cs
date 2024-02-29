@@ -31,7 +31,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("{orderId}")]
-        public async Task<IActionResult> CreatePaymnent(string orderId, int? persent, int payType, string platform)
+        public async Task<IActionResult> CreatePaymnent(string orderId, int? amount, int payType, string platform)
         {
             try
             {
@@ -54,7 +54,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                var result = paymentService.CreatePayment(orderId, persent, payType, platform, GetIpAddress());
+                var result = paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress());
                 if (result != null)
                 {
                     //return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
