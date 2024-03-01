@@ -8,6 +8,7 @@
         public string? Name { get; set; }
         //public string? Image { get; set; }
         public IFormFile? ImageFile { get; set; }
+        public bool? Default { get; set; } = false;
     }
     public class ComponentOrderVM
     {

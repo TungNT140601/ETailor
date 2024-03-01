@@ -34,11 +34,11 @@ namespace Etailor.API.Service.Service
             this._httpContextAccessor = httpContextAccessor;
         }
 
-        public string CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip)
+        public async Task<string> CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip)
         {
             var order = orderRepository.Get(orderId);
 
-            if (order == null || order.IsActive == false)
+            if (order == null)
             {
                 throw new UserException("Không tìm thấy hóa đơn");
             }
@@ -86,6 +86,7 @@ namespace Etailor.API.Service.Service
                     }
                     if (platform == PlatformName.OFFLINE)
                     {
+                        await orderService.CheckOrderPaid(orderId);
                         return payment.Id;
                     }
 

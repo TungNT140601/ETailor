@@ -213,14 +213,14 @@ namespace Etailor.API.Service.Service
                                         Name = component.Name,
                                         Image = "",
                                         ProductStageId = null,
-                                        ProductComponentMaterials = new List<ProductComponentMaterial>()
-                                        {
-                                     new ProductComponentMaterial()
-                                     {
-                                         Id = Ultils.GenGuidString(),
-                                         MaterialId = materialId
-                                     }
-                                        }
+                                        //   ProductComponentMaterials = new List<ProductComponentMaterial>() //cái này chờ kéo materialId vào product
+                                        //   {
+                                        //new ProductComponentMaterial()
+                                        //{
+                                        //    Id = Ultils.GenGuidString(),
+                                        //    MaterialId = materialId,
+                                        //}
+                                        //   }
                                     });
                                 }
                             }));

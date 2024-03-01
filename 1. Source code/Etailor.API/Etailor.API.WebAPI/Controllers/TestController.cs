@@ -21,6 +21,7 @@ using System.Text.Json;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 using Etailor.API.Repository.Repository;
 using Etailor.API.Ultity.CustomException;
+using Etailor.API.Service.Interface;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -31,14 +32,16 @@ namespace Etailor.API.WebAPI.Controllers
         private string FilePath = "";
         private IConfiguration _configuration;
         private readonly string _wwwrootPath;
+        private readonly IProductStageService productStageService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
             // Load Firebase credentials
 
             _wwwrootPath = webHost.WebRootPath;
+            this.productStageService = productStageService;
         }
 
         #region SendMail
@@ -400,6 +403,7 @@ namespace Etailor.API.WebAPI.Controllers
 
         #endregion
 
+        #region File
         [HttpGet]
         [Route("downloadfile")]
         public IActionResult DownloadFile()
@@ -683,6 +687,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+        #endregion
 
         [HttpPost("test-async-task")]
         public async Task<IActionResult> TaskAsync(TestTask testTask)
@@ -734,6 +739,19 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("test-create-product-stage")]
+        public async Task<IActionResult> TestCreateProductStage()
+        {
+            try
+            {
+                return productStageService.CreateProductStage() ? Ok() : BadRequest();
+            }
+            catch (Exception ex)
+            {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
