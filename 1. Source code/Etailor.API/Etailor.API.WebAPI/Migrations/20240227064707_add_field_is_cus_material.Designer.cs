@@ -4,6 +4,7 @@ using Etailor.API.Repository.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Etailor.API.WebAPI.Migrations
 {
     [DbContext(typeof(ETailor_DBContext))]
-    partial class ETailor_DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240227064707_add_field_is_cus_material")]
+    partial class add_field_is_cus_material
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -924,10 +926,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("EvidenceImage")
                         .HasColumnType("text");
 
-                    b.Property<string>("FabricMaterialId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
                     b.Property<DateTime?>("FinishTime")
                         .HasColumnType("datetime");
 
@@ -963,10 +961,6 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("ReferenceProfileBodyId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
                     b.Property<string>("SaveOrderComponents")
                         .HasColumnType("text");
 
@@ -977,13 +971,9 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FabricMaterialId");
-
                     b.HasIndex("OrderId");
 
                     b.HasIndex("ProductTemplateId");
-
-                    b.HasIndex("ReferenceProfileBodyId");
 
                     b.ToTable("Product", (string)null);
                 });
@@ -1612,11 +1602,6 @@ namespace Etailor.API.WebAPI.Migrations
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Product", b =>
                 {
-                    b.HasOne("Etailor.API.Repository.EntityModels.Material", "FabricMaterial")
-                        .WithMany("Products")
-                        .HasForeignKey("FabricMaterialId")
-                        .HasConstraintName("FK__Product__Fabric_Material__6B44E613");
-
                     b.HasOne("Etailor.API.Repository.EntityModels.Order", "Order")
                         .WithMany("Products")
                         .HasForeignKey("OrderId")
@@ -1627,18 +1612,9 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasForeignKey("ProductTemplateId")
                         .HasConstraintName("FK__Product__Product__6C390A4C");
 
-                    b.HasOne("Etailor.API.Repository.EntityModels.ProfileBody", "ReferenceProfileBody")
-                        .WithMany("Products")
-                        .HasForeignKey("ReferenceProfileBodyId")
-                        .HasConstraintName("FK__Product__ProfileBody__6B44E613");
-
-                    b.Navigation("FabricMaterial");
-
                     b.Navigation("Order");
 
                     b.Navigation("ProductTemplate");
-
-                    b.Navigation("ReferenceProfileBody");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductBodySize", b =>
@@ -1836,8 +1812,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Navigation("OrderMaterials");
 
                     b.Navigation("ProductComponentMaterials");
-
-                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialCategory", b =>
@@ -1895,8 +1869,6 @@ namespace Etailor.API.WebAPI.Migrations
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProfileBody", b =>
                 {
                     b.Navigation("BodyAttributes");
-
-                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Staff", b =>

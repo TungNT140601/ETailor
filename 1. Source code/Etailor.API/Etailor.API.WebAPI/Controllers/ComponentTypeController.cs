@@ -17,13 +17,15 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private readonly IStaffService staffService;
         private readonly IComponentTypeService componentTypeService;
+        private readonly IProductTemplateService productTemplateService;
         private readonly IMapper mapper;
 
-        public ComponentTypeController(IStaffService staffService, IMapper mapper, IComponentTypeService componentTypeService)
+        public ComponentTypeController(IStaffService staffService, IMapper mapper, IComponentTypeService componentTypeService, IProductTemplateService productTemplateService)
         {
             this.staffService = staffService;
             this.mapper = mapper;
             this.componentTypeService = componentTypeService;
+            this.productTemplateService = productTemplateService;
         }
 
         [HttpPost]
@@ -42,16 +44,16 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                    //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    //if (!staffService.CheckSecrectKey(id, secrectKey))
-                    //{
-                    //    return Unauthorized("Chưa đăng nhập");
-                    //}
-                    //else
-                    //{
-                        return (await componentTypeService.AddComponentType(mapper.Map<ComponentType>(componentType))) ? Ok("Tạo mới loại danh mục thành công") : BadRequest("Tạo mới loại danh mục thất bại");
-                    //}
+                //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //if (!staffService.CheckSecrectKey(id, secrectKey))
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else
+                //{
+                return (await componentTypeService.AddComponentType(mapper.Map<ComponentType>(componentType))) ? Ok("Tạo mới loại danh mục thành công") : BadRequest("Tạo mới loại danh mục thất bại");
+                //}
                 //}
             }
             catch (UserException ex)
@@ -92,14 +94,14 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                        if (id == null || id != componentType.Id)
-                        {
-                            return NotFound("Không tìm thấy loại danh mục");
-                        }
-                        else
-                        {
-                            return (await componentTypeService.UpdateComponentType(mapper.Map<ComponentType>(componentType))) ? Ok("Cập nhật loại danh mục thành công") : BadRequest("Cập nhật loại danh mục thất bại");
-                        }
+                if (id == null || id != componentType.Id)
+                {
+                    return NotFound("Không tìm thấy loại danh mục");
+                }
+                else
+                {
+                    return (await componentTypeService.UpdateComponentType(mapper.Map<ComponentType>(componentType))) ? Ok("Cập nhật loại danh mục thành công") : BadRequest("Cập nhật loại danh mục thất bại");
+                }
                 //    }
                 //}
             }
@@ -141,14 +143,14 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                        if (id == null)
-                        {
-                            return NotFound("Không tìm thấy loại danh mục");
-                        }
-                        else
-                        {
-                            return componentTypeService.DeleteComponentType(id) ? Ok("Xóa loại danh mục thành công") : BadRequest("Xóa loại danh mục thất bại");
-                        }
+                if (id == null)
+                {
+                    return NotFound("Không tìm thấy loại danh mục");
+                }
+                else
+                {
+                    return componentTypeService.DeleteComponentType(id) ? Ok("Xóa loại danh mục thành công") : BadRequest("Xóa loại danh mục thất bại");
+                }
                 //    }
                 //}
             }
@@ -177,15 +179,15 @@ namespace Etailor.API.WebAPI.Controllers
                 //}
                 //else
                 //{
-                    var componentType = componentTypeService.GetComponentType(id);
-                    if (componentType == null)
-                    {
-                        return NotFound("Không tìm thấy loại danh mục");
-                    }
-                    else
-                    {
-                        return Ok(mapper.Map<ComponentTypeVM>(componentType));
-                    }
+                var componentType = componentTypeService.GetComponentType(id);
+                if (componentType == null)
+                {
+                    return NotFound("Không tìm thấy loại danh mục");
+                }
+                else
+                {
+                    return Ok(mapper.Map<ComponentTypeVM>(componentType));
+                }
                 //}
             }
             catch (UserException ex)
@@ -229,6 +231,27 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 return Ok(mapper.Map<IEnumerable<ComponentTypeVM>>(componentTypeService.GetComponentTypesByCategory(id)));
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("/api/template/{id}/component-types")]
+        public async Task<IActionResult> GetComponentTypesByTemplate(string id)
+        {
+            try
+            {
+                return Ok(mapper.Map<IEnumerable<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(id)));
             }
             catch (UserException ex)
             {

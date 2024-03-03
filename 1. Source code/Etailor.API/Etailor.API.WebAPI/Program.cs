@@ -15,6 +15,9 @@ using Microsoft.AspNetCore.Hosting;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Repository;
+using Etailor.API.WebAPI;
+using Hangfire;
+using Hangfire.MemoryStorage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +65,9 @@ builder.Services.AddSwaggerGen(
                         });
                 }
 );
+builder.Services.AddHangfire(config => config.UseMemoryStorage());
+
+builder.Services.AddHangfireServer();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -104,6 +110,7 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddScoped<IProductStageRepository, ProductStageRepository>();
+builder.Services.AddScoped<IProductStageService, ProductStageService>();
 
 builder.Services.AddScoped<IProductComponentRepository, ProductComponentRepository>();
 
@@ -121,6 +128,9 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 builder.Services.AddScoped<IProductTemplateRepository, ProductTemplateRepository>();
 builder.Services.AddScoped<IProductTemplateService, ProductTemplateService>();
+
+builder.Services.AddScoped<IProductBodySizeRepository, ProductBodySizeRepository>();
+builder.Services.AddScoped<IProductBodySizeService, ProductBodySizeService>();
 
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
@@ -155,8 +165,11 @@ builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>(
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
+builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
+
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
+
 FirebaseApp.Create(new AppOptions { Credential = credentials });
 
 var app = builder.Build();
@@ -179,6 +192,16 @@ app.UseCors(option =>
     .WithOrigins(MyAllowSpecificOrigins)
     .AllowAnyMethod();
 });
+
+app.UseHangfireDashboard();
+
+RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule(Cron.Daily(0)), Cron.Daily(0));
+RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod2", x => x.SendDemoSchedule(Cron.Hourly(0)), Cron.Hourly(0));
+//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod3", x => x.SendDemoSchedule(Cron.Hourly(15)), Cron.Hourly(15));
+//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod4", x => x.SendDemoSchedule(Cron.Hourly(45)), Cron.Hourly(45));
+//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod5", x => x.SendDemoSchedule(Cron.Minutely()), Cron.Minutely());
+
+app.UseHangfireServer();
 
 app.UseStaticFiles();
 

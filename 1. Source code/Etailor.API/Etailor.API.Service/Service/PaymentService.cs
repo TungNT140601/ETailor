@@ -34,32 +34,30 @@ namespace Etailor.API.Service.Service
             this._httpContextAccessor = httpContextAccessor;
         }
 
-        public string CreatePayment(string orderId, int? percent, int payType, string platform, string ip)
+        public async Task<string> CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip)
         {
             var order = orderRepository.Get(orderId);
 
-            double amount = 0;
-
-            if (order == null || order.IsActive == false)
+            if (order == null)
             {
                 throw new UserException("Không tìm thấy hóa đơn");
             }
             else
             {
-                if (payType == 1 && percent.HasValue)
+                if (payType == 1 && amount.HasValue)
                 {
                     if (paymentRepository.GetAll(x => x.OrderId == order.Id && x.PayType == 1 && x.Status == 0).Any())
                     {
                         throw new UserException("Hóa đơn này đã được thanh toán cọc.");
                     }
-                    else
+                    else if (amount < 5000 || (order.DiscountId != null && amount.Value > order.AfterDiscountPrice) || (order.DiscountId == null && amount.Value > order.TotalPrice))
                     {
-                        amount = (double)order.TotalPrice * (double)percent / 100;
+                        throw new UserException("Số tiền cọc không hợp lệ.");
                     }
                 }
                 else if (payType == 0)
                 {
-                    amount = order.UnPaidMoney.HasValue ? (double)order.UnPaidMoney.Value : 0;
+                    amount = order.UnPaidMoney.HasValue ? (decimal)order.UnPaidMoney.Value : 0;
                 }
                 else
                 {
@@ -71,8 +69,8 @@ namespace Etailor.API.Service.Service
                     Id = Ultils.GenGuidString(),
                     OrderId = orderId,
                     CreatedTime = DateTime.Now,
-                    Amount = (decimal)Math.Round(amount, 2),
-                    AmountAfterRefund = (decimal)Math.Round(amount, 2),
+                    Amount = (decimal)Math.Round(amount.Value, 2),
+                    AmountAfterRefund = (decimal)Math.Round(amount.Value, 2),
                     PaymentRefundId = null,
                     Platform = platform,
                     PayTime = null,
@@ -88,6 +86,7 @@ namespace Etailor.API.Service.Service
                     }
                     if (platform == PlatformName.OFFLINE)
                     {
+                        await orderService.CheckOrderPaid(orderId);
                         return payment.Id;
                     }
 
@@ -101,7 +100,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool UpdatePayment(string paymentId, int status)
+        public async Task<bool> UpdatePayment(string paymentId, int status)
         {
             var payment = paymentRepository.Get(paymentId);
             if (payment != null)
@@ -117,11 +116,11 @@ namespace Etailor.API.Service.Service
                         {
                             case 0:
                                 {
-                                    return orderService.CheckOrderPaid(payment.OrderId);
+                                    return await orderService.CheckOrderPaid(payment.OrderId);
                                 }
                             case 1:
                                 {
-                                    return orderService.PayDeposit(payment.OrderId, payment.Amount.GetValueOrDefault());
+                                    return await orderService.PayDeposit(payment.OrderId, payment.Amount.GetValueOrDefault());
                                 }
                             case 2:
                                 {

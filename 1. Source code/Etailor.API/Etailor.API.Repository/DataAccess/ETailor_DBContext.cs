@@ -604,6 +604,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
+                entity.Property(e => e.IsCusMaterial).HasDefaultValueSql("((0))");
+
                 entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
@@ -672,6 +674,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.EvidenceImage).HasColumnType("text");
 
+                entity.Property(e => e.SaveOrderComponents).HasColumnType("text");
+
                 entity.Property(e => e.FinishTime).HasColumnType("datetime");
 
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
@@ -686,6 +690,10 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.OrderId).HasMaxLength(30);
 
+                entity.Property(e => e.FabricMaterialId).HasMaxLength(30);
+
+                entity.Property(e => e.ReferenceProfileBodyId).HasMaxLength(30);
+
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
 
                 entity.Property(e => e.Status).HasDefaultValueSql("((1))");
@@ -698,6 +706,16 @@ namespace Etailor.API.Repository.DataAccess
                     .WithMany(p => p.Products)
                     .HasForeignKey(d => d.OrderId)
                     .HasConstraintName("FK__Product__OrderId__6B44E613");
+
+                entity.HasOne(d => d.ReferenceProfileBody)
+                    .WithMany(p => p.Products)
+                    .HasForeignKey(d => d.ReferenceProfileBodyId)
+                    .HasConstraintName("FK__Product__ProfileBody__6B44E613");
+
+                entity.HasOne(d => d.FabricMaterial)
+                    .WithMany(p => p.Products)
+                    .HasForeignKey(d => d.FabricMaterialId)
+                    .HasConstraintName("FK__Product__Fabric_Material__6B44E613");
 
                 entity.HasOne(d => d.ProductTemplate)
                     .WithMany(p => p.Products)

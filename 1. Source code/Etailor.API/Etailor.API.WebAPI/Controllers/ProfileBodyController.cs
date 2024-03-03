@@ -6,6 +6,7 @@ using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Security.Claims;
 
 namespace Etailor.API.WebAPI.Controllers
@@ -18,17 +19,22 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ICustomerService customerService;
         private readonly IStaffService staffService;
         private readonly IMapper mapper;
+        private readonly IBodyAttributeService bodyAttributeService;
+        private readonly IBodySizeService bodySizeService;
 
-        public ProfileBodyController(IProfileBodyService profileBodyService, ICustomerService customerService, IStaffService staffService, IMapper mapper)
+        public ProfileBodyController(IProfileBodyService profileBodyService, ICustomerService customerService, IStaffService staffService, IMapper mapper,
+            IBodyAttributeService bodyAttributeService, IBodySizeService bodySizeService)
         {
             this.profileBodyService = profileBodyService;
             this.customerService = customerService;
             this.staffService = staffService;
             this.mapper = mapper;
+            this.bodyAttributeService = bodyAttributeService;
+            this.bodySizeService = bodySizeService;
         }
 
-        [HttpPost("/add-profile-body-by-staff")]
-        public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyByStaffVM profileBodyVM)
+        [HttpPost()]
+        public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyVM createProfileBodyByStaffVM)
         {
             try
             {
@@ -37,7 +43,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (!(role == RoleName.STAFF || role == RoleName.MANAGER))
+                else if (role == RoleName.ADMIN)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -45,75 +51,38 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        var profileBody = mapper.Map<ProfileBody>(profileBodyVM);
-                        if (string.IsNullOrWhiteSpace(profileBodyVM.Name))
-                        {
-                            throw new UserException("Nhập tên hồ sơ số đo cơ thể");
-                        }
-                        else
-                        {
-                            profileBody.StaffId = id;
-                            profileBody.IsLocked = true;
-                            return await profileBodyService.AddProfileBody(profileBody) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
-                        }               
-                    }
-                }
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
 
-        [HttpPost("/add-profile-body-by-customer")]
-        public async Task<IActionResult> AddProfileBodyByCustomer([FromBody] CreateProfileBodyByCustomerVM profileBodyVM)
-        {
-            try
-            {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (role != RoleName.CUSTOMER)
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
-                {
-                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!customerService.CheckSecerctKey(id, secrectKey))
+                    if ((!staffService.CheckSecrectKey(id, secrectKey) && (role == RoleName.STAFF || role == RoleName.MANAGER)) || (!customerService.CheckSecerctKey(id, secrectKey) && role == RoleName.CUSTOMER))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
-                        var profileBody = mapper.Map<ProfileBody>(profileBodyVM);
-                        if (string.IsNullOrWhiteSpace(profileBodyVM.Name))
+                        if (string.IsNullOrWhiteSpace(createProfileBodyByStaffVM.Name))
                         {
                             throw new UserException("Nhập tên hồ sơ số đo cơ thể");
                         }
                         else
                         {
-                            profileBody.CustomerId = id;
-                            profileBody.StaffId = null;
-                            profileBody.IsLocked = false;
-                            return await profileBodyService.AddProfileBody(profileBody) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                            List<(string id, decimal value)> list = new List<(string id, decimal value)>();
+                            var listBodyAttribute = createProfileBodyByStaffVM.valueBodyAttribute;
+                            foreach (var item in listBodyAttribute)
+                            {
+                                list.Add((item.Id, item.Value));
+                            }
+
+                            if (role == RoleName.STAFF || role == RoleName.MANAGER)
+                            {
+                                return await profileBodyService.CreateProfileBodyByStaff(createProfileBodyByStaffVM.CustomerId, id, createProfileBodyByStaffVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                            }
+                            else if (role == RoleName.CUSTOMER)
+                            {
+                                return await profileBodyService.CreateProfileBodyByCustomer(id, createProfileBodyByStaffVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                            }
+                            else
+                            {
+                                throw new UserException("Something went wrong!!!");
+                            }
                         }
                     }
                 }
@@ -142,7 +111,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (!(role == RoleName.MANAGER || role == RoleName.STAFF))
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -183,32 +152,32 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else
-                //{
-                if (id == null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    return NotFound("Id sản phẩm không tồn tại");
+                    return Unauthorized("Chưa đăng nhập");
                 }
-                return (await profileBodyService.DeleteProfileBody(id)) ? Ok("Xóa Profile Body thành công") : BadRequest("Xóa Profile Body thất bại");
-                //    }
-                //}
+                else if (role != RoleName.CUSTOMER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!customerService.CheckSecerctKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (id == null)
+                        {
+                            return NotFound("Id sản phẩm không tồn tại");
+                        }
+                        return (await profileBodyService.DeleteProfileBody(id)) ? Ok("Xóa Profile Body thành công") : BadRequest("Xóa Profile Body thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -229,14 +198,65 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if (id == null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    return NotFound("Id Profile Body không tồn tại");
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (!(role == RoleName.CUSTOMER))
+                {
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
-                    var profileBody = profileBodyService.GetProfileBody(id);
-                    return profileBody != null ? Ok(mapper.Map<ProfileBodyVM>(profileBody)) : NotFound(id);
+                    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!customerService.CheckSecerctKey(customerId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (id == null)
+                        {
+                            return NotFound("Id Profile Body không tồn tại");
+                        }
+                        else
+                        {
+                            var pB = profileBodyService.GetProfileBody(id);
+                            if (pB.CustomerId == customerId)
+                            {
+                                var profileBody = mapper.Map<GetDetailProfileBodyVM>(pB);
+
+                                DetailProfileBody detailProfileBody = new DetailProfileBody();
+
+                                var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(id).Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
+
+                                BodySize bodySize;
+                                //var bodySizeList = bodySizeService.GetBodySize("");
+
+                                ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                                profileBody.valueBodyAttribute = new List<DetailProfileBody>();
+
+                                foreach (var bodyAttribute in bodyAttributeList)
+                                {
+                                    bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                                    detailProfileBody.Id = bodyAttribute.BodySizeId;
+                                    detailProfileBody.Name = bodySize.Name;
+                                    detailProfileBody.Value = (decimal)bodyAttribute.Value;
+                                    detailProfileBody.Image = bodySize.Image;
+                                    profileBody.valueBodyAttribute.Add(detailProfileBody);
+                                }
+
+                                return pB != null ? Ok(profileBody) : NotFound(id);
+                            }
+                            else
+                            {
+                                throw new UserException("ID Hồ sơ sô đo cơ thể này không phải của bạn. Vui lòng nhập lại");
+                            }
+                            
+                        }
+                    }
                 }
             }
             catch (UserException ex)
@@ -253,29 +273,51 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("/get-profile-body-by-customer-id")]
-        public async Task<IActionResult> GetProfileBodysByCustomerId(string? customerId)
-        {
-            try
-            {
-                return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
+        //[HttpGet("staff/customer{customerId}")]
+        //public async Task<IActionResult> GetProfileBodysByCustomerId(string customerId)
+        //{
+        //    try
+        //    {
+        //        var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+        //        if (role == null)
+        //        {
+        //            return Unauthorized("Chưa đăng nhập");
+        //        }
+        //        else if (role == RoleName.CUSTOMER || role == RoleName.STAFF)
+        //        {
+        //            return Unauthorized("Không có quyền truy cập");
+        //        }
+        //        else
+        //        {
+        //            var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        //            var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+        //            if (!staffService.CheckSecrectKey(id, secrectKey))
+        //            {
+        //                return Unauthorized("Chưa đăng nhập");
+        //            }
+        //            else
+        //            {
+        //                return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
+        //            }
+        //        }
 
-        [HttpGet("/get-profile-body-by-staff-id")]
-        public async Task<IActionResult> GetProfileBodysByStaffId(string? staffId)
+        //    }
+        //    catch (UserException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (SystemsException ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //}
+
+        [HttpGet("staff/{staffId}")]
+        public async Task<IActionResult> GetProfileBodysByStaffId(string? staffId) //Lay ProfileBody theo staffId, -> ai dam nhiem
         {
             try
             {
@@ -294,5 +336,166 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet()]
+        public async Task<IActionResult> GetProfileBodysOfCustomer()
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (!(role == RoleName.CUSTOMER))
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!customerService.CheckSecerctKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var profileBodyList = mapper.Map<IEnumerable<GetAllProfileBodyOfCustomerVM>>(profileBodyService.GetProfileBodysByCustomerId(id));
+                        foreach (var profileBody in profileBodyList)
+                        {
+                            if (staffService.GetStaff(profileBody.StaffId) != null)
+                            {
+                                profileBody.StaffName = staffService.GetStaff(profileBody.StaffId).Fullname;
+                            }
+                            else
+                            {
+                                profileBody.StaffName = null;
+                            }
+                            if (customerService.FindById(id) != null)
+                            {
+                                profileBody.CustomerName = customerService.FindById(id).Fullname;
+                            }
+                            else
+                            {
+                                profileBody.CustomerName = null;
+                            }
+                            
+                        }
+                        return Ok(profileBodyList);
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("staff/customer/{customerId}")]
+        public async Task<IActionResult> GetProfileBodysOfCustomerByStaff(string customerId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role == RoleName.CUSTOMER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {                      
+                        return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+
+        //[HttpPost("/add-profile-body-by-customer")]
+        //public async Task<IActionResult> AddProfileBodyByCustomer([FromBody] CreateProfileBodyByCustomerVM createProfileBodyByCustomerVM)
+        //{
+        //    try
+        //    {
+        //        var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+        //        if (role == null)
+        //        {
+        //            return Unauthorized("Chưa đăng nhập");
+        //        }
+        //        else if (role != RoleName.CUSTOMER)
+        //        {
+        //            return Unauthorized("Không có quyền truy cập");
+        //        }
+        //        else
+        //        {
+        //            var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        //            var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+        //            if (!customerService.CheckSecerctKey(id, secrectKey))
+        //            {
+        //                return Unauthorized("Chưa đăng nhập");
+        //            }
+        //            else
+        //            {
+        //                if (string.IsNullOrWhiteSpace(createProfileBodyByCustomerVM.Name))
+        //                {
+        //                    throw new UserException("Nhập tên hồ sơ số đo cơ thể");
+        //                }
+        //                else
+        //                {
+        //                    List<(string id, decimal value)> list = new List<(string id, decimal value)>();
+        //                    var listBodyAttribute = createProfileBodyByCustomerVM.valueBodyAttribute;
+        //                    foreach (var item in listBodyAttribute)
+        //                    {
+        //                        list.Add((item.Id, item.Value));
+        //                    }
+        //                    return await profileBodyService.CreateProfileBodyByCustomer(id, createProfileBodyByCustomerVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (UserException ex)
+        //    {
+        //        return BadRequest(ex.Message);
+        //    }
+        //    catch (SystemsException ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(500, ex.Message);
+        //    }
+        //}
     }
 }

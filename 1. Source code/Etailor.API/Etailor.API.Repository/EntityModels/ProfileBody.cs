@@ -8,6 +8,7 @@ namespace Etailor.API.Repository.EntityModels
         public ProfileBody()
         {
             BodyAttributes = new HashSet<BodyAttribute>();
+            Products = new HashSet<Product>();
         }
 
         public string Id { get; set; } = null!;
@@ -23,5 +24,6 @@ namespace Etailor.API.Repository.EntityModels
         public virtual Customer? Customer { get; set; }
         public virtual Staff? Staff { get; set; }
         public virtual ICollection<BodyAttribute> BodyAttributes { get; set; }
+        public virtual ICollection<Product> Products { get; set; }
     }
 }

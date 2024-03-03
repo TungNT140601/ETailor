@@ -11,11 +11,15 @@ namespace Etailor.API.Service.Interface
     public interface IProductTemplateService
     {
         Task<IEnumerable<ProductTemplate>> GetByCategory(string id);
+        Task<IEnumerable<ProductTemplate>> GetByCategorys(List<string> ids);
         Task<ProductTemplate> GetByUrlPath(string urlPath);
+        Task<ProductTemplate> GetById(string id);
         Task<string> AddTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages);
         Task<string> UpdateDraftTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? newImages, List<IFormFile>? newCollectionImages);
         bool CreateSaveActiveTemplate(string id);
         Task<string> UpdateTemplate(string id, string wwwroot);
         bool DeleteTemplate(string id);
+        IEnumerable<ComponentType> GetTemplateComponent(string templateId);
+        Task<IEnumerable<ProductTemplate>> GetTemplates(string? search);
     }
 }
