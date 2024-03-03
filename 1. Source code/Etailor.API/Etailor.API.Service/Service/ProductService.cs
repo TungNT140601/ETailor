@@ -486,7 +486,7 @@ namespace Etailor.API.Service.Service
                                         {
                                             product.ReferenceProfileBodyId = profileId;
 
-                                            return productRepository.Update(product.Id, product) ? product.Id : null;
+                                            return productRepository.Update(dbProduct.Id, dbProduct) ? dbProduct.Id : null;
                                         }
                                         else
                                         {
