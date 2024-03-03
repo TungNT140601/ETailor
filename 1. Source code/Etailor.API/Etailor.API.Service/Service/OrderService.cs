@@ -165,7 +165,7 @@ namespace Etailor.API.Service.Service
             return false;
         }
 
-        public bool FinishOrder(string orderId, string role)
+        public async Task<bool> FinishOrder(string orderId, string role)
         {
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null)
@@ -180,7 +180,14 @@ namespace Etailor.API.Service.Service
 
                     dbOrder.IsActive = true;
 
-                    return orderRepository.Update(dbOrder.Id, dbOrder);
+                    if (orderRepository.Update(dbOrder.Id, dbOrder))
+                    {
+                        return await CheckOrderPaid(dbOrder.Id);
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                    }
                 }
             }
             else
@@ -587,7 +594,14 @@ namespace Etailor.API.Service.Service
                 {
                     dbOrder.LastestUpdatedTime = DateTime.Now;
                     dbOrder.Status = 2;
-                    return orderRepository.Update(dbOrder.Id, dbOrder);
+                    if (orderRepository.Update(dbOrder.Id, dbOrder))
+                    {
+                        return await CheckOrderPaid(dbOrder.Id);
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                    }
                 }
             }
             else
@@ -637,7 +651,12 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<Order> GetOrders()
         {
-            return orderRepository.GetAll(x => x.Status >= 1);
+            var orders = orderRepository.GetAll(x => x.Status >= 1);
+            if (orders != null && orders.Any())
+            {
+                return orders.OrderByDescending(x => x.CreatedTime);
+            }
+            return new List<Order>();
         }
     }
 }
