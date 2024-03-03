@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mail;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -140,6 +142,44 @@ namespace Etailor.API.Service.Service
             }
 
             throw new SystemsException("Error some where");
+        }
+
+        public void SendDemoSchedule(string hourly)
+        {
+            try
+            {
+                //string fromMail = "tungnt14062001@gmail.com";
+                //string fromPassword = "gblfgbilbwaehjkw"; //"tungnt14062001@gmail.com"
+
+                string fromMail = "tuetailor@gmail.com";
+                string fromPassword = "idpqyvuzktpgstlb"; //"tuetailor@gmail.com"
+
+                //string fromMail = "tudase151149@gmail.com";
+                //string frompassword = "abrxaexoqqpkrjiz"; //"tudase151149@gmail.com"
+
+                var timeNow = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+                var timeUTC = DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss");
+
+                MailMessage message = new MailMessage();
+                message.From = new MailAddress(fromMail);
+                message.Subject = $"Demo Test Schedule at: [{timeNow}]; UTC: [{timeUTC}]";
+                message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
+                message.Body = $"Body test auto run function \"{hourly}\" at: [{timeNow}]; UTC: [{timeUTC}]";
+                message.IsBodyHtml = true;
+
+                var smtpClient = new SmtpClient("smtp.gmail.com")
+                {
+                    Port = 587,
+                    Credentials = new NetworkCredential(fromMail, fromPassword),
+                    EnableSsl = true,
+                };
+
+                smtpClient.Send(message);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
         }
     }
 }

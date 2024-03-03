@@ -9,5 +9,6 @@ namespace Etailor.API.Service.Interface
     public interface IProductStageService
     {
         bool CreateProductStage();
+        void SendDemoSchedule(string hourly);
     }
 }

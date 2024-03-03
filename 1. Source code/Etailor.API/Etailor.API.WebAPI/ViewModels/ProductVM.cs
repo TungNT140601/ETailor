@@ -31,6 +31,8 @@
         public string? MaterialId { get; set; }
         public string? ProfileId { get; set; }
         public string? ProductTemplateId { get; set; }
+        public string? ProductTemplateName { get; set; }
+        public string? ProductTemplateImage { get; set; }
         public bool? IsCusMaterial { get; set; }
         public double? MaterialQuantity { get; set; }
         public string? Name { get; set; }
