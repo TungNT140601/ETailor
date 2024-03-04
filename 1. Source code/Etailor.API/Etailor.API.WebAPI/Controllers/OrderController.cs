@@ -301,23 +301,34 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (orders != null && orders.Any() && orders.Count() > 0)
                         {
-                            foreach (var order in orders.ToList())
+                            orders = orders.OrderByDescending(x => x.CreatedTime).ToList();
+
+                            var listProducts = await productService.GetProductsByOrderIds(orders.Select(x => x.Id).ToList());
+                            if (listProducts != null && listProducts.Any())
                             {
-                                var realOrder = mapper.Map<GetOrderVM>(order);
-                                var listProducts = await productService.GetProductsByOrderId(order.Id);
-                                if (listProducts != null && listProducts.Any() && listProducts.Count() > 0)
+                                listProducts = listProducts.ToList();
+                                var tasks = new List<Task>();
+                                foreach (var order in orders.ToList())
                                 {
-                                    var productTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
-
-                                    if (!string.IsNullOrEmpty(productTemplate.ThumbnailImage))
+                                    tasks.Add(Task.Run(async () =>
                                     {
-                                        productTemplate.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
-                                    }
+                                        var realOrder = mapper.Map<GetOrderVM>(order);
+                                        var firstProductOrder = listProducts.SingleOrDefault(x => x.OrderId == order.Id);
+                                        if (firstProductOrder != null)
+                                        {
+                                            if (firstProductOrder.ProductTemplate == null)
+                                            {
+                                                firstProductOrder.ProductTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
+                                            }
 
-                                    realOrder.CreatedTime = order.CreatedTime;
-                                    realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
+                                            realOrder.ThumbnailImage = firstProductOrder.ProductTemplate.ThumbnailImage;
+                                        }
+                                        realOrder.CreatedTime = order.CreatedTime;
+
+                                        getOrderVMs.Add(realOrder);
+                                    }));
                                 }
-                                getOrderVMs.Add(realOrder);
+                                await Task.WhenAll(tasks);
                             }
                         }
                         return Ok(getOrderVMs);

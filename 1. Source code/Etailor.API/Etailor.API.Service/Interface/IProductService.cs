@@ -17,6 +17,7 @@ namespace Etailor.API.Service.Interface
         Task<Product> GetProductOrder(string id, string orderId);
         Task<Product> GetProductOrderByCus(string id, string orderId,string cusId);
         Task<IEnumerable<Product>> GetProductsByOrderId(string orderId);
+        Task<IEnumerable<Product>> GetProductsByOrderIds(List<string> orderIds);
         Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId);
     }
 }

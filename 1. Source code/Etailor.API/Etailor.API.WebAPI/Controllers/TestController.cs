@@ -22,6 +22,7 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 using Etailor.API.Repository.Repository;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.Service.Interface;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -33,8 +34,9 @@ namespace Etailor.API.WebAPI.Controllers
         private IConfiguration _configuration;
         private readonly string _wwwrootPath;
         private readonly IProductStageService productStageService;
+        private readonly IHubContext<SignalRHub> hubContext;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, IHubContext<SignalRHub> hubContext)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -42,6 +44,7 @@ namespace Etailor.API.WebAPI.Controllers
 
             _wwwrootPath = webHost.WebRootPath;
             this.productStageService = productStageService;
+            this.hubContext = hubContext;
         }
 
         #region SendMail
@@ -749,6 +752,30 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 return productStageService.CreateProductStage() ? Ok() : BadRequest();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost()]
+        public async Task<IActionResult> DemoSignalR(string id, string role, string message)
+        {
+            try
+            {
+                var clientId = SignalRHub.GetUserClientId(id, role);
+                if (clientId != null)
+                {
+                    await hubContext.Clients.Client(clientId).SendAsync("ReceiveMessage", message);
+                }
+
+                return Ok(new
+                {
+                    UserId = id,
+                    ClientId = clientId,
+                    Message = message
+                });
             }
             catch (Exception ex)
             {

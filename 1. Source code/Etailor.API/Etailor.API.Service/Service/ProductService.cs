@@ -486,7 +486,7 @@ namespace Etailor.API.Service.Service
                                         {
                                             product.ReferenceProfileBodyId = profileId;
 
-                                            return productRepository.Update(product.Id, product) ? product.Id : null;
+                                            return productRepository.Update(dbProduct.Id, dbProduct) ? dbProduct.Id : null;
                                         }
                                         else
                                         {
@@ -540,7 +540,21 @@ namespace Etailor.API.Service.Service
 
                 await Task.WhenAll(checkChild, setValue);
 
-                return productRepository.Update(dbProduct.Id, dbProduct);
+                if (productRepository.Update(dbProduct.Id, dbProduct))
+                {
+                    if (await orderService.CheckOrderPaid(dbProduct.OrderId))
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                    }
+                }
+                else
+                {
+                    throw new SystemsException("Lỗi trong quá trình cập nhật sản phẩm");
+                }
             }
             else
             {
@@ -617,42 +631,115 @@ namespace Etailor.API.Service.Service
             {
                 var products = productRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true).ToList();
 
-                if (products.Any() && products.Count > 0)
+                if (products.Any() && products.Count() > 0)
                 {
-                    var templates = productTemplateRepository.GetAll(x => products.Select(p => p.ProductTemplateId).Contains(x.Id)).ToList();
-                    var fabricMaterials = materialRepository.GetAll(x => products.Select(p => p.FabricMaterialId).Contains(x.Id)).ToList();
+                    products = products.ToList();
 
-                    var tasks = new List<Task>();
-
-                    foreach (var product in products)
+                    var templates = productTemplateRepository.GetAll(x => products.Select(p => p.ProductTemplateId).Contains(x.Id));
+                    if (templates != null && templates.Any())
                     {
-                        tasks.Add(Task.Run(async () =>
+                        templates = templates.ToList();
+
+                        var fabricMaterials = materialRepository.GetAll(x => products.Select(p => p.FabricMaterialId).Contains(x.Id));
+
+                        if (fabricMaterials != null && fabricMaterials.Any())
                         {
-                            var setValueTasks = new List<Task>();
-                            setValueTasks.Add(Task.Run(async () =>
-                            {
-                                product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
-                                if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
-                                {
-                                    product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
-                                }
-                            }));
-                            setValueTasks.Add(Task.Run(async () =>
-                            {
-                                product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
-                                if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
-                                {
-                                    product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
-                                }
-                            }));
+                            fabricMaterials = fabricMaterials.ToList();
 
-                            await Task.WhenAll(setValueTasks);
-                        }));
+                            var tasks = new List<Task>();
+
+                            foreach (var product in products)
+                            {
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    var setValueTasks = new List<Task>();
+                                    setValueTasks.Add(Task.Run(async () =>
+                                    {
+                                        product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+                                        if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
+                                        {
+                                            product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                        }
+                                    }));
+                                    setValueTasks.Add(Task.Run(async () =>
+                                    {
+                                        product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
+                                        if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
+                                        {
+                                            product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                        }
+                                    }));
+
+                                    await Task.WhenAll(setValueTasks);
+                                }));
+                            }
+
+                            await Task.WhenAll(tasks);
+
+                            return products;
+                        }
                     }
+                }
+            }
+            return null;
+        }
 
-                    await Task.WhenAll(tasks);
+        public async Task<IEnumerable<Product>> GetProductsByOrderIds(List<string> orderIds)
+        {
+            var dbOrders = orderRepository.GetAll(x => orderIds.Contains(x.Id) && x.Status >= 1);
+            if (dbOrders != null && dbOrders.Any())
+            {
+                dbOrders = dbOrders.ToList();
+                var products = productRepository.GetAll(x => dbOrders.Select(o => o.Id).Contains(x.OrderId) && x.IsActive == true);
 
-                    return products;
+                if (products.Any() && products.Count() > 0)
+                {
+                    products = products.ToList();
+
+                    var templates = productTemplateRepository.GetAll(x => products.Select(p => p.ProductTemplateId).Contains(x.Id));
+                    if (templates != null && templates.Any())
+                    {
+                        templates = templates.ToList();
+
+                        var fabricMaterials = materialRepository.GetAll(x => products.Select(p => p.FabricMaterialId).Contains(x.Id));
+
+                        if (fabricMaterials != null && fabricMaterials.Any())
+                        {
+                            fabricMaterials = fabricMaterials.ToList();
+
+                            var tasks = new List<Task>();
+
+                            foreach (var product in products)
+                            {
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    var setValueTasks = new List<Task>();
+                                    setValueTasks.Add(Task.Run(async () =>
+                                    {
+                                        product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+                                        if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
+                                        {
+                                            product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                        }
+                                    }));
+                                    setValueTasks.Add(Task.Run(async () =>
+                                    {
+                                        product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
+                                        if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
+                                        {
+                                            product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                        }
+                                    }));
+
+                                    await Task.WhenAll(setValueTasks);
+                                }));
+                            }
+
+                            await Task.WhenAll(tasks);
+
+                            return products;
+                        }
+                    }
                 }
             }
             return null;
