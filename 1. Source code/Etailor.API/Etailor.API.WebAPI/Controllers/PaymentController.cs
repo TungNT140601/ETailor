@@ -18,12 +18,14 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private readonly IPaymentService paymentService;
         private readonly ICustomerService customerService;
+        private readonly IStaffService staffService;
         private readonly IConfiguration configuration;
-        public PaymentController(IPaymentService paymentService, ICustomerService customerService, IConfiguration configuration)
+        public PaymentController(IPaymentService paymentService, ICustomerService customerService, IConfiguration configuration, IStaffService staffService)
         {
             this.paymentService = paymentService;
             this.customerService = customerService;
             this.configuration = configuration;
+            this.staffService = staffService;
         }
         private string GetIpAddress()
         {
@@ -35,37 +37,37 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.CUSTOMER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var result = paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress());
-                if (result != null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    //return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
-                    return Ok(result);
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                {
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
-                    throw new UserException("Tạo thanh toán thất bại");
+                    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (string.IsNullOrEmpty(customerId) || !staffService.CheckSecrectKey(customerId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var result = await paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress());
+                        if (result != null)
+                        {
+                            return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
+                            //return Ok(result);
+                        }
+                        else
+                        {
+                            throw new UserException("Tạo thanh toán thất bại");
+                        }
+                    }
                 }
-                //    }
-                //}
             }
             catch (UserException ex)
             {

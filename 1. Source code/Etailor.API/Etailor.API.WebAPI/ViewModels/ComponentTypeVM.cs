@@ -21,6 +21,8 @@
     public class ComponentTypeOrderVM
     {
         public string? Id { get; set; }
+        public string? Component_Id { get; set; }
+        public string? Selected_Component_Id { get; set; }
         public string? Name { get; set; }
         public List<ComponentOrderVM>? Components { get; set; }
     }

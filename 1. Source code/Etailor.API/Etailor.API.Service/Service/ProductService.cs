@@ -104,6 +104,10 @@ namespace Etailor.API.Service.Service
                     {
                         throw new UserException("Không tìm thấy nguyên liệu");
                     }
+                    else
+                    {
+                        product.FabricMaterialId = materialId;
+                    }
                 }));
 
                 tasks.Add(Task.Run(() =>
@@ -213,14 +217,14 @@ namespace Etailor.API.Service.Service
                                         Name = component.Name,
                                         Image = "",
                                         ProductStageId = null,
-                                        ProductComponentMaterials = new List<ProductComponentMaterial>()
-                                        {
-                                     new ProductComponentMaterial()
-                                     {
-                                         Id = Ultils.GenGuidString(),
-                                         MaterialId = materialId
-                                     }
-                                        }
+                                        //   ProductComponentMaterials = new List<ProductComponentMaterial>() //cái này chờ kéo materialId vào product
+                                        //   {
+                                        //new ProductComponentMaterial()
+                                        //{
+                                        //    Id = Ultils.GenGuidString(),
+                                        //    MaterialId = materialId,
+                                        //}
+                                        //   }
                                     });
                                 }
                             }));
@@ -244,14 +248,14 @@ namespace Etailor.API.Service.Service
                                         Name = component.Name,
                                         Image = "",
                                         ProductStageId = null,
-                                        ProductComponentMaterials = new List<ProductComponentMaterial>()
-                                        {
-                                     new ProductComponentMaterial()
-                                     {
-                                         Id = Ultils.GenGuidString(),
-                                         MaterialId = materialId
-                                     }
-                                        }
+                                        //   ProductComponentMaterials = new List<ProductComponentMaterial>()
+                                        //   {
+                                        //new ProductComponentMaterial()
+                                        //{
+                                        //    Id = Ultils.GenGuidString(),
+                                        //    MaterialId = materialId
+                                        //}
+                                        //   }
                                     });
                                 }
                             }));
@@ -272,7 +276,16 @@ namespace Etailor.API.Service.Service
                     {
                         try
                         {
-                            return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, order.CustomerId) ? product.Id : null;
+                            if (await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, order.CustomerId))
+                            {
+                                product.ReferenceProfileBodyId = profileId;
+
+                                return productRepository.Update(product.Id, product) ? product.Id : null;
+                            }
+                            else
+                            {
+                                throw new SystemsException("Lỗi trong quá trình tạo số đo sản phẩm");
+                            }
                         }
                         catch (UserException uex)
                         {
@@ -305,7 +318,7 @@ namespace Etailor.API.Service.Service
         public async Task<string> UpdateProduct(string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
             var dbOrder = orderRepository.Get(orderId);
-            if (dbOrder != null && dbOrder.IsActive == true)
+            if (dbOrder != null)
             {
                 if (dbOrder.Status >= 2)
                 {
@@ -415,14 +428,14 @@ namespace Etailor.API.Service.Service
                                                         Name = component.Name,
                                                         Image = "",
                                                         ProductStageId = null,
-                                                        ProductComponentMaterials = new List<ProductComponentMaterial>()
-                                                    {
-                                                     new ProductComponentMaterial()
-                                                     {
-                                                         Id = Ultils.GenGuidString(),
-                                                         MaterialId = materialId
-                                                     }
-                                                    }
+                                                        //    ProductComponentMaterials = new List<ProductComponentMaterial>()
+                                                        //{
+                                                        // new ProductComponentMaterial()
+                                                        // {
+                                                        //     Id = Ultils.GenGuidString(),
+                                                        //     MaterialId = materialId
+                                                        // }
+                                                        //}
                                                     });
                                                 }
                                             }));
@@ -446,14 +459,14 @@ namespace Etailor.API.Service.Service
                                                         Name = component.Name,
                                                         Image = "",
                                                         ProductStageId = null,
-                                                        ProductComponentMaterials = new List<ProductComponentMaterial>()
-                                                    {
-                                                     new ProductComponentMaterial()
-                                                     {
-                                                         Id = Ultils.GenGuidString(),
-                                                         MaterialId = materialId
-                                                     }
-                                                    }
+                                                        //    ProductComponentMaterials = new List<ProductComponentMaterial>()
+                                                        //{
+                                                        // new ProductComponentMaterial()
+                                                        // {
+                                                        //     Id = Ultils.GenGuidString(),
+                                                        //     MaterialId = materialId
+                                                        // }
+                                                        //}
                                                     });
                                                 }
                                             }));
@@ -469,7 +482,16 @@ namespace Etailor.API.Service.Service
                                 {
                                     if (await orderService.CheckOrderPaid(dbProduct.OrderId))
                                     {
-                                        return await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, dbOrder.CustomerId) ? dbProduct.Id : null;
+                                        if (await productBodySizeService.UpdateProductBodySize(product.Id, template.Id, profileId, dbOrder.CustomerId))
+                                        {
+                                            product.ReferenceProfileBodyId = profileId;
+
+                                            return productRepository.Update(product.Id, product) ? product.Id : null;
+                                        }
+                                        else
+                                        {
+                                            throw new SystemsException("Lỗi trong quá trình tạo số đo sản phẩm");
+                                        }
                                     }
                                     else
                                     {
@@ -522,7 +544,7 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                throw new UserException("Không tìm thấy danh mục sản phầm");
+                throw new UserException("Không tìm thấy sản phầm");
             }
         }
 
@@ -532,9 +554,16 @@ namespace Etailor.API.Service.Service
             if (dbOrder != null && dbOrder.Status >= 1)
             {
                 var product = productRepository.Get(id);
-                if (product != null && product.IsActive == true)
+                if (product != null && product.Status >= 1 && product.IsActive == true)
                 {
-                    product.ProductTemplate = productTemplateRepository.Get(product.ProductTemplateId);
+                    if (!string.IsNullOrEmpty(product.ProductTemplateId))
+                    {
+                        product.ProductTemplate = productTemplateRepository.Get(product.ProductTemplateId);
+                    }
+                    if (!string.IsNullOrEmpty(product.FabricMaterialId))
+                    {
+                        product.FabricMaterial = materialRepository.Get(product.FabricMaterialId);
+                    }
                     if (product.ProductTemplate != null)
                     {
                         product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
@@ -553,11 +582,28 @@ namespace Etailor.API.Service.Service
                 var product = productRepository.Get(id);
                 if (product != null && product.IsActive == true)
                 {
-                    product.ProductTemplate = productTemplateRepository.Get(product.ProductTemplateId);
-                    if (product.ProductTemplate != null)
+                    if (!string.IsNullOrEmpty(product.ProductTemplateId))
                     {
-                        product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                        product.ProductTemplate = productTemplateRepository.Get(product.ProductTemplateId);
                     }
+                    if (!string.IsNullOrEmpty(product.FabricMaterialId))
+                    {
+                        product.FabricMaterial = materialRepository.Get(product.FabricMaterialId);
+                    }
+                    await Task.WhenAll(Task.Run(async () =>
+                    {
+                        if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
+                        {
+                            product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                        }
+                    }),
+                    Task.Run(async () =>
+                    {
+                        if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
+                        {
+                            product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                        }
+                    }));
                     return product;
                 }
             }
@@ -574,6 +620,7 @@ namespace Etailor.API.Service.Service
                 if (products.Any() && products.Count > 0)
                 {
                     var templates = productTemplateRepository.GetAll(x => products.Select(p => p.ProductTemplateId).Contains(x.Id)).ToList();
+                    var fabricMaterials = materialRepository.GetAll(x => products.Select(p => p.FabricMaterialId).Contains(x.Id)).ToList();
 
                     var tasks = new List<Task>();
 
@@ -581,11 +628,25 @@ namespace Etailor.API.Service.Service
                     {
                         tasks.Add(Task.Run(async () =>
                         {
-                            product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
-                            if (product.ProductTemplate != null)
+                            var setValueTasks = new List<Task>();
+                            setValueTasks.Add(Task.Run(async () =>
                             {
-                                product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
-                            }
+                                product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+                                if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
+                                {
+                                    product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                }
+                            }));
+                            setValueTasks.Add(Task.Run(async () =>
+                            {
+                                product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
+                                if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
+                                {
+                                    product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                }
+                            }));
+
+                            await Task.WhenAll(setValueTasks);
                         }));
                     }
 
@@ -607,6 +668,7 @@ namespace Etailor.API.Service.Service
                 if (products.Any() && products.Count > 0)
                 {
                     var templates = productTemplateRepository.GetAll(x => products.Select(p => p.ProductTemplateId).Contains(x.Id)).ToList();
+                    var fabricMaterials = materialRepository.GetAll(x => products.Select(p => p.FabricMaterialId).Contains(x.Id)).ToList();
 
                     var tasks = new List<Task>();
 
@@ -614,11 +676,25 @@ namespace Etailor.API.Service.Service
                     {
                         tasks.Add(Task.Run(async () =>
                         {
-                            product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
-                            if (product.ProductTemplate != null)
+                            var setValueTasks = new List<Task>();
+                            setValueTasks.Add(Task.Run(async () =>
                             {
-                                product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
-                            }
+                                product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+                                if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
+                                {
+                                    product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                }
+                            }));
+                            setValueTasks.Add(Task.Run(async () =>
+                            {
+                                product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
+                                if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
+                                {
+                                    product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                }
+                            }));
+
+                            await Task.WhenAll(setValueTasks);
                         }));
                     }
 

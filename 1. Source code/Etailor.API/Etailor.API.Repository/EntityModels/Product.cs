@@ -20,12 +20,16 @@ namespace Etailor.API.Repository.EntityModels
         public int? Status { get; set; }
         public string? EvidenceImage { get; set; }
         public string? SaveOrderComponents { get; set; }
+        public string? ReferenceProfileBodyId { get; set; }
+        public string? FabricMaterialId { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
 
+        public virtual ProfileBody? ReferenceProfileBody { get; set; }
+        public virtual Material? FabricMaterial { get; set; }
         public virtual Order? Order { get; set; }
         public virtual ProductTemplate? ProductTemplate { get; set; }
         public virtual ICollection<ProductBodySize> ProductBodySizes { get; set; }

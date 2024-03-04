@@ -327,7 +327,7 @@ namespace Etailor.API.Ultity
             catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
             {
             }
-        } 
+        }
         #endregion
         public static IFormFile ConvertBase64ToIFormFile(string? base64String, string? fileName)
         {

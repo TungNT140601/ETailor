@@ -19,6 +19,7 @@ namespace Etailor.API.Service.Interface
         IEnumerable<Order> GetOrdersByCustomer(string cusId);
         Task<bool> PayDeposit(string orderId, decimal amount);
         Task<bool> CheckOrderPaid(string id);
-        bool FinishOrder(string orderId, string role);
+        Task<bool> FinishOrder(string orderId, string role);
+        Task<bool> ApproveOrder(string id);
     }
 }

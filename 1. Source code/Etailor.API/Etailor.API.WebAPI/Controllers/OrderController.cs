@@ -48,7 +48,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -95,7 +95,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -143,7 +143,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -184,6 +184,10 @@ namespace Etailor.API.WebAPI.Controllers
                 if (role == null)
                 {
                     return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role == RoleName.ADMIN)
+                {
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
@@ -276,6 +280,10 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
+                    else if (role == RoleName.ADMIN)
+                    {
+                        return Unauthorized("Không có quyền truy cập");
+                    }
                     else
                     {
                         IEnumerable<Order> orders;
@@ -341,6 +349,49 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await orderService.FinishOrder(orderId, role) ? Ok("Tạo hóa đơn thành công") : BadRequest("Tạo hóa đơn thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPatch("approve/{orderId}")]
+        public async Task<IActionResult> ApproveOrder(string orderId)
+        {
+
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
                 else if (role != RoleName.MANAGER)
                 {
                     return Unauthorized("Không có quyền truy cập");
@@ -355,7 +406,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return orderService.FinishOrder(orderId, role) ? Ok("Tạo hóa đơn thành công") : BadRequest("Tạo hóa đơn thất bại");
+                        return await orderService.ApproveOrder(orderId) ? Ok("Tạo hóa đơn thành công") : BadRequest("Tạo hóa đơn thất bại");
                     }
                 }
             }

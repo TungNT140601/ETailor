@@ -81,8 +81,8 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPut("{orderId}")]
-        public async Task<IActionResult> UpdateProduct(string orderId, [FromBody] ProductOrderVM productVM)
+        [HttpPut("{orderId}/{productId}")]
+        public async Task<IActionResult> UpdateProduct(string orderId,string productId, [FromBody] ProductOrderVM productVM)
         {
             try
             {
@@ -106,6 +106,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //    else
                 //    {
                 var product = mapper.Map<Product>(productVM);
+                product.Id = productId;
                 var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
                 var check = await productService.UpdateProduct(orderId, product, productComponents,
                      productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
@@ -206,6 +207,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (product != null)
                         {
+                            var tasks = new List<Task>();
                             var productVM = mapper.Map<ProductDetailOrderVM>(product);
 
                             if (!string.IsNullOrWhiteSpace(product.SaveOrderComponents))
@@ -218,25 +220,50 @@ namespace Etailor.API.WebAPI.Controllers
 
                                     productVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(product.ProductTemplateId).ToList());
 
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        if (product.ProductTemplate != null)
+                                        {
+                                            productVM.ProductTemplateName = product.ProductTemplate.Name;
+                                            productVM.ProductTemplateId = product.ProductTemplate.Id;
+                                            productVM.ProductTemplateImage = product.ProductTemplate.ThumbnailImage;
+                                        }
+                                    }));
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        if (product.ProductTemplate != null)
+                                        {
+                                            productVM.MaterialId = product.FabricMaterialId;
+                                            productVM.ProfileId = product.ReferenceProfileBodyId;
+                                        }
+                                    }));
+
                                     if (productVM.ComponentTypeOrders != null && productVM.ComponentTypeOrders.Any() && productVM.ComponentTypeOrders.Count > 0)
                                     {
-                                        var tasks = new List<Task>();
                                         foreach (var component in productVM.ComponentTypeOrders)
                                         {
                                             tasks.Add(Task.Run(() =>
                                             {
-                                                if (component.Components != null && component.Components.Any() && component.Components.Count > 0)
+                                                component.Component_Id = $"component_{component.Id}";
+
+                                                if (role == RoleName.CUSTOMER)
                                                 {
-                                                    component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                                    if (component.Components != null && component.Components.Any() && component.Components.Count > 0)
+                                                    {
+                                                        component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                                    }
+                                                }
+                                                else if (component.Components != null && component.Components.Any())
+                                                {
+                                                    component.Selected_Component_Id = component.Components.Single(x => componentIds.Contains(x.Id)).Id;
                                                 }
                                             }));
                                         }
-                                        await Task.WhenAll(tasks);
                                     }
-
-                                    productVM.MaterialId = productComponents.First().ProductComponentMaterials.First().MaterialId;
                                 }
                             }
+
+                            await Task.WhenAll(tasks);
 
                             return Ok(productVM);
                         }
