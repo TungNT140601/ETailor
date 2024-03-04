@@ -33,6 +33,8 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers();
 
+builder.Services.AddSignalR();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
@@ -65,9 +67,9 @@ builder.Services.AddSwaggerGen(
                         });
                 }
 );
-builder.Services.AddHangfire(config => config.UseMemoryStorage());
+//builder.Services.AddHangfire(config => config.UseMemoryStorage());
 
-builder.Services.AddHangfireServer();
+//builder.Services.AddHangfireServer();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -174,6 +176,9 @@ FirebaseApp.Create(new AppOptions { Credential = credentials });
 
 var app = builder.Build();
 
+app.UseAuthorization();
+app.UseAuthentication();
+
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
 //{
@@ -193,24 +198,28 @@ app.UseCors(option =>
     .AllowAnyMethod();
 });
 
-app.UseHangfireDashboard();
+//app.UseHangfireDashboard();
 
-RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule(Cron.Daily(0)), Cron.Daily(0));
-RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod2", x => x.SendDemoSchedule(Cron.Hourly(0)), Cron.Hourly(0));
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod3", x => x.SendDemoSchedule(Cron.Hourly(15)), Cron.Hourly(15));
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod4", x => x.SendDemoSchedule(Cron.Hourly(45)), Cron.Hourly(45));
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod5", x => x.SendDemoSchedule(Cron.Minutely()), Cron.Minutely());
+//var wwwroot = builder.Environment.WebRootPath;
 
-app.UseHangfireServer();
+//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule(Cron.Daily(0)), Cron.Daily(0));
+
+//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod2", x => x.SendDemoSchedule(Cron.Hourly(0)), Cron.Hourly(0));
+
+//RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(wwwroot), "*/30 * * * * *");
+
+//app.UseHangfireServer();
 
 app.UseStaticFiles();
 
-
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseRouting();
 
-app.MapControllers();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapHub<SignalRHub>("/etailor-hub");
+    endpoints.MapControllers();
+});
 
 app.Run();
