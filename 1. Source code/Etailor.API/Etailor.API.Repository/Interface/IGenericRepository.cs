@@ -13,6 +13,7 @@ namespace Etailor.API.Repository.Interface
         bool Create(T entity);
         bool CreateRange(List<T> entities);
         bool Update(string id, T entity);
+        bool UpdateRange(List<T> entities);
         bool Delete(string id);
         void Detach(string id);
         void SaveChange();

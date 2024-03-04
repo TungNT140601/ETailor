@@ -32,9 +32,18 @@ namespace Etailor.API.WebAPI.ViewModels
         public List<ValueBodyAttribute> valueBodyAttribute { get; set; }
     }
 
+    public class UpdateProfileBodyByStaffVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string CustomerId { get; set; }
+
+        public List<ValueBodyAttribute> valueBodyAttribute { get; set; }
+    }
+
     public class ValueBodyAttribute
     {
-        public string Id { get; set; }
+        public string BodySizeId { get; set; }
         public decimal Value { get; set; }
     }
 

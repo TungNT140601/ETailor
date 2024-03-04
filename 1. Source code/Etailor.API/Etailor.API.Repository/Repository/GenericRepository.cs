@@ -159,6 +159,25 @@ namespace Etailor.API.Repository.Repository
                 throw new SystemsException(ex.Message);
             }
         }
+
+        public bool UpdateRange(List<T> entities)
+        {
+            try
+            {
+                dbSet.UpdateRange(entities);
+                dBContext.SaveChanges();
+                return true;
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
+
         public void Detach(string id)
         {
             try
