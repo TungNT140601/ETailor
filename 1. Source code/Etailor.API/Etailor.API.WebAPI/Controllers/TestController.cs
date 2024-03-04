@@ -34,9 +34,9 @@ namespace Etailor.API.WebAPI.Controllers
         private IConfiguration _configuration;
         private readonly string _wwwrootPath;
         private readonly IProductStageService productStageService;
-        private readonly IHubContext<SignalRHub> hubContext;
+        private readonly ISignalRService signalRService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, IHubContext<SignalRHub> hubContext)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -44,7 +44,7 @@ namespace Etailor.API.WebAPI.Controllers
 
             _wwwrootPath = webHost.WebRootPath;
             this.productStageService = productStageService;
-            this.hubContext = hubContext;
+            this.signalRService = signalRService;
         }
 
         #region SendMail
@@ -764,16 +764,50 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var clientId = SignalRHub.GetUserClientId(id, role);
-                if (clientId != null)
-                {
-                    await hubContext.Clients.Client(clientId).SendAsync("ReceiveMessage", message);
-                }
+                await signalRService.SendMessageToUser(id, role, message);
 
                 return Ok(new
                 {
                     UserId = id,
-                    ClientId = clientId,
+                    Role = role,
+                    Message = message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("/demo-signalR-new/all")]
+        public async Task<IActionResult> DemoSignalRManager(string role, string message)
+        {
+            try
+            {
+                if (role == RoleName.CUSTOMER)
+                {
+                    await signalRService.SendMessageToCustomer(message);
+                }
+                else if (role == RoleName.MANAGER)
+                {
+                    await signalRService.SendMessageToManager(message);
+                }
+                else if (role == RoleName.STAFF)
+                {
+                    await signalRService.SendMessageToStaff(message);
+                }
+                else if (role == RoleName.ADMIN)
+                {
+                    await signalRService.SendMessageToAdmin(message);
+                }
+                else
+                {
+                    await signalRService.SendMessageToAllStaff(message);
+                }
+
+                return Ok(new
+                {
+                    Role = role,
                     Message = message
                 });
             }

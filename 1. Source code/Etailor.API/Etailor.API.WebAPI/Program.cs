@@ -170,6 +170,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
 
+builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
 
