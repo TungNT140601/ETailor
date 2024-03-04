@@ -33,8 +33,6 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddControllers();
 
-builder.Services.AddSignalR();
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
@@ -67,6 +65,9 @@ builder.Services.AddSwaggerGen(
                         });
                 }
 );
+
+builder.Services.AddSignalR();
+
 //builder.Services.AddHangfire(config => config.UseMemoryStorage());
 
 //builder.Services.AddHangfireServer();
@@ -193,9 +194,11 @@ var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOr
 
 app.UseCors(option =>
 {
-    option.AllowAnyHeader()
+    option
     .WithOrigins(MyAllowSpecificOrigins)
-    .AllowAnyMethod();
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials();
 });
 
 //app.UseHangfireDashboard();
@@ -218,7 +221,7 @@ app.UseRouting();
 
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapHub<SignalRHub>("/etailor-hub");
+    endpoints.MapHub<SignalRHub>("/chatHub");
     endpoints.MapControllers();
 });
 

@@ -760,14 +760,14 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost()]
-        public async Task<IActionResult> DemoSignalR(string id, string message)
+        public async Task<IActionResult> DemoSignalR(string id, string role, string message)
         {
             try
             {
-                var clientId = SignalRHub.GetUserClientId(id);
+                var clientId = SignalRHub.GetUserClientId(id, role);
                 if (clientId != null)
                 {
-                    await hubContext.Clients.Client(clientId).SendAsync(message);
+                    await hubContext.Clients.Client(clientId).SendAsync("ReceiveMessage", message);
                 }
 
                 return Ok(new
