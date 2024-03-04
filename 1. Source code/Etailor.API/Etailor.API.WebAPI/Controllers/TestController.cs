@@ -759,7 +759,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost()]
+        [HttpPost("/demo-signalR-new")]
         public async Task<IActionResult> DemoSignalR(string id, string role, string message)
         {
             try
