@@ -180,139 +180,176 @@ namespace Etailor.API.Service.Service
             return bodyAttributeRepository.CreateRange(bodyAttributeList);
         }
 
-        public async Task<bool> UpdateProfileBody(ProfileBody ProfileBody)
+        //public async Task<bool> UpdateProfileBody(ProfileBody ProfileBody)
+        //{
+        //    var dbProfileBody = profileBodyRepository.Get(ProfileBody.Id);
+        //    if (dbProfileBody != null && dbProfileBody.IsActive == true)
+        //    {
+        //        var setValue = Task.Run(() =>
+        //        {
+        //            dbProfileBody.Name = ProfileBody.Name;
+        //            dbProfileBody.StaffId = ProfileBody.StaffId;
+        //            dbProfileBody.CustomerId = ProfileBody.CustomerId;
+
+        //            dbProfileBody.CreatedTime = null;
+        //            dbProfileBody.LastestUpdatedTime = DateTime.Now;
+        //            dbProfileBody.InactiveTime = null;
+        //            dbProfileBody.IsActive = true;
+        //        });
+
+        //        await Task.WhenAll(setValue);
+
+        //        return profileBodyRepository.Update(dbProfileBody.Id, dbProfileBody);
+        //    }
+        //    else
+        //    {
+        //        throw new UserException("Không tìm thấy profile body");
+        //    }
+        //}
+
+        public async Task<bool> UpdateProfileBodyByStaff(string customerId, string staffId, string name, string profileBodyId, List<(string id, decimal value)> bodySizeId, ProfileBody profileBody)
         {
-            var dbProfileBody = profileBodyRepository.Get(ProfileBody.Id);
-            if (dbProfileBody != null && dbProfileBody.IsActive == true)
-            {
-                var setValue = Task.Run(() =>
-                {
-                    dbProfileBody.Name = ProfileBody.Name;
-                    dbProfileBody.StaffId = ProfileBody.StaffId;
-                    dbProfileBody.CustomerId = ProfileBody.CustomerId;
-
-                    dbProfileBody.CreatedTime = null;
-                    dbProfileBody.LastestUpdatedTime = DateTime.Now;
-                    dbProfileBody.InactiveTime = null;
-                    dbProfileBody.IsActive = true;
-                });
-
-                await Task.WhenAll(setValue);
-
-                return profileBodyRepository.Update(dbProfileBody.Id, dbProfileBody);
-            }
-            else
-            {
-                throw new UserException("Không tìm thấy profile body");
-            }
-        }
-
-        public async Task<bool> UpdateProfileBodyByStaff(string customerId, string staffId, string name, string profileBodyId, List<(string id, decimal value)> bodySizeId)
-        {
+            var dbProfileBody = profileBodyRepository.Get(profileBodyId);
             var checkExistProfileBodyId = Task.Run(() =>
             {
-                if (!profileBodyRepository.GetAll(x => x.Id == profileBodyId && x.IsActive == true).Any())
+                if (dbProfileBody != null && dbProfileBody.IsActive == true && dbProfileBody.CustomerId == customerId)
+                {
+                    if (dbProfileBody.CustomerId == customerId)
+                    {
+                        var setValue = Task.Run(() =>
+                        {
+                            dbProfileBody.Name = profileBody.Name;
+                            dbProfileBody.StaffId = staffId;
+                            dbProfileBody.CustomerId = customerId;
+                            dbProfileBody.IsLocked = true;
+
+                            dbProfileBody.LastestUpdatedTime = DateTime.Now;
+                            dbProfileBody.InactiveTime = null;
+                            dbProfileBody.IsActive = true;
+                        });
+                    } 
+                    else
+                    {
+                        throw new UserException("Mã Khách hàng không khớp");
+                    }               
+                }
+                else
                 {
                     throw new UserException("Mã Id Profile Body không tồn tại trong hệ thống");
                 }
             });
 
+            var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBodyId && x.IsActive == true).ToList();
             var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
-            var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBodyId && x.IsActive == true).Select(x => new {x.Id, x.BodySizeId, x.ProfileBodyId}).ToList();
-
-            var bodyAttributeList = new List<BodyAttribute>();
+            
             var tasks = new List<Task>();
-            foreach (var id in bodySizeId)
+
+            foreach( var bodyAttribute in existBodyAttributeList)
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                    foreach (var id in bodySizeId)
                     {
-                        
-                    }
-                    else
-                    {
-                        throw new UserException("Số đo không tồn tại trong hệ thống");
+                        if (id.id == bodyAttribute.BodySizeId)
+                        {
+                            if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                            {
+                                bodyAttribute.Value = id.value;
+                                bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                            }
+                            else
+                            {
+                                throw new UserException("Số đo không tồn tại trong hệ thống");
+                            }
+                        }
+                        else
+                        {
+                            
+                        }
                     }
                 }
                 ));
             }
 
             await Task.WhenAll(tasks);
-            
-            return bodyAttributeRepository.CreateRange(bodyAttributeList);
+            bodyAttributeRepository.UpdateRange(existBodyAttributeList);
+            return profileBodyRepository.Update(profileBodyId, dbProfileBody);
         }
 
-        public async Task<bool> UpdateProfileBodyByCustomer(string customerId, string name, string profileBodyId, List<(string id, decimal value)> bodySizeId)
+        public async Task<bool> UpdateProfileBodyByCustomer(string customerId, string name, string profileBodyId, List<(string id, decimal value)> bodySizeId, ProfileBody profileBody)
         {
-            var checkDuplicateId = Task.Run(() =>
+            var dbProfileBody = profileBodyRepository.Get(profileBodyId);
+            var checkExistProfileBodyId = Task.Run(() =>
             {
-                if (profileBodyRepository.GetAll(x => x.Id == profileBodyId && x.IsActive == true).Any())
+                if (dbProfileBody != null && dbProfileBody.IsActive == true && dbProfileBody.CustomerId == customerId)
                 {
-                    throw new UserException("Mã Id Profile Body đã được sử dụng");
-                }
-            });
-
-            ProfileBody profileBody = new ProfileBody();
-
-            var setValue = Task.Run(() =>
-            {
-                profileBody.Id = profileBodyId;
-                profileBody.StaffId = null;
-                profileBody.CustomerId = customerId;
-                profileBody.Name = name;
-                profileBody.IsLocked = true;
-                profileBody.CreatedTime = DateTime.Now;
-                profileBody.LastestUpdatedTime = DateTime.Now;
-                profileBody.InactiveTime = null;
-                profileBody.IsActive = true;
-            });
-
-            await Task.WhenAll(checkDuplicateId, setValue);
-
-            profileBodyRepository.Create(profileBody);
-
-            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
-            var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBody.Id && x.IsActive == true).Select(x => x.BodySizeId).ToList();
-
-            var bodyAttributeList = new List<BodyAttribute>();
-            var tasks = new List<Task>();
-            foreach (var id in bodySizeId)
-            {
-                tasks.Add(Task.Run(() =>
-                {
-                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                    if (dbProfileBody.CustomerId == customerId)
                     {
-                        if (!existBodyAttributeList.Contains(id.id))
+                        if (dbProfileBody.IsLocked == false)
                         {
-                            bodyAttributeList.Add(new BodyAttribute()
+                            var setValue = Task.Run(() =>
                             {
-                                Id = Ultils.GenGuidString(),
-                                BodySizeId = id.id,
-                                ProfileBodyId = profileBody.Id,
-                                Value = id.value,
-                                CreatedTime = DateTime.Now,
-                                LastestUpdatedTime = null,
-                                InactiveTime = null,
-                                IsActive = true
+                                dbProfileBody.Name = profileBody.Name;
+                                dbProfileBody.StaffId = null;
+                                dbProfileBody.CustomerId = customerId;
+                                dbProfileBody.IsLocked = false;
+
+                                dbProfileBody.LastestUpdatedTime = DateTime.Now;
+                                dbProfileBody.InactiveTime = null;
+                                dbProfileBody.IsActive = true;
                             });
                         }
                         else
                         {
-                            throw new UserException("Số đo đã tồn tại trong hệ thống");
+                            throw new UserException("Khách hàng không thể tự cập nhật hồ sơ số đo do nhân viên thực hiện");
                         }
                     }
                     else
                     {
-                        throw new UserException("Số đo không tồn tại trong hệ thống");
+                        throw new UserException("Mã Khách hàng không khớp");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Mã Id Profile Body không tồn tại trong hệ thống");
+                }
+            });
+
+            var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBodyId && x.IsActive == true).ToList();
+            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
+
+            var tasks = new List<Task>();
+
+            foreach (var bodyAttribute in existBodyAttributeList)
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    foreach (var id in bodySizeId)
+                    {
+                        if (id.id == bodyAttribute.BodySizeId)
+                        {
+                            if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                            {
+                                bodyAttribute.Value = id.value;
+                                bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                            }
+                            else
+                            {
+                                throw new UserException("Số đo không tồn tại trong hệ thống");
+                            }
+                        }
+                        else
+                        {
+
+                        }
                     }
                 }
                 ));
             }
 
             await Task.WhenAll(tasks);
-
-            return bodyAttributeRepository.CreateRange(bodyAttributeList);
+            bodyAttributeRepository.UpdateRange(existBodyAttributeList);
+            return profileBodyRepository.Update(profileBodyId, dbProfileBody);
         }
 
         public async Task<bool> DeleteProfileBody(string id)
