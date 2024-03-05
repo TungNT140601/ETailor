@@ -646,12 +646,13 @@ namespace Etailor.API.Service.Service
         }
         public Order GetOrderByCustomer(string cusId, string orderId)
         {
-            return orderRepository.GetAll(x => x.Id == orderId && x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true).FirstOrDefault();
+            var order = orderRepository.Get(orderId);
+            return order == null ? null : order.CustomerId == cusId && order.Status > 1 && order.IsActive == true ? order : null;
         }
 
         public IEnumerable<Order> GetOrders()
         {
-            var orders = orderRepository.GetAll(x => x.Status >= 1);
+            var orders = orderRepository.GetAll(x => x.Status >= 1 && x.IsActive == true);
             if (orders != null && orders.Any())
             {
                 return orders.OrderByDescending(x => x.CreatedTime);

@@ -792,5 +792,65 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
+
+        public void AutoCreateEmptyTaskProduct()
+        {
+            try
+            {
+                var approveOrders = orderRepository.GetAll(x => x.Status == 2 && x.IsActive == true);
+                if (approveOrders != null && approveOrders.Any())
+                {
+                    approveOrders = approveOrders.OrderBy(x => x.CreatedTime).ToList();
+
+                    var approveOrdersProducts = productRepository.GetAll(x => approveOrders.Select(o => o.Id).Contains(x.OrderId) && x.Status == 1 && x.IsActive == true);
+
+                    if (approveOrdersProducts != null && approveOrdersProducts.Any())
+                    {
+                        approveOrdersProducts = approveOrdersProducts.ToList();
+                        var productAllDbs = productRepository.GetAll(x => x.IsActive == true && x.Status > 0);
+                        int? greatestIndexDb = 0;
+
+                        if (productAllDbs != null && productAllDbs.Any())
+                        {
+                            greatestIndexDb = productAllDbs.OrderByDescending(x => x.Index).FirstOrDefault()?.Index;
+                        }
+                        if (greatestIndexDb == null)
+                        {
+                            greatestIndexDb = 1;
+                        }
+                        else
+                        {
+                            greatestIndexDb++;
+                        }
+
+                        var check = new List<bool>();
+
+                        foreach (var order in approveOrders)
+                        {
+                            if(approveOrdersProducts.Any(x => x.OrderId == order.Id))
+                            {
+                                order.Products = approveOrdersProducts.Where(x => x.OrderId == order.Id).ToList();
+                                foreach(var product in order.Products)
+                                {
+                                    product.Index = greatestIndexDb;
+                                    greatestIndexDb++;
+                                }
+                            }
+                            order.Status = 3;
+                            check.Add(orderRepository.Update(order.Id, order));
+                        }
+
+                        if (check.Any(x => x == false))
+                        {
+                            throw new Exception("Lỗi trong quá trình tự động tạo task");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
+        }
     }
 }

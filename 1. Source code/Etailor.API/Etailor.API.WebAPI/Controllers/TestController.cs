@@ -34,9 +34,10 @@ namespace Etailor.API.WebAPI.Controllers
         private IConfiguration _configuration;
         private readonly string _wwwrootPath;
         private readonly IProductStageService productStageService;
+        private readonly IProductService productService;
         private readonly ISignalRService signalRService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService,IProductService productService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -44,6 +45,7 @@ namespace Etailor.API.WebAPI.Controllers
 
             _wwwrootPath = webHost.WebRootPath;
             this.productStageService = productStageService;
+            this.productService = productService;
             this.signalRService = signalRService;
         }
 
@@ -810,6 +812,21 @@ namespace Etailor.API.WebAPI.Controllers
                     Role = role,
                     Message = message
                 });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("/demo-auto-create-task")]
+        public async Task<IActionResult> DemoAutoCreateTask()
+        {
+            try
+            {
+                productService.AutoCreateEmptyTaskProduct();
+
+                return Ok();
             }
             catch (Exception ex)
             {
