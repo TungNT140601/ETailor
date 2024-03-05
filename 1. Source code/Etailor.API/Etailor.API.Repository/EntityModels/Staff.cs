@@ -8,6 +8,8 @@ namespace Etailor.API.Repository.EntityModels
         public Staff()
         {
             Blogs = new HashSet<Blog>();
+            Payments = new HashSet<Payment>();
+            Products = new HashSet<Product>();
             ChatHistories = new HashSet<ChatHistory>();
             Masteries = new HashSet<Mastery>();
             Notifications = new HashSet<Notification>();
@@ -32,6 +34,8 @@ namespace Etailor.API.Repository.EntityModels
         public bool? IsActive { get; set; }
 
         public virtual ICollection<Blog> Blogs { get; set; }
+        public virtual ICollection<Payment> Payments { get; set; }
+        public virtual ICollection<Product> Products { get; set; }
         public virtual ICollection<ChatHistory> ChatHistories { get; set; }
         public virtual ICollection<Mastery> Masteries { get; set; }
         public virtual ICollection<Notification> Notifications { get; set; }
