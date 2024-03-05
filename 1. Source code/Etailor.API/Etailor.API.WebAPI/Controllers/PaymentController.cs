@@ -48,19 +48,18 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else
                 {
-                    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (string.IsNullOrEmpty(customerId) || !staffService.CheckSecrectKey(customerId, secrectKey))
+                    if (string.IsNullOrEmpty(staffId) || !staffService.CheckSecrectKey(staffId, secrectKey))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
-                        var result = await paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress());
+                        var result = await paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress(), staffId);
                         if (result != null)
                         {
-                            return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
-                            //return Ok(result);
+                            return Ok(result);
                         }
                         else
                         {

@@ -36,7 +36,7 @@ namespace Etailor.API.Service.Service
             this.signalRService = signalRService;
         }
 
-        public async Task<string> CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip)
+        public async Task<string> CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip, string createrId)
         {
             var order = orderRepository.Get(orderId);
 
@@ -77,6 +77,7 @@ namespace Etailor.API.Service.Service
                     Platform = platform,
                     PayTime = null,
                     PayType = payType,
+                    StaffCreateId = createrId,
                     Status = platform == PlatformName.OFFLINE ? 0 : 1
                 };
 
@@ -308,7 +309,18 @@ namespace Etailor.API.Service.Service
             vnpay.AddRequestData("vnp_OrderInfo", "Thanh toan don hang : " + payment.OrderId);
             vnpay.AddRequestData("vnp_OrderType", "other"); //default value: other
 
-            vnpay.AddRequestData("vnp_ReturnUrl", vnp_Returnurl);
+            string scheme = _httpContextAccessor.HttpContext.Request.Scheme;
+            string host = _httpContextAccessor.HttpContext.Request.Host.Host;
+            int? port = _httpContextAccessor.HttpContext.Request.Host.Port;
+
+            string fullUrl = $"{scheme}://{host}";
+
+            if (port.HasValue && port != 80 && port != 443)
+            {
+                fullUrl += $":{port}";
+            }
+
+            vnpay.AddRequestData("vnp_ReturnUrl", fullUrl + "/vnpay/payment-result");
             vnpay.AddRequestData("vnp_TxnRef", payment.Id); // Mã tham chiếu của giao dịch tại hệ thống của merchant. Mã này là duy nhất dùng để phân biệt các đơn hàng gửi sang VNPAY. Không được trùng lặp trong ngày
 
             //Add Params of 2.1.0 Version

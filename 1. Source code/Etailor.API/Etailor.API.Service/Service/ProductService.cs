@@ -797,6 +797,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
+                Ultils.SendMessageToDev("Run func AutoCreateEmptyTaskProduct");
                 var approveOrders = orderRepository.GetAll(x => x.Status == 2 && x.IsActive == true);
                 if (approveOrders != null && approveOrders.Any())
                 {

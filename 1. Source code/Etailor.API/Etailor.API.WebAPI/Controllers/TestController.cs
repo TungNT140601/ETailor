@@ -37,7 +37,7 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IProductService productService;
         private readonly ISignalRService signalRService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService,IProductService productService)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService, IProductService productService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -810,6 +810,23 @@ namespace Etailor.API.WebAPI.Controllers
                 return Ok(new
                 {
                     Role = role,
+                    Message = message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("/demo-signalR-new/vnpay")]
+        public async Task<IActionResult> DemoSignalRvnpay(string message)
+        {
+            try
+            {
+                await signalRService.SendVNPayResult(message);
+                return Ok(new
+                {
                     Message = message
                 });
             }
