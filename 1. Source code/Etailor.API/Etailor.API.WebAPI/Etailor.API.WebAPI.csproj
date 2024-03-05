@@ -33,6 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Etailor.API.Repository\Etailor.API.Repository.csproj" />
     <ProjectReference Include="..\Etailor.API.Service\Etailor.API.Service.csproj" />
+    <ProjectReference Include="..\Etailor.API.Ultity\Etailor.API.Ultity.csproj" />
   </ItemGroup>
 
   <ItemGroup>

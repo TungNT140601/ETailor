@@ -764,7 +764,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await signalRService.SendMessageToUser(id, role, message);
+                await signalRService.SendMessageToUser(id, message, role);
 
                 return Ok(new
                 {

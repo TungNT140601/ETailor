@@ -26,12 +26,14 @@ namespace Etailor.API.Service.Service
         private readonly IOrderRepository orderRepository;
         private readonly IOrderService orderService;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        public PaymentService(IPaymentRepository paymentRepository, IOrderRepository orderRepository, IOrderService orderService, IHttpContextAccessor httpContextAccessor)
+        private readonly ISignalRService signalRService;
+        public PaymentService(IPaymentRepository paymentRepository, IOrderRepository orderRepository, IOrderService orderService, IHttpContextAccessor httpContextAccessor, ISignalRService signalRService)
         {
             this.paymentRepository = paymentRepository;
             this.orderRepository = orderRepository;
             this.orderService = orderService;
             this._httpContextAccessor = httpContextAccessor;
+            this.signalRService = signalRService;
         }
 
         public async Task<string> CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip)
@@ -116,11 +118,41 @@ namespace Etailor.API.Service.Service
                         {
                             case 0:
                                 {
-                                    return await orderService.CheckOrderPaid(payment.OrderId);
+                                    if (await orderService.CheckOrderPaid(payment.OrderId))
+                                    {
+                                        if (payment.Platform == PlatformName.VN_PAY)
+                                        {
+                                            await signalRService.SendVNPayResult("True");
+                                        }
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        if (payment.Platform == PlatformName.VN_PAY)
+                                        {
+                                            await signalRService.SendVNPayResult("False");
+                                        }
+                                        return false;
+                                    }
                                 }
                             case 1:
                                 {
-                                    return await orderService.PayDeposit(payment.OrderId, payment.Amount.GetValueOrDefault());
+                                    if (await orderService.PayDeposit(payment.OrderId, payment.Amount.GetValueOrDefault()))
+                                    {
+                                        if (payment.Platform == PlatformName.VN_PAY)
+                                        {
+                                            await signalRService.SendVNPayResult("True");
+                                        }
+                                        return true;
+                                    }
+                                    else
+                                    {
+                                        if (payment.Platform == PlatformName.VN_PAY)
+                                        {
+                                            await signalRService.SendVNPayResult("False");
+                                        }
+                                        return false;
+                                    }
                                 }
                             case 2:
                                 {
@@ -132,20 +164,13 @@ namespace Etailor.API.Service.Service
                                 }
                         }
                     }
-                    else
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    return false;
                 }
             }
-            else
+            if (payment.Platform == PlatformName.VN_PAY)
             {
-                return false;
+                await signalRService.SendVNPayResult("False");
             }
+            return false;
         }
 
         public async Task<bool> RefundMoneyVNPay(string paymentId, int transactionType, decimal? amount)

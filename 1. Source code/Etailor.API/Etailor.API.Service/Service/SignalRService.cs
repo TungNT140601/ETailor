@@ -29,7 +29,7 @@ namespace Etailor.API.Service.Service
             else
             {
                 SignalRHub.StaffConnections.TryGetValue(userId, out string staffConnectionId);
-                await hubContext.Clients.Client(staffConnectionId).SendAsync("StaffReceiveMessage", message);
+                //await hubContext.Clients.Client(staffConnectionId).SendAsync("ReceiveMessage", message);
                 await hubContext.Clients.Group(userId).SendAsync("StaffReceiveMessage", message);
             }
         }
@@ -57,6 +57,11 @@ namespace Etailor.API.Service.Service
         public async Task SendMessageToCustomer(string message)
         {
             await hubContext.Clients.Group(RoleName.CUSTOMER).SendAsync("CustomersReceiveMessage", message);
+        }
+
+        public async Task SendVNPayResult(string message)
+        {
+            await hubContext.Clients.Group("AllStaff").SendAsync("VNPayResult", message);
         }
     }
 }

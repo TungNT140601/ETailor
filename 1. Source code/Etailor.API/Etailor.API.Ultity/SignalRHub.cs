@@ -14,6 +14,8 @@ namespace Etailor.API.Ultity
     {
         private static Dictionary<string, string> _staffConnections = new Dictionary<string, string>();
         private static Dictionary<string, string> _customerConnections = new Dictionary<string, string>();
+        private static List<Dictionary<string, Dictionary<string, string>>> _groupStaffConnections = new List<Dictionary<string, Dictionary<string, string>>>();
+        private static List<Dictionary<string, Dictionary<string, string>>> _groupCustomerConnections = new List<Dictionary<string, Dictionary<string, string>>>();
 
         public static string GetUserClientId(string userId, string role)
         {
@@ -45,6 +47,22 @@ namespace Etailor.API.Ultity
             }
         }
 
+        public static List<Dictionary<string, Dictionary<string, string>>> GroupStaffConnections
+        {
+            get
+            {
+                return _groupStaffConnections;
+            }
+        }
+
+        public static List<Dictionary<string, Dictionary<string, string>>> GroupCustomerConnections
+        {
+            get
+            {
+                return _groupCustomerConnections;
+            }
+        }
+
         public override async Task<Task> OnConnectedAsync()
         {
             var accessToken = Context.GetHttpContext().Request.Query["access_token"];
@@ -69,17 +87,28 @@ namespace Etailor.API.Ultity
                 if (role == RoleName.CUSTOMER)
                 {
                     _customerConnections[userId] = Context.ConnectionId;
+
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, role);
+
                     await Groups.AddToGroupAsync(Context.ConnectionId, userId);
                     await Groups.AddToGroupAsync(Context.ConnectionId, role);
                 }
                 else
                 {
                     _staffConnections[userId] = Context.ConnectionId;
+
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, "AllStaff");
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, role);
+
                     await Groups.AddToGroupAsync(Context.ConnectionId, "AllStaff");
                     await Groups.AddToGroupAsync(Context.ConnectionId, userId);
                     await Groups.AddToGroupAsync(Context.ConnectionId, role);
                 }
             }
+            Console.WriteLine($"Add Connection: {Context.ConnectionId}");
+
             return base.OnConnectedAsync();
         }
 
@@ -114,6 +143,7 @@ namespace Etailor.API.Ultity
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, role);
             }
+            Console.WriteLine($"Remove Connection: {Context.ConnectionId}");
 
             return base.OnDisconnectedAsync(exception);
         }

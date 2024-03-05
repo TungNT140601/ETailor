@@ -14,5 +14,6 @@ namespace Etailor.API.Service.Interface
         Task SendMessageToStaff(string message);
         Task SendMessageToAdmin(string message);
         Task SendMessageToCustomer(string message);
+        Task SendVNPayResult(string message);
     }
 }
