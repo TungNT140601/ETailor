@@ -23,6 +23,10 @@ using Etailor.API.Repository.Repository;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.Service.Interface;
 using Microsoft.AspNetCore.SignalR;
+using Hangfire;
+using System.Collections.Concurrent;
+using System.Reflection;
+using Hangfire.MemoryStorage;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -850,6 +854,89 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
+        [HttpGet("/current-client-url")]
+        public IActionResult GetClientUrl()
+        {
+            try
+            {
+                var clientUrl = _configuration.GetValue<string>("Client_Url");
+
+                return Ok(clientUrl);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPut]
+        public IActionResult StopHangfire(string? id)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    var listJobIds = new List<string>()
+                {
+                    "DemoRunMethod1",
+                    "AutoCreateEmptyTaskProduct",
+                    "KeepServerAliveMethod"
+                };
+                    foreach (var jobId in listJobIds)
+                    {
+                        Hangfire.RecurringJob.RemoveIfExists(jobId);
+                    }
+                }
+                else
+                {
+                    Hangfire.RecurringJob.RemoveIfExists(id);
+                }
+
+                return Ok("Hangfire server stopped successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Failed to stop Hangfire server: {ex.Message}");
+            }
+        }
+        [HttpPut]
+        public IActionResult StartHangfire(string? id)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    //RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
+
+                    RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
+
+                    RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), Cron.Minutely());
+                }
+                else
+                {
+                    if (id == "DemoRunMethod1")
+                    {
+                        //RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
+                    }
+                    else if (id == "AutoCreateEmptyTaskProduct")
+                    {
+                        RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
+                    }
+                    else if (id == "KeepServerAliveMethod")
+                    {
+                        RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), Cron.Minutely());
+                    }
+                }
+
+                return Ok("Hangfire server start successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Failed to start Hangfire server: {ex.Message}");
+            }
+        }
+
+
     }
     public class Notify
     {

@@ -38,7 +38,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
                 c =>
                 {
-                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1.00.000.2.1" });
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1.00.001.0.4" });
 
                     // Configure Swagger to use JWT authentication
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -68,7 +68,10 @@ builder.Services.AddSwaggerGen(
 
 builder.Services.AddSignalR();
 
-builder.Services.AddHangfire(config => config.UseMemoryStorage());
+builder.Services.AddHangfire(config =>
+{
+    config.UseMemoryStorage();
+});
 
 builder.Services.AddHangfireServer();
 
@@ -187,7 +190,7 @@ app.UseAuthentication();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1.00.000.2.1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1.00.001.0.4");
 });
 //}
 
@@ -207,12 +210,13 @@ app.UseHangfireDashboard();
 var wwwroot = builder.Environment.WebRootPath;
 
 //RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule(Cron.Daily(0)), Cron.Daily(0));
+//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
 
 RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
 
 RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(wwwroot), Cron.Minutely());
 
-app.UseHangfireServer();
+//app.UseHangfireServer();
 
 app.UseStaticFiles();
 

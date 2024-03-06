@@ -135,7 +135,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("result/vnp")]
-        public IActionResult GetVNPayPaymentResult()
+        public async Task<IActionResult> GetVNPayPaymentResult()
         {
             try
             {
@@ -172,20 +172,20 @@ namespace Etailor.API.WebAPI.Controllers
 
                 if (vnpLib.ValidateSignature(vnp_SecureHash, vnp_HashSecret))
                 {
-                    paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode));
-                    return Ok(new
+                    var clientUrl = configuration.GetValue<string>("Client_Url");
+
+                    if (await paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode)))
                     {
-                        Message = "Success",
-                        Data = vnpayData
-                    });
+                        return Redirect($"{clientUrl}/payment-success");
+                    }
+                    else
+                    {
+                        return Redirect($"{clientUrl}/payment-fail");
+                    }
                 }
                 else
                 {
-                    return BadRequest(new
-                    {
-                        Message = "Fail",
-                        Data = vnpayData
-                    });
+                    throw new SystemsException("Validate Signature Fail");
                 }
 
             }

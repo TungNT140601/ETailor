@@ -320,7 +320,7 @@ namespace Etailor.API.Service.Service
                 fullUrl += $":{port}";
             }
 
-            vnpay.AddRequestData("vnp_ReturnUrl", fullUrl + "/vnpay/payment-result");
+            vnpay.AddRequestData("vnp_ReturnUrl", fullUrl + "/api/payment/result/vnp");
             vnpay.AddRequestData("vnp_TxnRef", payment.Id); // Mã tham chiếu của giao dịch tại hệ thống của merchant. Mã này là duy nhất dùng để phân biệt các đơn hàng gửi sang VNPAY. Không được trùng lặp trong ngày
 
             //Add Params of 2.1.0 Version
