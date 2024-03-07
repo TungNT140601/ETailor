@@ -40,8 +40,9 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IProductStageService productStageService;
         private readonly IProductService productService;
         private readonly ISignalRService signalRService;
+        private readonly IBackgroundService backgroundService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService, IProductService productService)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService, IProductService productService, IBackgroundService backgroundService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -51,6 +52,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.productStageService = productStageService;
             this.productService = productService;
             this.signalRService = signalRService;
+            this.backgroundService = backgroundService;
         }
 
         #region SendMail
@@ -752,19 +754,6 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost("test-create-product-stage")]
-        public async Task<IActionResult> TestCreateProductStage()
-        {
-            try
-            {
-                return productStageService.CreateProductStage() ? Ok() : BadRequest();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
         [HttpPost("/demo-signalR-new")]
         public async Task<IActionResult> DemoSignalR(string id, string role, string message)
         {
@@ -840,20 +829,6 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost("/demo-auto-create-task")]
-        public async Task<IActionResult> DemoAutoCreateTask()
-        {
-            try
-            {
-                productService.AutoCreateEmptyTaskProduct();
-
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
         [HttpGet("/current-client-url")]
         public IActionResult GetClientUrl()
         {
@@ -874,23 +849,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if (string.IsNullOrEmpty(id))
-                {
-                    var listJobIds = new List<string>()
-                {
-                    "DemoRunMethod1",
-                    "AutoCreateEmptyTaskProduct",
-                    "KeepServerAliveMethod"
-                };
-                    foreach (var jobId in listJobIds)
-                    {
-                        Hangfire.RecurringJob.RemoveIfExists(jobId);
-                    }
-                }
-                else
-                {
-                    Hangfire.RecurringJob.RemoveIfExists(id);
-                }
+                backgroundService.StartSchedule(id);
 
                 return Ok("Hangfire server stopped successfully");
             }
@@ -904,29 +863,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if (string.IsNullOrEmpty(id))
-                {
-                    //RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
-
-                    RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
-
-                    RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), Cron.Minutely());
-                }
-                else
-                {
-                    if (id == "DemoRunMethod1")
-                    {
-                        //RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
-                    }
-                    else if (id == "AutoCreateEmptyTaskProduct")
-                    {
-                        RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
-                    }
-                    else if (id == "KeepServerAliveMethod")
-                    {
-                        RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), Cron.Minutely());
-                    }
-                }
+                backgroundService.StopSchedule(id);
 
                 return Ok("Hangfire server start successfully");
             }
@@ -936,7 +873,19 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-
+        [HttpPut]
+        public IActionResult RunAutoAssignTask()
+        {
+            try
+            {
+                productService.AutoCreateEmptyTaskProduct();
+                return Ok("Run successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
     public class Notify
     {

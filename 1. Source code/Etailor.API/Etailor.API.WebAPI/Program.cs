@@ -18,6 +18,8 @@ using Etailor.API.Repository;
 using Etailor.API.WebAPI;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Etailor.API.Ultity.MiddleWare;
+using SixLabors.ImageSharp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -167,13 +169,19 @@ builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 
 builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>();
 //builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
-
+    
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
 
+builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
+
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
+
+
+builder.Services.AddHostedService<Etailor.API.Service.Service.HostedService>();
+
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
 
@@ -206,17 +214,6 @@ app.UseCors(option =>
 });
 
 app.UseHangfireDashboard();
-
-var wwwroot = builder.Environment.WebRootPath;
-
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule(Cron.Daily(0)), Cron.Daily(0));
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
-
-RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
-
-RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(wwwroot), Cron.Minutely());
-
-//app.UseHangfireServer();
 
 app.UseStaticFiles();
 
