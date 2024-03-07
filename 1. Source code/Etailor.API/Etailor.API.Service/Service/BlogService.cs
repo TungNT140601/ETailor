@@ -29,7 +29,33 @@ namespace Etailor.API.Service.Service
             blog.Id = Ultils.GenGuidString();
             blog.UrlPath = Ultils.ConvertToEnglishAlphabet(blog.Title);
 
-            var setThumbnail = Task.Run(async () =>
+            var tasks = new List<Task>();
+
+            tasks.Add(Task.Run(async () =>
+            {
+                if (blog.Title == null !| blog.Title == "undefined")
+                {
+                    throw new UserException("Vui lòng nhập tên tiêu đề"); 
+                }
+            }));
+
+            tasks.Add(Task.Run(async () =>
+            {
+                if (blog.Title == null! | blog.Title == "undefined")
+                {
+                    throw new UserException("Vui lòng nhập tên tiêu đề");
+                }
+            }));
+
+            tasks.Add(Task.Run(async () =>
+            {
+                if (blog.Content == null! | blog.Content == "undefined")
+                {
+                    throw new UserException("Vui lòng điền nội dung bài viết");
+                }
+            }));
+
+            tasks.Add(Task.Run(async ()  =>
             {
                 if (thumbnail != null)
                 {
@@ -40,8 +66,10 @@ namespace Etailor.API.Service.Service
                     blog.Thumbnail = string.Empty;
                     //blog.Thumbnail = await Ultils.GetUrlImage("https://drive.google.com/file/d/100YI-uovn5PdEhn4IeB1RYj4B41kcFIi/view");
                 }
-            });
-            await Task.WhenAll(setThumbnail);
+            }));
+
+            
+            await Task.WhenAll(tasks);
 
             blog.LastestUpdatedTime = DateTime.Now;
             blog.CreatedTime = DateTime.Now;
@@ -55,10 +83,11 @@ namespace Etailor.API.Service.Service
             var existBlog = blogRepository.Get(blog.Id);
             if (existBlog != null)
             {
-                existBlog.Title = blog.Title;
-                existBlog.Content = blog.Content;
+               
+               
                 existBlog.UrlPath = Ultils.ConvertToEnglishAlphabet(blog.Title);
                 existBlog.StaffId = blog.StaffId;
+                existBlog.Hastag = blog.Hastag;
 
                 var setThumbnail = Task.Run(async () =>
                 {
@@ -66,12 +95,47 @@ namespace Etailor.API.Service.Service
                     {
                         existBlog.Thumbnail = await Ultils.UploadImage(wwwroot, "Thumbnail", thumbnail, null);
                     }
+                });
+
+                var tasks = new List<Task>();
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (blog.Title == null! | blog.Title == "undefined")
+                    {
+                        throw new UserException("Vui lòng nhập tên tiêu đề");
+                    }
                     else
                     {
-                        existBlog.Thumbnail = string.Empty;
+                        existBlog.Title = blog.Title;
                     }
-                });
+                }));
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (blog.Content == null! | blog.Content == "undefined")
+                    {
+                        throw new UserException("Vui lòng điền nội dung bài viết");
+                    }
+                    else
+                    {
+                        existBlog.Content = blog.Content;
+                    }
+                }));
+
+                var setHashtag = Task.Run(async () =>
+                {
+                    if (blog.Hastag != null )
+                    {
+                        existBlog.Hastag = blog.Hastag;
+                    }
+                    else
+                    {
+                        throw new UserException("Vui lòng không để trống Hashteag");
+                    }
+                });            
+
                 await Task.WhenAll(setThumbnail);
+                await Task.WhenAll(setHashtag);
 
                 existBlog.LastestUpdatedTime = DateTime.Now;
                 existBlog.InactiveTime = null;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Etailor.API.Repository.EntityModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,5 +9,10 @@ namespace Etailor.API.Service.Interface
 {
     public interface IMaterialCategoryService
     {
+        Task<bool> CreateMaterialCatergory(MaterialCategory materialCategory);
+        Task<bool> UpdateMaterialCategory(MaterialCategory materialCategory);
+        bool DeleteMaterialCategory(string id);
+        MaterialCategory GetMaterialCategory(string id);
+        IEnumerable<MaterialCategory> GetMaterialCategorys(string? search);
     }
 }
