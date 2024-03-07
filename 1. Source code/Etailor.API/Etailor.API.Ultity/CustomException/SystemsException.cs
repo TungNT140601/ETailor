@@ -14,10 +14,12 @@ namespace Etailor.API.Ultity.CustomException
 
         public SystemsException(string? message) : base(message)
         {
+            Ultils.SendErrorToDev(message);
         }
 
         public SystemsException(string? message, Exception? innerException) : base(message, innerException)
         {
+            Ultils.SendErrorToDev(message + "; " + innerException);
         }
     }
 }

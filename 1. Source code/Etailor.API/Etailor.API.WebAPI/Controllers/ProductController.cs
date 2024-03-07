@@ -255,7 +255,7 @@ namespace Etailor.API.WebAPI.Controllers
                                                 }
                                                 else if (component.Components != null && component.Components.Any())
                                                 {
-                                                    component.Selected_Component_Id = component.Components.Single(x => componentIds.Contains(x.Id)).Id;
+                                                    component.Selected_Component_Id = component.Components.SingleOrDefault(x => componentIds.Contains(x.Id))?.Id;
                                                 }
                                             }));
                                         }
