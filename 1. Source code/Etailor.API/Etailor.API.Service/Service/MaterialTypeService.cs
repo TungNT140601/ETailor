@@ -39,7 +39,7 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Tên loại nguyên liệu không được để trống");
                 }
-                else if (check)
+                else if (!check)
                 {
                     throw new UserException("Tên loại nguyên liệu đã được sử dụng");
                 }
@@ -94,7 +94,7 @@ namespace Etailor.API.Service.Service
                     {
                         throw new UserException("Tên loại nguyên liệu không được để trống");
                     }
-                    else if (check)
+                    else if (!check)
                     {
                         throw new UserException("Tên loại nguyên liệu đã được sử dụng");
                     }

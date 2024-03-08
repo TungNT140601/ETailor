@@ -22,7 +22,7 @@ namespace Etailor.API.Service.Service
         {
             RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
 
-            RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwroot), Cron.Minutely());
+            RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwroot), "*/5 * * * *");
 
             //RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
 
