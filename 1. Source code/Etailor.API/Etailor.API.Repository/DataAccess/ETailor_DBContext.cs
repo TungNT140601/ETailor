@@ -643,6 +643,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.OrderId).HasMaxLength(30);
 
+                entity.Property(e => e.StaffCreateId).HasMaxLength(30);
+
                 entity.Property(e => e.PaymentRefundId).HasMaxLength(30);
 
                 entity.Property(e => e.PayTime).HasColumnType("datetime");
@@ -662,6 +664,11 @@ namespace Etailor.API.Repository.DataAccess
                     .WithMany(d => d.RefundOfPayments)
                     .HasForeignKey(d => d.PaymentRefundId)
                     .HasConstraintName("FK__Payment__PaymentRefund__1A25A48");
+
+                entity.HasOne(d => d.StaffCreate)
+                    .WithMany(d => d.Payments)
+                    .HasForeignKey(d => d.StaffCreateId)
+                    .HasConstraintName("FK__Payment__Staff_Create__1A25A48");
             });
 
             modelBuilder.Entity<Product>(entity =>
@@ -690,6 +697,10 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.OrderId).HasMaxLength(30);
 
+                entity.Property(e => e.StaffMakerId).HasMaxLength(30);
+
+                entity.Property(e => e.Index).HasColumnType("int");
+
                 entity.Property(e => e.FabricMaterialId).HasMaxLength(30);
 
                 entity.Property(e => e.ReferenceProfileBodyId).HasMaxLength(30);
@@ -706,6 +717,11 @@ namespace Etailor.API.Repository.DataAccess
                     .WithMany(p => p.Products)
                     .HasForeignKey(d => d.OrderId)
                     .HasConstraintName("FK__Product__OrderId__6B44E613");
+
+                entity.HasOne(d => d.StaffMaker)
+                    .WithMany(p => p.Products)
+                    .HasForeignKey(d => d.StaffMakerId)
+                    .HasConstraintName("FK__Product__Staff_Maker__6B44E613");
 
                 entity.HasOne(d => d.ReferenceProfileBody)
                     .WithMany(p => p.Products)

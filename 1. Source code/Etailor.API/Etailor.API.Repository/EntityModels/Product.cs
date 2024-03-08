@@ -22,6 +22,8 @@ namespace Etailor.API.Repository.EntityModels
         public string? SaveOrderComponents { get; set; }
         public string? ReferenceProfileBodyId { get; set; }
         public string? FabricMaterialId { get; set; }
+        public string? StaffMakerId { get; set; }
+        public int? Index { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
@@ -32,6 +34,7 @@ namespace Etailor.API.Repository.EntityModels
         public virtual Material? FabricMaterial { get; set; }
         public virtual Order? Order { get; set; }
         public virtual ProductTemplate? ProductTemplate { get; set; }
+        public virtual Staff? StaffMaker { get; set; }
         public virtual ICollection<ProductBodySize> ProductBodySizes { get; set; }
         public virtual ICollection<ProductStage> ProductStages { get; set; }
     }

@@ -301,7 +301,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (orders != null && orders.Any() && orders.Count() > 0)
                         {
-                            orders = orders.OrderByDescending(x => x.CreatedTime).ToList();
+                            orders = orders.ToList();
 
                             var listProducts = await productService.GetProductsByOrderIds(orders.Select(x => x.Id).ToList());
                             if (listProducts != null && listProducts.Any())
@@ -313,7 +313,7 @@ namespace Etailor.API.WebAPI.Controllers
                                     tasks.Add(Task.Run(async () =>
                                     {
                                         var realOrder = mapper.Map<GetOrderVM>(order);
-                                        var firstProductOrder = listProducts.SingleOrDefault(x => x.OrderId == order.Id);
+                                        var firstProductOrder = listProducts.FirstOrDefault(x => x.OrderId == order.Id);
                                         if (firstProductOrder != null)
                                         {
                                             if (firstProductOrder.ProductTemplate == null)

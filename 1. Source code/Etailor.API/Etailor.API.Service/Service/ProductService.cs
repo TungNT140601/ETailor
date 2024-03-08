@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using System.Text.Json;
 using System.ComponentModel;
 using Component = Etailor.API.Repository.EntityModels.Component;
+using Microsoft.AspNetCore.Components;
 
 namespace Etailor.API.Service.Service
 {
@@ -791,6 +792,155 @@ namespace Etailor.API.Service.Service
                 }
             }
             return null;
+        }
+
+        public void AutoCreateEmptyTaskProduct()
+        {
+            try
+            {
+                Ultils.SendMessageToDev("Run func AutoCreateEmptyTaskProduct");
+                var approveOrders = orderRepository.GetAll(x => x.Status == 2 && x.IsActive == true);
+                if (approveOrders != null && approveOrders.Any())
+                {
+                    approveOrders = approveOrders.OrderBy(x => x.CreatedTime).ToList();
+
+                    var approveOrdersProducts = productRepository.GetAll(x => approveOrders.Select(o => o.Id).Contains(x.OrderId) && x.Status == 1 && x.IsActive == true);
+                    if (approveOrdersProducts != null && approveOrdersProducts.Any())
+                    {
+                        approveOrdersProducts = approveOrdersProducts.ToList();
+
+                        var templates = productTemplateRepository.GetAll(x => approveOrdersProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
+                        if (templates != null && templates.Any())
+                        {
+                            templates = templates.ToList();
+
+                            var templateStages = templateStateRepository.GetAll(x => templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
+                            if (templateStages != null && templateStages.Any())
+                            {
+                                templateStages = templateStages.ToList();
+
+                                var stageComponents = componentStageRepository.GetAll(x => templateStages.Select(c => c.Id).Contains(x.TemplateStageId));
+                                if (stageComponents != null && stageComponents.Any())
+                                {
+                                    stageComponents = stageComponents.ToList();
+
+                                    var components = componentRepository.GetAll(x => templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
+                                    if (components != null && components.Any())
+                                    {
+                                        components = components.ToList();
+
+                                        var productAllDbs = productRepository.GetAll(x => x.IsActive == true && x.Status > 0);
+                                        int? greatestIndexDb = 0;
+
+                                        if (productAllDbs != null && productAllDbs.Any())
+                                        {
+                                            greatestIndexDb = productAllDbs.OrderByDescending(x => x.Index).FirstOrDefault()?.Index;
+                                        }
+                                        if (greatestIndexDb == null)
+                                        {
+                                            greatestIndexDb = 1;
+                                        }
+                                        else
+                                        {
+                                            greatestIndexDb++;
+                                        }
+
+                                        var check = new List<bool>();
+
+                                        foreach (var order in approveOrders)
+                                        {
+                                            if (approveOrdersProducts.Any(x => x.OrderId == order.Id))
+                                            {
+                                                order.Products = approveOrdersProducts.Where(x => x.OrderId == order.Id).ToList();
+                                                foreach (var product in order.Products)
+                                                {
+                                                    product.Index = greatestIndexDb;
+
+                                                    if (!string.IsNullOrWhiteSpace(product.SaveOrderComponents))
+                                                    {
+                                                        var productTemplate = templates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
+                                                        if (productTemplate != null)
+                                                        {
+                                                            var productTemplateStagees = templateStages.Where(x => x.ProductTemplateId == product.ProductTemplateId);
+                                                            if (productTemplateStagees != null && productTemplateStagees.Any())
+                                                            {
+                                                                productTemplateStagees = productTemplateStagees.ToList();
+
+                                                                product.ProductStages = new List<ProductStage>();
+
+                                                                foreach (var stage in productTemplateStagees.OrderBy(x => x.StageNum))
+                                                                {
+                                                                    var productStage = new ProductStage()
+                                                                    {
+                                                                        Id = Ultils.GenGuidString(),
+                                                                        Deadline = null,
+                                                                        StartTime = null,
+                                                                        FinishTime = null,
+                                                                        InactiveTime = null,
+                                                                        IsActive = true,
+                                                                        ProductId = product.Id,
+                                                                        StaffId = null,
+                                                                        StageNum = stage.StageNum,
+                                                                        TaskIndex = null,
+                                                                        Status = 1,
+                                                                        TemplateStageId = stage.Id,
+                                                                        ProductComponents = new List<ProductComponent>()
+                                                                    };
+
+                                                                    var componentTypesInStage = stageComponents.Where(x => x.TemplateStageId == stage.Id);
+                                                                    if (componentTypesInStage != null && componentTypesInStage.Any())
+                                                                    {
+                                                                        componentTypesInStage = componentTypesInStage.ToList();
+
+                                                                        var componentsInStage = components.Where(x => componentTypesInStage.Select(c => c.ComponentTypeId).Contains(x.ComponentTypeId));
+                                                                        if (componentsInStage != null && componentsInStage.Any())
+                                                                        {
+                                                                            componentsInStage = componentsInStage.ToList();
+
+                                                                            var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(product.SaveOrderComponents);
+                                                                            if (productComponents != null && productComponents.Any())
+                                                                            {
+                                                                                var productComponent = productComponents.FirstOrDefault(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
+                                                                                if (productComponent != null)
+                                                                                {
+                                                                                    productComponent.LastestUpdatedTime = DateTime.Now;
+                                                                                    productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
+                                                                                    productComponent.ProductStageId = productStage.Id;
+                                                                                    productComponent.ProductComponentMaterials = null;
+
+                                                                                    productStage.ProductComponents.Add(productComponent);
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+
+                                                                    product.ProductStages.Add(productStage);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                    greatestIndexDb++;
+                                                }
+                                            }
+                                            order.Status = 3;
+                                            check.Add(orderRepository.Update(order.Id, order));
+                                        }
+
+                                        if (check.Any(x => x == false))
+                                        {
+                                            throw new Exception("Lỗi trong quá trình tự động tạo task");
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message);
+            }
         }
     }
 }
