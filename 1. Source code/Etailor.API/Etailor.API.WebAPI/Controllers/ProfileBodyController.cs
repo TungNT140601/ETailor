@@ -294,7 +294,7 @@ namespace Etailor.API.WebAPI.Controllers
                         else
                         {
                             var pB = profileBodyService.GetProfileBody(id);
-                            if (pB.CustomerId == customerId)
+                            if (pB != null && pB.CustomerId == customerId )
                             {
                                 var profileBody = mapper.Map<GetDetailProfileBodyVM>(pB);
 
