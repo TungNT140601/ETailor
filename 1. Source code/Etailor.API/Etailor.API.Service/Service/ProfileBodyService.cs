@@ -69,29 +69,41 @@ namespace Etailor.API.Service.Service
 
             var bodyAttributeList = new List<BodyAttribute>();
             var tasks = new List<Task>();
+            BodySize bodySizeObject = new BodySize();
+
             foreach (var id in bodySizeId)
             {
+                bodySizeObject = bodySizeRepository.Get(id.id);
+                var minValidValue = bodySizeObject.MinValidValue;
+                var maxValidValue = bodySizeObject.MaxValidValue;
                 tasks.Add(Task.Run(() =>
                 {
                     if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue  && id.value <= x.MaxValidValue))
                     {
-                        if (!existBodyAttributeList.Contains(id.id))
+                        if (id.value >= minValidValue && id.value <= maxValidValue)
                         {
-                            bodyAttributeList.Add(new BodyAttribute()
+                            if (!existBodyAttributeList.Contains(id.id))
                             {
-                                Id = Ultils.GenGuidString(),
-                                BodySizeId = id.id,
-                                ProfileBodyId = profileBody.Id,
-                                Value = id.value,
-                                CreatedTime = DateTime.Now,
-                                LastestUpdatedTime = null,
-                                InactiveTime = null,
-                                IsActive = true
-                            });
-                        }
+                                bodyAttributeList.Add(new BodyAttribute()
+                                {
+                                    Id = Ultils.GenGuidString(),
+                                    BodySizeId = id.id,
+                                    ProfileBodyId = profileBody.Id,
+                                    Value = id.value,
+                                    CreatedTime = DateTime.Now,
+                                    LastestUpdatedTime = null,
+                                    InactiveTime = null,
+                                    IsActive = true
+                                });
+                            }
+                            else
+                            {
+                                throw new UserException("Số đo đã tồn tại trong hệ thống");
+                            }
+                        } 
                         else
                         {
-                            throw new UserException("Số đo đã tồn tại trong hệ thống");
+                            throw new UserException("Giá trị số đo phải phù hợp");
                         }
                     }
                     else
@@ -141,29 +153,40 @@ namespace Etailor.API.Service.Service
 
             var bodyAttributeList = new List<BodyAttribute>();
             var tasks = new List<Task>();
+            BodySize bodySizeObject = new BodySize();
             foreach (var id in bodySizeId)
             {
+                bodySizeObject = bodySizeRepository.Get(id.id);
+                var minValidValue = bodySizeObject.MinValidValue;
+                var maxValidValue = bodySizeObject.MaxValidValue;
                 tasks.Add(Task.Run(() =>
                 {
-                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                    if (existBodySizeList.Any(x => x.Id == id.id))
                     {
-                        if (!existBodyAttributeList.Contains(id.id))
+                        if (id.value >= minValidValue && id.value <= maxValidValue) 
                         {
-                            bodyAttributeList.Add(new BodyAttribute()
+                            if (!existBodyAttributeList.Contains(id.id))
                             {
-                                Id = Ultils.GenGuidString(),
-                                BodySizeId = id.id,
-                                ProfileBodyId = profileBody.Id,
-                                Value = id.value,
-                                CreatedTime = DateTime.Now,
-                                LastestUpdatedTime = null,
-                                InactiveTime = null,
-                                IsActive = true
-                            });
+                                bodyAttributeList.Add(new BodyAttribute()
+                                {
+                                    Id = Ultils.GenGuidString(),
+                                    BodySizeId = id.id,
+                                    ProfileBodyId = profileBody.Id,
+                                    Value = id.value,
+                                    CreatedTime = DateTime.Now,
+                                    LastestUpdatedTime = null,
+                                    InactiveTime = null,
+                                    IsActive = true
+                                });
+                            }
+                            else
+                            {
+                                throw new UserException("Số đo đã tồn tại trong hệ thống");
+                            }
                         }
                         else
                         {
-                            throw new UserException("Số đo đã tồn tại trong hệ thống");
+                            throw new UserException("Giá trị số đo phải phù hợp");
                         }
                     }
                     else
@@ -243,24 +266,36 @@ namespace Etailor.API.Service.Service
             var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
             
             var tasks = new List<Task>();
+            BodySize bodySizeObject = new BodySize();
 
-            foreach( var bodyAttribute in existBodyAttributeList)
+            foreach ( var bodyAttribute in existBodyAttributeList)
             {
                 tasks.Add(Task.Run(() =>
                 {
                     foreach (var id in bodySizeId)
                     {
+                        bodySizeObject = bodySizeRepository.Get(id.id);
+                        var minValidValue = bodySizeObject.MinValidValue;
+                        var maxValidValue = bodySizeObject.MaxValidValue;
                         if (id.id == bodyAttribute.BodySizeId)
                         {
-                            if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                            if (id.value >= minValidValue && id.value <= maxValidValue)
                             {
-                                bodyAttribute.Value = id.value;
-                                bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                                if (existBodySizeList.Any(x => x.Id == id.id))
+                                {
+                                    bodyAttribute.Value = id.value;
+                                    bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                                }
+                                else
+                                {
+                                    throw new UserException("Số đo không tồn tại trong hệ thống");
+                                }
                             }
                             else
                             {
-                                throw new UserException("Số đo không tồn tại trong hệ thống");
+                                throw new UserException("Giá trị số đo phải phù hợp");
                             }
+                            
                         }
                         else
                         {
@@ -319,6 +354,7 @@ namespace Etailor.API.Service.Service
             var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
 
             var tasks = new List<Task>();
+            BodySize bodySizeObject = new BodySize();
 
             foreach (var bodyAttribute in existBodyAttributeList)
             {
@@ -326,16 +362,26 @@ namespace Etailor.API.Service.Service
                 {
                     foreach (var id in bodySizeId)
                     {
+                        bodySizeObject = bodySizeRepository.Get(id.id);
+                        var minValidValue = bodySizeObject.MinValidValue;
+                        var maxValidValue = bodySizeObject.MaxValidValue;
                         if (id.id == bodyAttribute.BodySizeId)
                         {
-                            if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
+                            if (id.value >= minValidValue && id.value <= maxValidValue)
                             {
-                                bodyAttribute.Value = id.value;
-                                bodyAttribute.LastestUpdatedTime = DateTime.Now;
-                            }
+                                if (existBodySizeList.Any(x => x.Id == id.id))
+                                {
+                                    bodyAttribute.Value = id.value;
+                                    bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                                }
+                                else
+                                {
+                                    throw new UserException("Số đo không tồn tại trong hệ thống");
+                                }
+                            } 
                             else
                             {
-                                throw new UserException("Số đo không tồn tại trong hệ thống");
+                                throw new UserException("Giá trị số đo phải phù hợp");
                             }
                         }
                         else

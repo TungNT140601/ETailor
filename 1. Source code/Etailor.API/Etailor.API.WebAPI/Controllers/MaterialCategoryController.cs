@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Etailor.API.Repository.EntityModels;
+using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
 using Etailor.API.Ultity.CustomException;
@@ -15,20 +16,28 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IMaterialCategoryService materialCategoryService;
         private readonly IStaffService staffService;
         private readonly IMapper mapper;
+        private readonly IMaterialTypeService materialTypeService;
 
-        public MaterialCategoryController(IMaterialCategoryService materialCategoryService, IStaffService staffService, IMapper mapper)
+        public MaterialCategoryController(IMaterialCategoryService materialCategoryService, IStaffService staffService, IMapper mapper,
+            IMaterialTypeService materialTypeService)
         {
             this.materialCategoryService = materialCategoryService;
             this.mapper = mapper;
             this.staffService = staffService;
+            this.materialTypeService = materialTypeService;
         }
         [HttpGet("{id}")]
         public IActionResult Get(string? id)
         {
             try
             {
-                var materialCategory = materialCategoryService.GetMaterialCategory(id);
-                return materialCategory != null ? Ok(mapper.Map<MaterialCategoryVM>(materialCategory)) : NotFound("không tìm thấy loại danh mục");
+                var materialCategory = mapper.Map<MaterialCategoryVM>(materialCategoryService.GetMaterialCategory(id));
+                
+                var materialType = materialTypeService.GetMaterialType(materialCategory.MaterialTypeId).Name;
+
+                materialCategory.MaterialTypeName = materialType;
+
+                return materialCategory != null ? Ok(materialCategory) : NotFound("không tìm thấy loại danh mục");
             }
             catch (UserException ex)
             {
@@ -49,8 +58,16 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var materialCategory = materialCategoryService.GetMaterialCategorys(search);
-                return Ok(mapper.Map<IEnumerable<MaterialCategoryVM>>(materialCategory));
+                var materialCategoryList = mapper.Map<IEnumerable<MaterialCategoryVM>>(materialCategoryService.GetMaterialCategorys(search));
+
+                var materialTypeList = materialTypeService.GetMaterialTypes("").Select(x => new {x.Id, x.Name});
+
+                foreach (var materialCategory in materialCategoryList)
+                {
+                    materialCategory.MaterialTypeName = materialTypeList.FirstOrDefault(x => x.Id == materialCategory.MaterialTypeId).Name;
+                }
+
+                return Ok(materialCategoryList);
             }
             catch (UserException ex)
             {

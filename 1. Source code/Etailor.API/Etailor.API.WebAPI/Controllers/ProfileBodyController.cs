@@ -68,7 +68,7 @@ namespace Etailor.API.WebAPI.Controllers
                             var listBodyAttribute = createProfileBodyByStaffVM.valueBodyAttribute;
                             foreach (var item in listBodyAttribute)
                             {
-                                list.Add((item.BodySizeId, item.Value));
+                                list.Add((item.Id, item.Value));
                             }
 
                             if (role == RoleName.STAFF || role == RoleName.MANAGER)
@@ -182,7 +182,7 @@ namespace Etailor.API.WebAPI.Controllers
                             var listBodyAttribute = updateProfileBodyByStaffVM.valueBodyAttribute;
                             foreach (var item in listBodyAttribute)
                             {
-                                list.Add((item.BodySizeId, item.Value));
+                                list.Add((item.Id, item.Value));
                             }
 
                             if (role == RoleName.STAFF || role == RoleName.MANAGER)

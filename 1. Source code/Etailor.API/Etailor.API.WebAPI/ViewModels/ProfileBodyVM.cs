@@ -43,7 +43,7 @@ namespace Etailor.API.WebAPI.ViewModels
 
     public class ValueBodyAttribute
     {
-        public string BodySizeId { get; set; }
+        public string Id { get; set; }
         public decimal Value { get; set; }
     }
 
