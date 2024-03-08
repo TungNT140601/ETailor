@@ -269,7 +269,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var materials = materialService.GetFabricMaterials(search).ToList();
+                var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetFabricMaterials(search).ToList());
 
                 if (materials.Any() && materials.Count() > 0)
                 {
@@ -284,7 +284,7 @@ namespace Etailor.API.WebAPI.Controllers
                     await Task.WhenAll(tasks);
                 }
 
-                return Ok(mapper.Map<IEnumerable<MaterialVM>>(materials));
+                return Ok(materials);
             }
             catch (UserException ex)
             {
