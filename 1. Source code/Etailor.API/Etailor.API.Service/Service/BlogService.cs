@@ -83,11 +83,8 @@ namespace Etailor.API.Service.Service
             var existBlog = blogRepository.Get(blog.Id);
             if (existBlog != null)
             {
-               
-               
                 existBlog.UrlPath = Ultils.ConvertToEnglishAlphabet(blog.Title);
                 existBlog.StaffId = blog.StaffId;
-                existBlog.Hastag = blog.Hastag;
 
                 var setThumbnail = Task.Run(async () =>
                 {

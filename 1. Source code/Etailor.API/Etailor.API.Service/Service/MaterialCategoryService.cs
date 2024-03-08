@@ -9,10 +9,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Etailor.API.Service.Interface;
 
 namespace Etailor.API.Service.Service
 {
-    public class MaterialCategoryService
+    public class MaterialCategoryService : IMaterialCategoryService
     {
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IMaterialTypeRepository materialTypeRepository;
@@ -31,9 +32,17 @@ namespace Etailor.API.Service.Service
             materialCategory.Id = Ultils.GenGuidString();
 
             var tasks = new List<Task>();
+
             tasks.Add(Task.Run(async () =>
             {
-                if (!string.IsNullOrWhiteSpace(materialCategory.Name))
+                if (string.IsNullOrWhiteSpace(materialCategory.MaterialTypeId))
+                {
+                    throw new UserException("Vui lòng nhập Id");
+                }
+            }));
+            tasks.Add(Task.Run(async () =>
+            {
+                if (string.IsNullOrWhiteSpace(materialCategory.Name))
                 {
                     throw new UserException("Vui lòng nhập tên");
                 }
@@ -42,7 +51,7 @@ namespace Etailor.API.Service.Service
             {
                 if (materialCategory.PricePerUnit < 0)
                 {
-                    throw new UserException("Vui lòng nhập tên");
+                    throw new UserException("Vui lòng nhập giá");
                 }
             }));
 
@@ -55,72 +64,67 @@ namespace Etailor.API.Service.Service
             return materialCategoryRepository.Create(materialCategory);
         }
 
-        //public async Task<bool> UpdateMaterialCategory(MaterialCategory materialCategory)
-        //{
-        //    var existMaterialCategory = materialCategoryRepository.Get(materialCategory.Id);
-        //    if (existBlog != null)
-        //    {
-        //        existBlog.Title = materialCategory.Name;
-        //        existBlog.Content = materialCategory.PricePerUnit;
+        public async Task<bool> UpdateMaterialCategory(MaterialCategory materialCategory)
+        {
+            var existMaterialCategory = materialCategoryRepository.Get(materialCategory.Id);
+            if (existMaterialCategory != null)
+            {
+                existMaterialCategory.Name = materialCategory.Name;
+                existMaterialCategory.PricePerUnit = materialCategory.PricePerUnit;
 
-        //        var setThumbnail = Task.Run(async () =>
-        //        {
+                var tasks = new List<Task>();
 
-        //        });
-        //        await Task.WhenAll(setThumbnail);
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (string.IsNullOrWhiteSpace(materialCategory.Name))
+                    {
+                        throw new UserException("Vui lòng nhập tên");
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (materialCategory.PricePerUnit < 0)
+                    {
+                        throw new UserException("Vui lòng nhập giá");
+                    }
+                }));
 
-        //        existBlog.LastestUpdatedTime = DateTime.Now;
-        //        existBlog.InactiveTime = null;
-        //        existBlog.IsActive = true;
+                await Task.WhenAll(tasks);
 
-        //        return blogRepository.Update(existBlog.Id, existBlog);
-        //    }
-        //    else
-        //    {
-        //        throw new UserException("Không tìm thấy bài blog này.");
-        //    }
-        //}
+                return materialCategoryRepository.Update(existMaterialCategory.Id, existMaterialCategory);
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy danh muc nguyen lieu này.");
+            }
+        }
 
-        //public bool DeleteMaterialCategory(string id)
-        //{
-        //    var existBlog = blogRepository.Get(id);
-        //    if (existBlog != null)
-        //    {
-        //        existBlog.LastestUpdatedTime = DateTime.Now;
-        //        existBlog.InactiveTime = DateTime.Now;
-        //        existBlog.IsActive = false;
-        //        return blogRepository.Update(existBlog.Id, existBlog);
-        //    }
-        //    else
-        //    {
-        //        throw new UserException("Không tìm thấy bài blog này.");
-        //    }
-        //}
+        public bool DeleteMaterialCategory(string id)
+        {
+            var existMaterialCategory = materialCategoryRepository.Get(id);
+            if (existMaterialCategory != null)
+            {
+                existMaterialCategory.LastestUpdatedTime = DateTime.Now;
+                existMaterialCategory.InactiveTime = DateTime.Now;
+                existMaterialCategory.IsActive = false;
+                return materialCategoryRepository.Update(existMaterialCategory.Id, existMaterialCategory);
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy danh muc nguyen lieu này.");
+            }
+        }
 
-        public async Task<MaterialCategory> GetMaterialCategory(string id)
+        public MaterialCategory GetMaterialCategory(string id)
         {
             var materialCategory = materialCategoryRepository.Get(id);
-
-            //var setThumbnail = Task.Run(async () =>
-            //{
-                
-            //});
-            //await Task.WhenAll(setThumbnail);
             return materialCategory == null ? null : materialCategory.IsActive == true ? materialCategory : null;
         }
 
-        //public async Task<IEnumerable<Blog>> GetMaterialCategorys(string? search)
-        //{
-        //    IEnumerable<Blog> ListOfBlog = blogRepository.GetAll(x => (search == null || (search != null && x.Title.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
-        //    foreach (Blog blog in ListOfBlog)
-        //    {
-        //        var setThumbnail = Task.Run(async () =>
-        //        {
-                 
-        //        });
-        //        await Task.WhenAll(setThumbnail);
-        //    };
-        //    return ListOfBlog;
-        //}
+        public IEnumerable<MaterialCategory> GetMaterialCategorys(string? search)
+        {
+            IEnumerable<MaterialCategory> ListOfMaterialCategory = materialCategoryRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            return ListOfMaterialCategory;
+        }
     }
 }
