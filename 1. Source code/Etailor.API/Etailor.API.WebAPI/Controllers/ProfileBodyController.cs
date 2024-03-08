@@ -298,8 +298,6 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 var profileBody = mapper.Map<GetDetailProfileBodyVM>(pB);
 
-                                DetailProfileBody detailProfileBody = new DetailProfileBody();
-
                                 var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(id).Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
 
                                 BodySize bodySize;
@@ -311,6 +309,8 @@ namespace Etailor.API.WebAPI.Controllers
                                 foreach (var bodyAttribute in bodyAttributeList)
                                 {
                                     bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+
+                                    DetailProfileBody detailProfileBody = new DetailProfileBody();
                                     detailProfileBody.Id = bodyAttribute.BodySizeId;
                                     detailProfileBody.Name = bodySize.Name;
                                     detailProfileBody.Value = (decimal)bodyAttribute.Value;
