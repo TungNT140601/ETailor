@@ -181,17 +181,15 @@ namespace Etailor.API.Service.Service
             var dbStaff = GetStaff(staff.Id);
             if (dbStaff != null)
             {
+                bkMastery = masteryRepository.GetAll(x => x.StaffId == dbStaff.Id)?.Select(c => c.CategoryId).ToList();
+                var phoneDuplicate = staffRepository.GetAll(x => x.Id != staff.Id && x.Phone != null && x.Phone == staff.Phone);
                 var setBkStaff = Task.Run(() =>
                 {
                     bkStaff = dbStaff;
                 });
-                var setBkMastery = Task.Run(() =>
-                {
-                    bkMastery = masteryRepository.GetAll(x => x.StaffId == dbStaff.Id)?.Select(c => c.CategoryId).ToList();
-                });
                 var checkPhoneTask = Task.Run(() =>
                 {
-                    if (staffRepository.GetAll(x => x.Id != staff.Id && x.Phone != null && x.Phone == staff.Phone).Any())
+                    if (phoneDuplicate != null && phoneDuplicate.Any())
                     {
                         throw new UserException("Số điện thoại đã được sử dụng");
                     }
@@ -223,7 +221,7 @@ namespace Etailor.API.Service.Service
                     dbStaff.LastestUpdatedTime = DateTime.Now;
                 });
 
-                await Task.WhenAll(setBkStaff, setBkMastery, checkPhoneTask, checkAvatarTask, updateFullnameTask, updateAddressTask, updateUpdateTimeTask);
+                await Task.WhenAll(setBkStaff, checkPhoneTask, checkAvatarTask, updateFullnameTask, updateAddressTask, updateUpdateTimeTask);
 
                 if (!staffRepository.Update(dbStaff.Id, dbStaff))
                 {
@@ -250,7 +248,7 @@ namespace Etailor.API.Service.Service
 
         private async Task<bool> UpdateMastery(string staffId, List<string>? masterySkills, List<string>? bkMastery)
         {
-            var listTask = new List<Task<bool>>();
+            var check = new List<bool>();
             var currentMastery = masteryRepository.GetAll(x => x.StaffId == staffId)?.Select(c => c.CategoryId).ToList();
             if (currentMastery == null)
             {
@@ -264,31 +262,24 @@ namespace Etailor.API.Service.Service
             {
                 if (!masterySkills.Contains(mastery))
                 {
-                    listTask.Add(Task.Run(() =>
-                    {
-                        return masteryRepository.Delete(mastery);
-                    }));
+                    check.Add(masteryRepository.Delete(mastery));
                 }
             }
             foreach (var mastery in masterySkills)
             {
                 if (!currentMastery.Contains(mastery))
                 {
-                    listTask.Add(Task.Run(() =>
+                    check.Add(
+                    masteryRepository.Create(new Mastery()
                     {
-                        return masteryRepository.Create(new Mastery()
-                        {
-                            Id = Ultils.GenGuidString(),
-                            StaffId = staffId,
-                            CategoryId = mastery
-                        });
+                        Id = Ultils.GenGuidString(),
+                        StaffId = staffId,
+                        CategoryId = mastery
                     }));
                 }
             }
 
-            var updateMastery = await Task.WhenAll(listTask);
-
-            if (updateMastery.Any(c => c == false))
+            if (check.Any(c => c == false))
             {
                 var masterys = masteryRepository.GetAll(c => c.StaffId == staffId).Select(c => c.CategoryId);
 
@@ -296,27 +287,20 @@ namespace Etailor.API.Service.Service
                 {
                     foreach (var mastery in masterys)
                     {
-                        listTask.Add(Task.Run(() =>
-                        {
-                            return masteryRepository.Delete(mastery);
-                        }));
+                        masteryRepository.Delete(mastery);
                     }
                 }
 
+
                 foreach (var mastery in bkMastery)
                 {
-                    listTask.Add(Task.Run(() =>
+                    masteryRepository.Create(new Mastery()
                     {
-                        return masteryRepository.Create(new Mastery()
-                        {
-                            Id = Ultils.GenGuidString(),
-                            StaffId = staffId,
-                            CategoryId = mastery
-                        });
-                    }));
+                        Id = Ultils.GenGuidString(),
+                        StaffId = staffId,
+                        CategoryId = mastery
+                    });
                 }
-
-                await Task.WhenAll(listTask);
 
                 return false;
             }
