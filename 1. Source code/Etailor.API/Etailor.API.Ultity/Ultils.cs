@@ -208,6 +208,41 @@ namespace Etailor.API.Ultity
                 throw new Exception(ex.Message);
             }
         }
+        public static void SendMessageToDev(string error)
+        {
+            try
+            {
+                //string fromMail = "tungnt14062001@gmail.com";
+                //string fromPassword = "gblfgbilbwaehjkw"; //"tungnt14062001@gmail.com"
+
+                string fromMail = "tuetailor@gmail.com";
+                string fromPassword = "idpqyvuzktpgstlb"; //"tuetailor@gmail.com"
+
+                //string fromMail = "tudase151149@gmail.com";
+                //string frompassword = "abrxaexoqqpkrjiz"; //"tudase151149@gmail.com"
+
+                MailMessage message = new MailMessage();
+                message.From = new MailAddress(fromMail);
+                message.Subject = "Notification Mail From TueTailor";
+                message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
+                message.Body = $"Notification at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
+                message.Body += error;
+                message.IsBodyHtml = false;
+
+                var smtpClient = new SmtpClient("smtp.gmail.com")
+                {
+                    Port = 587,
+                    Credentials = new NetworkCredential(fromMail, fromPassword),
+                    EnableSsl = true,
+                };
+
+                smtpClient.Send(message);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
         #endregion
 
         public static void SendOTPPhone(string phone, string otp)

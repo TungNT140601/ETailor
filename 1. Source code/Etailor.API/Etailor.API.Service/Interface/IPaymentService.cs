@@ -9,7 +9,7 @@ namespace Etailor.API.Service.Interface
 {
     public interface IPaymentService
     {
-        Task<string> CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip);
+        Task<string> CreatePayment(string orderId, decimal? amount, int payType, string platform, string ip, string createrId);
         Task<bool> UpdatePayment(string paymentId, int status);
         IEnumerable<Payment> GetAllPayments();
         IEnumerable<Payment> GetAllOrderPayments(string? orderId);

@@ -23,6 +23,10 @@ using Etailor.API.Repository.Repository;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.Service.Interface;
 using Microsoft.AspNetCore.SignalR;
+using Hangfire;
+using System.Collections.Concurrent;
+using System.Reflection;
+using Hangfire.MemoryStorage;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -34,9 +38,11 @@ namespace Etailor.API.WebAPI.Controllers
         private IConfiguration _configuration;
         private readonly string _wwwrootPath;
         private readonly IProductStageService productStageService;
-        private readonly IHubContext<SignalRHub> hubContext;
+        private readonly IProductService productService;
+        private readonly ISignalRService signalRService;
+        private readonly IBackgroundService backgroundService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, IHubContext<SignalRHub> hubContext)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService, IProductService productService, IBackgroundService backgroundService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -44,7 +50,9 @@ namespace Etailor.API.WebAPI.Controllers
 
             _wwwrootPath = webHost.WebRootPath;
             this.productStageService = productStageService;
-            this.hubContext = hubContext;
+            this.productService = productService;
+            this.signalRService = signalRService;
+            this.backgroundService = backgroundService;
         }
 
         #region SendMail
@@ -746,12 +754,19 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost("test-create-product-stage")]
-        public async Task<IActionResult> TestCreateProductStage()
+        [HttpPost("/demo-signalR-new")]
+        public async Task<IActionResult> DemoSignalR(string id, string role, string message)
         {
             try
             {
-                return productStageService.CreateProductStage() ? Ok() : BadRequest();
+                await signalRService.SendMessageToUser(id, message, role);
+
+                return Ok(new
+                {
+                    UserId = id,
+                    Role = role,
+                    Message = message
+                });
             }
             catch (Exception ex)
             {
@@ -759,27 +774,116 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost()]
-        public async Task<IActionResult> DemoSignalR(string id, string role, string message)
+        [HttpPost("/demo-signalR-new/all")]
+        public async Task<IActionResult> DemoSignalRManager(string role, string message)
         {
             try
             {
-                var clientId = SignalRHub.GetUserClientId(id, role);
-                if (clientId != null)
+                if (role == RoleName.CUSTOMER)
                 {
-                    await hubContext.Clients.Client(clientId).SendAsync("ReceiveMessage", message);
+                    await signalRService.SendMessageToCustomer(message);
+                }
+                else if (role == RoleName.MANAGER)
+                {
+                    await signalRService.SendMessageToManager(message);
+                }
+                else if (role == RoleName.STAFF)
+                {
+                    await signalRService.SendMessageToStaff(message);
+                }
+                else if (role == RoleName.ADMIN)
+                {
+                    await signalRService.SendMessageToAdmin(message);
+                }
+                else
+                {
+                    await signalRService.SendMessageToAllStaff(message);
                 }
 
                 return Ok(new
                 {
-                    UserId = id,
-                    ClientId = clientId,
+                    Role = role,
                     Message = message
                 });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost("/demo-signalR-new/vnpay")]
+        public async Task<IActionResult> DemoSignalRvnpay(string message)
+        {
+            try
+            {
+                await signalRService.SendVNPayResult(message);
+                return Ok(new
+                {
+                    Message = message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("/current-client-url")]
+        public IActionResult GetClientUrl()
+        {
+            try
+            {
+                var clientUrl = _configuration.GetValue<string>("Client_Url");
+
+                return Ok(clientUrl);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPut]
+        public IActionResult StopHangfire(string? id)
+        {
+            try
+            {
+                backgroundService.StartSchedule(id);
+
+                return Ok("Hangfire server stopped successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Failed to stop Hangfire server: {ex.Message}");
+            }
+        }
+        [HttpPut]
+        public IActionResult StartHangfire(string? id)
+        {
+            try
+            {
+                backgroundService.StopSchedule(id);
+
+                return Ok("Hangfire server start successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Failed to start Hangfire server: {ex.Message}");
+            }
+        }
+
+        [HttpPut]
+        public IActionResult RunAutoAssignTask()
+        {
+            try
+            {
+                productService.AutoCreateEmptyTaskProduct();
+                return Ok("Run successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
             }
         }
     }

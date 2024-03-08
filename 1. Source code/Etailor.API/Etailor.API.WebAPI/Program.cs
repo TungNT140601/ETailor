@@ -18,6 +18,8 @@ using Etailor.API.Repository;
 using Etailor.API.WebAPI;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Etailor.API.Ultity.MiddleWare;
+using SixLabors.ImageSharp;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +40,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
                 c =>
                 {
-                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1" });
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1.00.001.0.4" });
 
                     // Configure Swagger to use JWT authentication
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -68,9 +70,12 @@ builder.Services.AddSwaggerGen(
 
 builder.Services.AddSignalR();
 
-//builder.Services.AddHangfire(config => config.UseMemoryStorage());
+builder.Services.AddHangfire(config =>
+{
+    config.UseMemoryStorage();
+});
 
-//builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -164,11 +169,18 @@ builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 
 builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>();
 //builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
-
+    
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
+
+builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
+
+builder.Services.AddSingleton<ISignalRService, SignalRService>();
+
+
+builder.Services.AddHostedService<Etailor.API.Service.Service.HostedService>();
 
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
@@ -186,7 +198,7 @@ app.UseAuthentication();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1.00.001.0.4");
 });
 //}
 
@@ -201,17 +213,7 @@ app.UseCors(option =>
     .AllowCredentials();
 });
 
-//app.UseHangfireDashboard();
-
-//var wwwroot = builder.Environment.WebRootPath;
-
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule(Cron.Daily(0)), Cron.Daily(0));
-
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod2", x => x.SendDemoSchedule(Cron.Hourly(0)), Cron.Hourly(0));
-
-//RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(wwwroot), "*/30 * * * * *");
-
-//app.UseHangfireServer();
+app.UseHangfireDashboard();
 
 app.UseStaticFiles();
 

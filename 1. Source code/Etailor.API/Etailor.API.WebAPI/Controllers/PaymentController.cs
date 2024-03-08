@@ -48,19 +48,18 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else
                 {
-                    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (string.IsNullOrEmpty(customerId) || !staffService.CheckSecrectKey(customerId, secrectKey))
+                    if (string.IsNullOrEmpty(staffId) || !staffService.CheckSecrectKey(staffId, secrectKey))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
-                        var result = await paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress());
+                        var result = await paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress(), staffId);
                         if (result != null)
                         {
-                            return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
-                            //return Ok(result);
+                            return Ok(result);
                         }
                         else
                         {
@@ -136,7 +135,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("result/vnp")]
-        public IActionResult GetVNPayPaymentResult()
+        public async Task<IActionResult> GetVNPayPaymentResult()
         {
             try
             {
@@ -173,20 +172,20 @@ namespace Etailor.API.WebAPI.Controllers
 
                 if (vnpLib.ValidateSignature(vnp_SecureHash, vnp_HashSecret))
                 {
-                    paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode));
-                    return Ok(new
+                    var clientUrl = configuration.GetValue<string>("Client_Url");
+
+                    if (await paymentService.UpdatePayment(vnp_TxnRef, vnp_ResponseCode != null && vnp_ResponseCode == "00" ? 0 : int.Parse(vnp_ResponseCode)))
                     {
-                        Message = "Success",
-                        Data = vnpayData
-                    });
+                        return Redirect($"{clientUrl}/payment-success");
+                    }
+                    else
+                    {
+                        return Redirect($"{clientUrl}/payment-fail");
+                    }
                 }
                 else
                 {
-                    return BadRequest(new
-                    {
-                        Message = "Fail",
-                        Data = vnpayData
-                    });
+                    throw new SystemsException("Validate Signature Fail");
                 }
 
             }

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Etailor.API.Service.Service
 {
@@ -20,13 +21,16 @@ namespace Etailor.API.Service.Service
             this.materialTypeRepository = materialTypeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
         }
-        private bool CheckNameDup(string? id, string name)
-        {
-            return materialTypeRepository.GetAll(x => (id == null || (id != null && x.Id != id)) && (x.Name != null && x.Name.Trim().ToLower() == name.Trim().ToLower()) && x.IsActive == true).Any();
-        }
 
         public async Task<bool> CreateMaterialType(MaterialType materialType)
         {
+            var check = false;
+            if (!string.IsNullOrWhiteSpace(materialType.Name))
+            {
+                var duplicateName = materialTypeRepository.GetAll(x => (x.Name != null && x.Name.Trim().ToLower() == materialType.Name.Trim().ToLower()) && x.IsActive == true);
+                check = duplicateName == null || !duplicateName.Any();
+            }
+
             var tasks = new List<Task>();
 
             tasks.Add(Task.Run(() =>
@@ -35,7 +39,7 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Tên loại nguyên liệu không được để trống");
                 }
-                else if (CheckNameDup(null, materialType.Name))
+                else if (!check)
                 {
                     throw new UserException("Tên loại nguyên liệu đã được sử dụng");
                 }
@@ -76,6 +80,12 @@ namespace Etailor.API.Service.Service
             var dbMaterialType = materialTypeRepository.Get(materialType.Id);
             if (dbMaterialType != null)
             {
+                var check = false;
+                if (!string.IsNullOrWhiteSpace(materialType.Name))
+                {
+                    var duplicateName = materialTypeRepository.GetAll(x => x.Id != dbMaterialType.Id && x.Name != null && x.Name.Trim().ToLower() == materialType.Name.Trim().ToLower() && x.IsActive == true);
+                    check = duplicateName == null || !duplicateName.Any();
+                }
                 var tasks = new List<Task>();
 
                 tasks.Add(Task.Run(() =>
@@ -84,13 +94,25 @@ namespace Etailor.API.Service.Service
                     {
                         throw new UserException("Tên loại nguyên liệu không được để trống");
                     }
-                    else if (CheckNameDup(dbMaterialType.Id, materialType.Name))
+                    else if (!check)
                     {
                         throw new UserException("Tên loại nguyên liệu đã được sử dụng");
                     }
                     else
                     {
                         dbMaterialType.Name = materialType.Name;
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(materialType.Name))
+                    {
+                        throw new UserException("Tên loại nguyên liệu không được để trống");
+                    }
+                    else
+                    {
+                        dbMaterialType.Unit = materialType.Unit;
                     }
                 }));
 
