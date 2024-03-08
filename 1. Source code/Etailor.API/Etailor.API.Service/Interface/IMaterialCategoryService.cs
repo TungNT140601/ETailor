@@ -9,7 +9,7 @@ namespace Etailor.API.Service.Interface
 {
     public interface IMaterialCategoryService
     {
-        Task<bool> CreateMaterialCatergory(MaterialCategory materialCategory);
+        Task<bool> CreateMaterialCategory(MaterialCategory materialCategory);
         Task<bool> UpdateMaterialCategory(MaterialCategory materialCategory);
         bool DeleteMaterialCategory(string id);
         MaterialCategory GetMaterialCategory(string id);
