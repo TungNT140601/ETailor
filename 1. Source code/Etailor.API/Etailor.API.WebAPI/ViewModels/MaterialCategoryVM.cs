@@ -5,6 +5,7 @@
         public string Id { get; set; } = null!;
         public string? MaterialTypeId { get; set; }
         public string? Name { get; set; }
+        public string? MaterialTypeName { get; set; }
         public double? PricePerUnit { get; set; }
         public DateTime? CreatedTime { get; set; }
     }

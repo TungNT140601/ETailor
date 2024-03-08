@@ -118,6 +118,7 @@ namespace Etailor.API.Service.Service
         public MaterialCategory GetMaterialCategory(string id)
         {
             var materialCategory = materialCategoryRepository.Get(id);
+
             return materialCategory == null ? null : materialCategory.IsActive == true ? materialCategory : null;
         }
 
