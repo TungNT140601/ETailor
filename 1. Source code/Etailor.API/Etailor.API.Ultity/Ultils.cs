@@ -469,7 +469,8 @@ namespace Etailor.API.Ultity
 
             if (!File.Exists(filePath))
             {
-                File.Create(filePath).Close();
+                var file = File.Create(filePath);
+                file.Close();
             }
 
             // Open the file in append mode so that it appends new lines
