@@ -110,7 +110,7 @@ namespace Etailor.API.Service.Service
         {
             if (startOrStop)
             {
-                RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), Cron.Minutely());
+                RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), "* * * * * *");
             }
             else
             {

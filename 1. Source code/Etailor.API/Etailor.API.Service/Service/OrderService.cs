@@ -186,7 +186,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                     }
                 }
             }
@@ -256,7 +256,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                    throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                 }
             }
             else
@@ -328,7 +328,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                     }
                 }
                 else
@@ -600,7 +600,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                     }
                 }
             }

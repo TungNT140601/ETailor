@@ -266,14 +266,14 @@ namespace Etailor.API.Service.Service
                         }
                         if (check.Any(c => c == false))
                         {
-                            throw new SystemsException("Lỗi trong quá trình cập nhật số đo sản phẩm");
+                            throw new SystemsException("Lỗi trong quá trình cập nhật số đo sản phẩm", nameof(ProductBodySizeService));
                         }
                     }
                     return true;
                 }
                 else
                 {
-                    throw new SystemsException("Lỗi trong quá trình thêm mới số đo sản phẩm");
+                    throw new SystemsException("Lỗi trong quá trình thêm mới số đo sản phẩm", nameof(ProductBodySizeService));
                 }
             }
             else

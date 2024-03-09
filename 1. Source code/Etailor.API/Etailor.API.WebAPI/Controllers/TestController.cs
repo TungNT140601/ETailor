@@ -886,6 +886,25 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        [HttpGet]
+        public IActionResult DemoLogging(string? log)
+        {
+            try
+            {
+                if(!string.IsNullOrWhiteSpace(log))
+                {
+                    throw new SystemsException(log, nameof(TestController));
+                }
+                else
+                {
+                    return Ok();
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
     public class Notify
     {

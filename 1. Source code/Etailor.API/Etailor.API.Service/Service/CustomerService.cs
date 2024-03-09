@@ -68,11 +68,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -119,11 +119,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -139,11 +139,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -159,11 +159,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -179,11 +179,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -199,11 +199,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -228,11 +228,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -469,7 +469,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Không thể gửi mail");
+                        throw new SystemsException("Không thể gửi mail", nameof(CustomerService));
                     }
                 }
                 else
@@ -607,11 +607,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
     }

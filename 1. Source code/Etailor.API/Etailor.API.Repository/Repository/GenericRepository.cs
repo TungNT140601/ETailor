@@ -34,7 +34,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -48,7 +48,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -74,7 +74,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -93,7 +93,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -105,7 +105,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -117,7 +117,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -156,7 +156,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -174,7 +174,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -194,7 +194,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -210,7 +210,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
     }
