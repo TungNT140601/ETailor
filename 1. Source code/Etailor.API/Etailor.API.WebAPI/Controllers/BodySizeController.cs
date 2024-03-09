@@ -157,7 +157,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //        {
                             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(bodySizeVM.Id) || id != bodySizeVM.Id)
                             {
-                                return NotFound("Không tìm thấy loại nguyên liệu");
+                                return NotFound("Không tìm thấy thuật ngữ số đo cơ thể");
                             }
                             else
                             {

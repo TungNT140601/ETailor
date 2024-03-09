@@ -16,6 +16,7 @@ using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Http.Internal;
 using Etailor.API.Ultity.CustomException;
 using System.Globalization;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Etailor.API.Ultity
 {
@@ -465,13 +466,17 @@ namespace Etailor.API.Ultity
         public static void KeepServerAlive(string wwwrootPath)
         {
             // Path to your text file
-            string filePath = Path.Combine(wwwrootPath, "Log","Check", $"Check Log {DateTime.UtcNow.AddHours(7).ToString("yyyy-MM-dd")}.txt");
+            string filePath = Path.Combine(wwwrootPath, "Log", "Check", $"Check Log {DateTime.UtcNow.AddHours(7).ToString("yyyy-MM-dd")}.txt");
 
-            if (!File.Exists(filePath))
+            try
             {
-                var file = File.Create(filePath);
-                file.Close();
+                if (!File.Exists(filePath))
+                {
+                    var file = File.Create(filePath);
+                    file.Close();
+                }
             }
+            catch (Exception e) { }
 
             // Open the file in append mode so that it appends new lines
             using (StreamWriter writer = new StreamWriter(filePath, true))
