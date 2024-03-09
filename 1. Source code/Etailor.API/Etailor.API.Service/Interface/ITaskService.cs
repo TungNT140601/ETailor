@@ -9,10 +9,10 @@ namespace Etailor.API.Service.Interface
 {
     public interface ITaskService
     {
-        Task<bool> CreateTask(MaterialType materialType);
-        Task<bool> UpdateTask(MaterialType materialType);
-        bool DeleteTask(string id);
-        MaterialType GetTask(string id);
-        IEnumerable<MaterialType> GetTasks(string? search);
+        //Task<bool> CreateTask(ProductStage productStage);
+        //Task<bool> UpdateTask(ProductStage productStage);
+        //bool DeleteTask(string id);
+        //ProductStage GetTask(string id);
+        //IEnumerable<ProductStage> GetTasks(string? search);
     }
 }

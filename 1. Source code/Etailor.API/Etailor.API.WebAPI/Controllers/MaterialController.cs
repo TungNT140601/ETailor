@@ -6,6 +6,8 @@ using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Threading.Tasks;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -169,8 +171,13 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else
                 {
-                    var material = materialService.GetMaterial(id);
-                    return material != null ? Ok(mapper.Map<MaterialVM>(material)) : NotFound(id);
+                    var material = mapper.Map<MaterialVM>(materialService.GetMaterial(id));
+                    var setImage = Task.Run(async () =>
+                    {
+                        material.Image = await Ultils.GetUrlImage(material.Image);
+                    });
+                    await Task.WhenAll(setImage);
+                    return material != null ? Ok(material) : NotFound(id);
                 }
             }
             catch (UserException ex)
@@ -192,7 +199,20 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                return Ok(mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterialsByMaterialCategory(categoryId)));
+                var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterialsByMaterialCategory(categoryId));
+                if (materials.Any() && materials.Count() > 0)
+                {
+                    var tasks = new List<Task>();
+                    foreach (var material in materials)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            material.Image = await Ultils.GetUrlImage(material.Image);
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+                return Ok(materials);
             }
             catch (UserException ex)
             {
@@ -213,7 +233,20 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                return Ok(mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterialsByMaterialType(typeId)));
+                var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterialsByMaterialType(typeId));
+                if (materials.Any() && materials.Count() > 0)
+                {
+                    var tasks = new List<Task>();
+                    foreach (var material in materials)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            material.Image = await Ultils.GetUrlImage(material.Image);
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+                return Ok(materials);
             }
             catch (UserException ex)
             {
