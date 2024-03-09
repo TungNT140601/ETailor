@@ -187,14 +187,14 @@ namespace Etailor.API.Service.Service
                         }
                         if (check.Any(x => x == false))
                         {
-                            throw new SystemsException("Lỗi trong quá trình tạo mới bộ phận của loại bản mẫu");
+                            throw new SystemsException("Lỗi trong quá trình tạo mới bộ phận của loại bản mẫu", nameof(CategoryService));
                         }
                     }
                     return componentTypeRepository.CreateRange(activeNewComponentTypes);
                 }
                 else
                 {
-                    throw new SystemsException("Lỗi trong quá trình cập nhật");
+                    throw new SystemsException("Lỗi trong quá trình cập nhật", nameof(CategoryService));
                 }
             }
             else

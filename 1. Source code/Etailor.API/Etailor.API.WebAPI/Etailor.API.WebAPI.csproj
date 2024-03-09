@@ -34,7 +34,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\Log\" />
+    <Folder Include="wwwroot\Log\Check\" />
     <Folder Include="wwwroot\UpdateDraft\" />
   </ItemGroup>
 

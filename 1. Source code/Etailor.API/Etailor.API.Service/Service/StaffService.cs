@@ -58,11 +58,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
         }
 
@@ -348,11 +348,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
         }
 
@@ -372,11 +372,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
         }
         public void Logout(string id)
@@ -396,11 +396,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
         }
 
@@ -416,11 +416,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
         }
 
@@ -441,11 +441,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
         }
 
@@ -468,11 +468,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(StaffService));
             }
         }
     }

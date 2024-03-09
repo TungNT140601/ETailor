@@ -2,7 +2,7 @@
 {
     public class MaterialFormVM
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public string? MaterialCategoryId { get; set; }
         public string? Name { get; set; }
         public IFormFile? ImageFile { get; set; }
@@ -10,16 +10,17 @@
     }
     public class MaterialVM
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public string? MaterialCategoryId { get; set; }
         public string? Name { get; set; }
         public string? Image { get; set; }
         public decimal? Quantity { get; set; }
+        public MaterialCategoryVM? MaterialCategory { get; set; }
     }
 
     public class FabricMaterialVM
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public string? MaterialCategoryId { get; set; }
         public string? MaterialCategoryName { get; set; }
         public string? Name { get; set; }

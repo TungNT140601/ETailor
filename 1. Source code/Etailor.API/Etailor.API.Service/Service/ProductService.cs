@@ -289,7 +289,7 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
-                                throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo số đo sản phẩm");
+                                throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo số đo sản phẩm",nameof(ProductService));
                             }
                         }
                         catch (UserException uex)
@@ -305,12 +305,12 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn", nameof(ProductService));
                     }
                 }
                 else
                 {
-                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo sản phẩm");
+                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo sản phẩm", nameof(ProductService));
                 }
                 return null;
             }
@@ -495,17 +495,17 @@ namespace Etailor.API.Service.Service
                                         }
                                         else
                                         {
-                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo số đo sản phẩm");
+                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo số đo sản phẩm", nameof(ProductService));
                                         }
                                     }
                                     else
                                     {
-                                        throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn");
+                                        throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn", nameof(ProductService));
                                     }
                                 }
                                 else
                                 {
-                                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm");
+                                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm", nameof(ProductService));
                                 }
                                 return null;
                             }
@@ -553,12 +553,12 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn", nameof(ProductService));
                     }
                 }
                 else
                 {
-                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm");
+                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm", nameof(ProductService));
                 }
             }
             else
@@ -932,7 +932,7 @@ namespace Etailor.API.Service.Service
 
                                         if (check.Any(x => x == false))
                                         {
-                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tự động tạo task");
+                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tự động tạo task", nameof(ProductService));
                                         }
                                     }
                                 }
@@ -945,7 +945,7 @@ namespace Etailor.API.Service.Service
             }
             catch (Exception ex)
             {
-                throw new SystemsException($"Error in {nameof(ProductService)}: {ex.Message}");
+                throw new SystemsException($"Error in {nameof(ProductService)}: {ex.Message}", nameof(ProductService));
             }
         }
 
@@ -1047,7 +1047,7 @@ namespace Etailor.API.Service.Service
                                                     {
                                                         if (!productRepository.Update(product.Id, product))
                                                         {
-                                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tự động phân công công việc cho nhân viên");
+                                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(ProductService));
                                                         }
                                                     }
                                                     catch (SystemsException)
@@ -1066,12 +1066,12 @@ namespace Etailor.API.Service.Service
 
                 if (checkException)
                 {
-                    throw new SystemsException("Lỗi trong quá trình tự động phân công công việc cho nhân viên");
+                    throw new SystemsException("Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(ProductService));
                 }
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(ProductService));
             }
         }
     }

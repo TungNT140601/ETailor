@@ -465,11 +465,12 @@ namespace Etailor.API.Ultity
         public static void KeepServerAlive(string wwwrootPath)
         {
             // Path to your text file
-            string filePath = Path.Combine(wwwrootPath, "Log", "keep-server-alive-check.txt");
+            string filePath = Path.Combine(wwwrootPath, "Log","Check", $"Check Log {DateTime.UtcNow.AddHours(7).ToString("yyyy-MM-dd")}.txt");
 
             if (!File.Exists(filePath))
             {
-                File.Create(filePath).Close();
+                var file = File.Create(filePath);
+                file.Close();
             }
 
             // Open the file in append mode so that it appends new lines

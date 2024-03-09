@@ -155,7 +155,7 @@ namespace Etailor.API.Service.Service
                 }
             }
 
-            throw new SystemsException("Error some where");
+            throw new SystemsException("Error some where", nameof(ProductStageService));
         }
 
         public void SendDemoSchedule(string hourly)

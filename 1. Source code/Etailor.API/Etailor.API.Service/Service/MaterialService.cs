@@ -171,6 +171,10 @@ namespace Etailor.API.Service.Service
         public Material GetMaterial(string id)
         {
             var material = materialRepository.Get(id);
+            if (material != null && material.MaterialCategory == null && !string.IsNullOrEmpty(material.MaterialCategoryId))
+            {
+                material.MaterialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
+            }
             return material == null ? null : material.IsActive == true ? material : null;
         }
 
@@ -179,7 +183,20 @@ namespace Etailor.API.Service.Service
             var materialCategory = materialCategoryRepository.Get(materialCategoryId);
             if (materialCategory != null && materialCategory.IsActive == true)
             {
-                return materialRepository.GetAll(x => x.MaterialCategoryId == materialCategory.Id && x.IsActive == true);
+                var materials = materialRepository.GetAll(x => x.MaterialCategoryId == materialCategory.Id && x.IsActive == true);
+                if (materials != null && materials.Any())
+                {
+                    materials = materials.ToList();
+                    foreach (var material in materials)
+                    {
+                        if (material.MaterialCategory == null)
+                        {
+                            material.MaterialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
+                        }
+                    }
+                }
+
+                return materials;
             }
             else
             {
@@ -189,7 +206,20 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<Material> GetMaterials(string? search)
         {
-            return materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || (search != null && x.Name.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+            var materials = materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || (search != null && x.Name.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+            if (materials != null && materials.Any())
+            {
+                materials = materials.ToList();
+                foreach (var material in materials)
+                {
+                    if (material.MaterialCategory == null)
+                    {
+                        material.MaterialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
+                    }
+                }
+            }
+
+            return materials;
         }
 
         public IEnumerable<Material> GetMaterialsByMaterialType(string materialTypeId)

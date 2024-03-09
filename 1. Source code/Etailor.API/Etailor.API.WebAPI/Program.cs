@@ -169,7 +169,7 @@ builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
 
 builder.Services.AddScoped<IComponentStageRepository, ComponentStageRepository>();
 //builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
-    
+
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
@@ -192,15 +192,12 @@ var app = builder.Build();
 app.UseAuthorization();
 app.UseAuthentication();
 
-// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
+
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1.00.001.0.4");
 });
-//}
 
 var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();
 
