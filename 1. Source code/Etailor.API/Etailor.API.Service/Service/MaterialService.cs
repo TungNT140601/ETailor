@@ -111,10 +111,6 @@ namespace Etailor.API.Service.Service
                     {
                         dbMaterial.Image = await Ultils.UploadImage(wwwroot, "Materials", image, dbMaterial.Image);
                     }
-                    else
-                    {
-                        dbMaterial.Image = "";
-                    }
                 }));
 
                 tasks.Add(Task.Run(() =>
