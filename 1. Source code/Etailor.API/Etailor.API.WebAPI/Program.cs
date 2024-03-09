@@ -20,6 +20,9 @@ using Hangfire;
 using Hangfire.MemoryStorage;
 using Etailor.API.Ultity.MiddleWare;
 using SixLabors.ImageSharp;
+using Serilog;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +72,8 @@ builder.Services.AddSwaggerGen(
 );
 
 builder.Services.AddSignalR();
+
+builder.Services.AddSerilog();
 
 builder.Services.AddHangfire(config =>
 {
@@ -189,6 +194,12 @@ FirebaseApp.Create(new AppOptions { Credential = credentials });
 
 var app = builder.Build();
 
+// Configure Serilog logger
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("./wwwroot/Log/Check/log.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
 app.UseAuthorization();
 app.UseAuthentication();
 
@@ -211,6 +222,8 @@ app.UseCors(option =>
 });
 
 app.UseHangfireDashboard();
+
+app.UseSerilogRequestLogging(); // Optionally add request logging
 
 app.UseStaticFiles();
 
