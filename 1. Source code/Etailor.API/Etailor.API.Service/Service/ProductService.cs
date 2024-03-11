@@ -14,6 +14,7 @@ using System.Text.Json;
 using System.ComponentModel;
 using Component = Etailor.API.Repository.EntityModels.Component;
 using Microsoft.AspNetCore.Components;
+using Etailor.API.Repository.Repository;
 
 namespace Etailor.API.Service.Service
 {
@@ -1073,6 +1074,13 @@ namespace Etailor.API.Service.Service
             {
                 throw new SystemsException(ex.Message, nameof(ProductService));
             }
+        }
+
+        public Product GetProduct(string id)
+        {
+            var product = productRepository.Get(id);
+
+            return product == null ? null : product.IsActive == true ? product : null;
         }
     }
 }

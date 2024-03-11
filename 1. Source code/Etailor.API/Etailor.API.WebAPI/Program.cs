@@ -175,6 +175,8 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
 
+builder.Services.AddScoped<ITaskService, TaskService>();
+
 builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
 
 builder.Services.AddSingleton<ISignalRService, SignalRService>();

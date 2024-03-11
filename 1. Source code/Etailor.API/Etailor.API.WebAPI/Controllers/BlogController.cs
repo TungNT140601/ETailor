@@ -14,7 +14,7 @@ namespace Etailor.API.WebAPI.Controllers
 {
     [Route("api/blog")]
     [ApiController]
-    public class BlogController : Controller
+    public class BlogController : ControllerBase
     {
         private readonly IBlogService blogService;
         private readonly IStaffService staffService;

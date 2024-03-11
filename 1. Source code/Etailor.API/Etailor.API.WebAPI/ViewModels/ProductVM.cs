@@ -52,4 +52,56 @@
         public decimal? Price { get; set; }
         public int? Status { get; set; }
     }
+
+    public class TaskListVM
+    {
+        public string Id { get; set; }
+        public string? OrderId { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? Name { get; set; }
+        public string? Note { get; set; }
+        public decimal? Price { get; set; }
+        public int? Status { get; set; }
+        public string? ReferenceProfileBodyId { get; set; }
+        public string? FabricMaterialId { get; set; }
+        public string? StaffMakerId { get; set; }
+        public int? Index { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? CreatedTime { get; set; }
+    }
+
+    public class TaskListByStaffVM
+    {
+        public string? Id { get; set; }
+        public string? OrderId { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? Name { get; set; }
+        public int? Status { get; set; }
+        public string? FabricMaterialId { get; set; }
+        public int? Index { get; set; }
+    }
+
+    public class TaskDetailByStaffVM
+    {
+        public string? OrderId { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? ProductTemplateName { get; set; }
+        public string? Name { get; set; }
+        public string? Note { get; set; }
+        public string? ReferenceProfileBodyId { get; set; }
+        public string? ProfileBodyName { get; set; }
+        public List<ProfileBodyDetailVM> ProfileBodyValue { get; set; }
+        public string? FabricMaterialId { get; set; }
+        public string? MaterialName { get; set; }
+        public string? MaterialImage {  get; set; }
+        public decimal? MaterialQuantity {  get; set; }
+        public DateTime? CreatedTime { get; set; }
+    }
+
+    public class ProfileBodyDetailVM
+    {
+        public string Id { get; set; }
+        public string? Name { get; set; }
+        public decimal Value { get; set; }
+    }
 }
