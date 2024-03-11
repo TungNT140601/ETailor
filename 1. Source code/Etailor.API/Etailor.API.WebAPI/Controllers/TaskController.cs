@@ -78,42 +78,50 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            var task = mapper.Map<TaskDetailByStaffVM>(await taskService.GetTask(id));
-
-                            task.ProductTemplateName = (await productTemplateService.GetById(task.ProductTemplateId)).Name;
-
-                            task.ProfileBodyName = profileBodyService.GetProfileBody(task.ReferenceProfileBodyId).Name;
-
-                            var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(task.ReferenceProfileBodyId)
-                                                                        .Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
-
-                            BodySize bodySize;
-                            //var bodySizeList = bodySizeService.GetBodySize("");
-
-                            ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
-                            task.ProfileBodyValue = new List<ProfileBodyDetailVM>();
-
-                            foreach (var bodyAttribute in bodyAttributeList)
+                            var t = await taskService.GetTask(id);
+                            if (t!= null && t.StaffMakerId == staffId)
                             {
-                                bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                                var task = mapper.Map<TaskDetailByStaffVM>(t);
 
-                                ProfileBodyDetailVM profileBodyDetail = new ProfileBodyDetailVM();
-                                profileBodyDetail.Id = bodyAttribute.BodySizeId;
-                                profileBodyDetail.Name = bodySize.Name;
-                                profileBodyDetail.Value = (decimal)bodyAttribute.Value;
-                                task.ProfileBodyValue.Add(profileBodyDetail);
+                                task.ProductTemplateName = (await productTemplateService.GetById(task.ProductTemplateId)).Name;
+
+                                task.ProfileBodyName = profileBodyService.GetProfileBody(task.ReferenceProfileBodyId).Name;
+
+                                var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(task.ReferenceProfileBodyId)
+                                                                            .Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
+
+                                BodySize bodySize;
+                                //var bodySizeList = bodySizeService.GetBodySize("");
+
+                                ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                                task.ProfileBodyValue = new List<ProfileBodyDetailVM>();
+
+                                foreach (var bodyAttribute in bodyAttributeList)
+                                {
+                                    bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+
+                                    ProfileBodyDetailVM profileBodyDetail = new ProfileBodyDetailVM();
+                                    profileBodyDetail.Id = bodyAttribute.BodySizeId;
+                                    profileBodyDetail.Name = bodySize.Name;
+                                    profileBodyDetail.Value = (decimal)bodyAttribute.Value;
+                                    task.ProfileBodyValue.Add(profileBodyDetail);
+                                }
+
+                                var material = materialService.GetMaterial(task.FabricMaterialId);
+                                task.MaterialName = material.Name;
+                                task.MaterialQuantity = material.Quantity;
+                                var setImage = Task.Run(async () =>
+                                {
+                                    task.MaterialImage = await Ultils.GetUrlImage(material.Image);
+                                });
+                                await Task.WhenAll(setImage);
+
+                                return task != null ? Ok(task) : NotFound(id);
                             }
-
-                            var material = materialService.GetMaterial(task.FabricMaterialId);
-                            task.MaterialName = material.Name;
-                            task.MaterialQuantity = material.Quantity;
-                            var setImage = Task.Run(async () =>
+                            else
                             {
-                                task.MaterialImage = await Ultils.GetUrlImage(material.Image);
-                            });
-                            await Task.WhenAll(setImage);
-
-                            return task != null ? Ok(task) : NotFound(id);
+                                throw new UserException("ID công việc này không phải của bạn. Vui lòng nhập lại ");
+                            }
                         }
                     }
                 }                   
@@ -219,7 +227,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("/staff/get-all-by-staff-id")]
+        [HttpGet("/staff/get-all")]
         public async Task<IActionResult> GetTasksByStaffId()
         {
             try
