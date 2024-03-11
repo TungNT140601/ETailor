@@ -289,7 +289,7 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
-                                throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo số đo sản phẩm",nameof(ProductService));
+                                throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo số đo sản phẩm", nameof(ProductService));
                             }
                         }
                         catch (UserException uex)
@@ -1072,6 +1072,231 @@ namespace Etailor.API.Service.Service
             catch (Exception ex)
             {
                 throw new SystemsException(ex.Message, nameof(ProductService));
+            }
+        }
+
+        public async Task AssignTaskToStaff(string productId, string? staffId, int? index)
+        {
+            if (index == null)
+            {
+                throw new UserException("Thiếu thứ tự nhiệm vụ");
+            }
+            var product = productRepository.Get(productId);
+            if (product != null && product.IsActive == true && product.Status != 0)
+            {
+                var order = orderRepository.Get(product.OrderId);
+                if (order != null && order.IsActive == true && order.Status != 0)
+                {
+                    var listTasks = new List<Product>();
+                    if (string.IsNullOrEmpty(staffId))
+                    {
+                        var unAssignTasks = productRepository.GetAll(x => x.Status > 0 && x.Status < 4 && x.StaffMakerId == null && x.Index != null && x.IsActive == true);
+                        if (unAssignTasks != null && unAssignTasks.Any())
+                        {
+                            listTasks = unAssignTasks.OrderBy(x => x.Index).ToList();
+                        }
+                        else
+                        {
+                            listTasks = null;
+                        }
+                    }
+                    else
+                    {
+                        var staff = staffRepository.Get(staffId);
+                        if (staff == null || staff.IsActive == false)
+                        {
+                            throw new UserException("Không tìm thấy nhân viên");
+                        }
+                        else
+                        {
+                            var staffCurrentTask = productRepository.GetAll(x => x.Status > 0 && x.Status < 4 && x.StaffMakerId == staff.Id && x.Index != null && x.IsActive == true);
+                            if (staffCurrentTask != null && staffCurrentTask.Any())
+                            {
+                                listTasks = staffCurrentTask.OrderBy(x => x.Index).ToList();
+                            }
+                            else
+                            {
+                                listTasks = null;
+                            }
+                        }
+                    }
+
+                    if (listTasks != null && listTasks.Any())
+                    {
+                        listTasks = listTasks.OrderBy(x => x.Index).ToList();
+
+                        var minIndex = listTasks.OrderBy(x => x.Index).First().Index;
+                        var maxIndex = listTasks.OrderByDescending(x => x.Index).First().Index;
+
+                        if (index < minIndex.Value - 1 || index > maxIndex.Value + 1)
+                        {
+                            throw new UserException("Thứ tự nhiệm vụ không hợp lệ");
+                        }
+                        else
+                        {
+                            if (listTasks.Select(x => x.Id).Contains(productId))
+                            {
+                                var oldTask = listTasks.First(x => x.Id == productId);
+
+                                if (oldTask.Index.Value != index.Value)
+                                {
+                                    if (index <= minIndex)
+                                    {
+                                        oldTask.Index = minIndex - 1;
+
+                                        listTasks = listTasks.OrderBy(x => x.Index).ToList();
+                                        for (int i = 0; i < listTasks.Count; i++)
+                                        {
+                                            listTasks[i].Index = minIndex + i;
+                                            listTasks[i].StaffMakerId = staffId;
+                                            listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
+                                        }
+
+                                        await productRepository.UpdateRangeProduct(listTasks);
+                                    }
+                                    else if (index == maxIndex)
+                                    {
+                                        var oldMaxIndex = listTasks.First(x => x.Index == maxIndex);
+
+                                        oldMaxIndex.Index = maxIndex + 1;
+                                        oldTask.Index = maxIndex;
+
+                                        oldTask.StaffMakerId = staffId;
+                                        oldMaxIndex.StaffMakerId = staffId;
+
+                                        productRepository.Update(oldTask.Id, oldTask);
+                                        productRepository.Update(oldMaxIndex.Id, oldMaxIndex);
+                                    }
+                                    else if (index > maxIndex)
+                                    {
+                                        oldTask.Index = maxIndex + 1;
+                                        oldTask.StaffMakerId = staffId;
+
+                                        var oldTaskIndex = listTasks.IndexOf(oldTask);
+
+                                        listTasks = listTasks.OrderBy(x => x.Index).ToList();
+                                        if (oldTaskIndex > -1)
+                                        {
+                                            for (int i = oldTaskIndex; i < listTasks.Count; i++)
+                                            {
+                                                listTasks[i].Index = minIndex + i;
+                                                listTasks[i].StaffMakerId = staffId;
+                                            }
+
+                                            await productRepository.UpdateRangeProduct(listTasks);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var oldIndexTask = listTasks.FirstOrDefault(x => x.Index == index);
+                                        if(oldIndexTask != null)
+                                        {
+                                            var oldIndexTaskIndex = listTasks.IndexOf(oldIndexTask);
+                                            var oldTaskIndex = listTasks.IndexOf(oldTask);
+                                            if (oldIndexTaskIndex > -1 && oldTaskIndex > -1)
+                                            {
+                                                if (oldTaskIndex < oldIndexTaskIndex)
+                                                {
+                                                    for (int i = oldTaskIndex + 1; i <= oldIndexTaskIndex; i++)
+                                                    {
+                                                        listTasks[i].Index = listTasks[i].Index - 1;
+                                                        listTasks[i].StaffMakerId = staffId;
+                                                    }
+                                                }
+                                                else if (oldTaskIndex > oldIndexTaskIndex)
+                                                {
+                                                    for (int i = oldIndexTaskIndex; i <= oldTaskIndex - 1; i++)
+                                                    {
+                                                        listTasks[i].Index = listTasks[i].Index + 1;
+                                                        listTasks[i].StaffMakerId = staffId;
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        oldTask.Index = index;
+                                        oldTask.StaffMakerId = staffId;
+
+                                        listTasks = listTasks.OrderBy(x => x.Index).ToList();
+
+                                        await productRepository.UpdateRangeProduct(listTasks);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (index <= minIndex)
+                                {
+                                    product.Index = minIndex - 1;
+
+                                    listTasks.Insert(0, product);
+                                    listTasks = listTasks.OrderBy(x => x.Index).ToList();
+                                    for (int i = 0; i < listTasks.Count; i++)
+                                    {
+                                        listTasks[i].Index = minIndex + i;
+                                        listTasks[i].StaffMakerId = staffId;
+                                    }
+
+                                    await productRepository.UpdateRangeProduct(listTasks);
+                                }
+                                else if (index == maxIndex)
+                                {
+                                    var oldMaxIndex = listTasks.First(x => x.Index == maxIndex);
+
+                                    oldMaxIndex.Index = maxIndex + 1;
+                                    product.Index = maxIndex;
+
+                                    product.StaffMakerId = staffId;
+                                    oldMaxIndex.StaffMakerId = staffId;
+
+                                    productRepository.Update(product.Id, product);
+                                    productRepository.Update(oldMaxIndex.Id, oldMaxIndex);
+                                }
+                                else if (index > maxIndex)
+                                {
+                                    product.Index = maxIndex + 1;
+                                    product.StaffMakerId = staffId;
+
+                                    productRepository.Update(productId, product);
+                                }
+                                else
+                                {
+                                    var oldIndexTask = listTasks.First(x => x.Index == index);
+                                    var oldIndexTaskIndex = listTasks.IndexOf(oldIndexTask);
+                                    if (oldIndexTaskIndex > -1)
+                                    {
+                                        for (int i = oldIndexTaskIndex; i < listTasks.Count; i++)
+                                        {
+                                            listTasks[i].Index = minIndex + 1 + i;
+                                            listTasks[i].StaffMakerId = staffId;
+                                        }
+                                    }
+                                    product.Index = index;
+                                    product.StaffMakerId = staffId;
+
+                                    listTasks = listTasks.OrderBy(x => x.Index).ToList();
+
+                                    await productRepository.UpdateRangeProduct(listTasks);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        product.Index = 1;
+                        product.StaffMakerId = staffId;
+
+                        productRepository.Update(productId, product);
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy hóa đơn");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy sản phẩm");
             }
         }
     }
