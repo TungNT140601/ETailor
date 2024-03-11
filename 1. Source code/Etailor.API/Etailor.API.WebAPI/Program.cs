@@ -43,7 +43,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
                 c =>
                 {
-                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1.00.002.0.0" });
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1.00.002.0.1" });
 
                     // Configure Swagger to use JWT authentication
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -211,7 +211,7 @@ app.UseAuthentication();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1.00.002.0.0");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1.00.002.0.1");
 });
 
 var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();

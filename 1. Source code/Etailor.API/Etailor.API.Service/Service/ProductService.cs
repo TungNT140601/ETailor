@@ -1164,16 +1164,21 @@ namespace Etailor.API.Service.Service
                                     }
                                     else if (index == maxIndex)
                                     {
-                                        var oldMaxIndex = listTasks.First(x => x.Index == maxIndex);
+                                        var oldTaskIndex = listTasks.IndexOf(oldTask);
+                                        if (oldTaskIndex > -1)
+                                        {
+                                            for (int i = oldTaskIndex + 1; i < listTasks.Count; i++)
+                                            {
+                                                listTasks[i].Index = listTasks[i].Index - 1;
+                                                listTasks[i].StaffMakerId = staffId;
+                                            }
+                                            oldTask.Index = index;
+                                            oldTask.StaffMakerId = staffId;
 
-                                        oldMaxIndex.Index = maxIndex + 1;
-                                        oldTask.Index = maxIndex;
+                                            listTasks = listTasks.OrderBy(x => x.Index).ToList();
 
-                                        oldTask.StaffMakerId = staffId;
-                                        oldMaxIndex.StaffMakerId = staffId;
-
-                                        productRepository.Update(oldTask.Id, oldTask);
-                                        productRepository.Update(oldMaxIndex.Id, oldMaxIndex);
+                                            await productRepository.UpdateRangeProduct(listTasks);
+                                        }
                                     }
                                     else if (index > maxIndex)
                                     {
@@ -1197,7 +1202,7 @@ namespace Etailor.API.Service.Service
                                     else
                                     {
                                         var oldIndexTask = listTasks.FirstOrDefault(x => x.Index == index);
-                                        if(oldIndexTask != null)
+                                        if (oldIndexTask != null)
                                         {
                                             var oldIndexTaskIndex = listTasks.IndexOf(oldIndexTask);
                                             var oldTaskIndex = listTasks.IndexOf(oldTask);
@@ -1305,6 +1310,54 @@ namespace Etailor.API.Service.Service
             else
             {
                 throw new UserException("Không tìm thấy sản phẩm");
+            }
+        }
+        public async void ResetIndex(string? staffId)
+        {
+            var listTasks = new List<Product>();
+            if (string.IsNullOrEmpty(staffId))
+            {
+                var unAssignTasks = productRepository.GetAll(x => x.Status > 0 && x.Status < 4 && x.StaffMakerId == null && x.Index != null && x.IsActive == true);
+                if (unAssignTasks != null && unAssignTasks.Any())
+                {
+                    listTasks = unAssignTasks.OrderBy(x => x.Index).ToList();
+                }
+                else
+                {
+                    listTasks = null;
+                }
+            }
+            else
+            {
+                var staff = staffRepository.Get(staffId);
+                if (staff == null || staff.IsActive == false)
+                {
+                    throw new UserException("Không tìm thấy nhân viên");
+                }
+                else
+                {
+                    var staffCurrentTask = productRepository.GetAll(x => x.Status > 0 && x.Status < 4 && x.StaffMakerId == staff.Id && x.Index != null && x.IsActive == true);
+                    if (staffCurrentTask != null && staffCurrentTask.Any())
+                    {
+                        listTasks = staffCurrentTask.OrderBy(x => x.Index).ToList();
+                    }
+                    else
+                    {
+                        listTasks = null;
+                    }
+                }
+            }
+
+            if (listTasks != null && listTasks.Any())
+            {
+                listTasks = listTasks.OrderBy(x => x.CreatedTime).ToList();
+                for (int i = 0; i < listTasks.Count; i++)
+                {
+                    listTasks[i].Index = i + 1;
+                    listTasks[i].StaffMakerId = staffId;
+                }
+
+                await productRepository.UpdateRangeProduct(listTasks);
             }
         }
     }

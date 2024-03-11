@@ -20,17 +20,12 @@ namespace Etailor.API.Repository.Repository
         {
             try
             {
-                var tasks = new List<Task>();
                 foreach (var product in products)
                 {
-                    tasks.Add(Task.Run(() =>
-                    {
-                        var attach = dBContext.Attach(product);
-                        attach.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
-                        dbSet.Update(product);
-                    }));
+                    var attach = dBContext.Attach(product);
+                    attach.State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+                    dbSet.Update(product);
                 }
-                await Task.WhenAll(tasks);
 
                 dBContext.SaveChanges();
             }

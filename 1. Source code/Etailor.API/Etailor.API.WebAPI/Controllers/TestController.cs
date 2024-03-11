@@ -975,6 +975,21 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpPut("reset-task-index")]
+        public async Task<IActionResult> ResetTaskIndex(string? staffId)
+        {
+            try
+            {
+                productService.ResetIndex(staffId);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
     public class Notify
     {
