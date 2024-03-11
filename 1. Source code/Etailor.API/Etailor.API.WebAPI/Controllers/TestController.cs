@@ -29,6 +29,7 @@ using System.Reflection;
 using Hangfire.MemoryStorage;
 using System.IO.Compression;
 using System.IO;
+using Serilog;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -954,6 +955,20 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Sai thông tin rồi");
                 }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("staff/{staffId}/{productId}")]
+        public async Task<IActionResult> AssignStaffTask(string staffId, string productId, int index)
+        {
+            try
+            {
+                await productService.AssignTaskToStaff(productId, staffId, index);
+                return Ok();
             }
             catch (Exception ex)
             {

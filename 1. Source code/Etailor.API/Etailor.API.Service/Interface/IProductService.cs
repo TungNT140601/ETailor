@@ -21,5 +21,6 @@ namespace Etailor.API.Service.Interface
         Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId);
         void AutoCreateEmptyTaskProduct();
         Product GetProduct(string id);
+        Task AssignTaskToStaff(string productId, string? staffId, int? index);
     }
 }
