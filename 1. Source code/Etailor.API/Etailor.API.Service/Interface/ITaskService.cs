@@ -13,6 +13,9 @@ namespace Etailor.API.Service.Interface
         //Task<bool> UpdateTask(ProductStage productStage);
         //bool DeleteTask(string id);
         //ProductStage GetTask(string id);
-        //IEnumerable<ProductStage> GetTasks(string? search);
+        Task<IEnumerable<ProductStage>> GetProductStagesOfEachTask(string taskId);
+        Task<Product> GetTask(string id);
+        Task<IEnumerable<Product>> GetTasks();
+        Task<IEnumerable<Product>> GetTasksByStaffId(string? search);
     }
 }

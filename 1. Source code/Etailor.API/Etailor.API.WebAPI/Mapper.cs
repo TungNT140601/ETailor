@@ -88,6 +88,12 @@ namespace Etailor.API.WebAPI
             CreateMap<MaterialCategory, MaterialCategoryVM>().ReverseMap();
             CreateMap<MaterialCategory, CreateMaterialCategoryVM>().ReverseMap();
             CreateMap<MaterialCategory, UpdateMaterialCategoryVM>().ReverseMap();
+
+            CreateMap<Product, TaskListVM>().ReverseMap();
+            CreateMap<Product, TaskListByStaffVM>().ReverseMap();
+            CreateMap<Product, TaskDetailByStaffVM>().ReverseMap();
+
+            CreateMap<ProductStage, ProductStagesNeedForTask>().ReverseMap();
         }
     }
 }
