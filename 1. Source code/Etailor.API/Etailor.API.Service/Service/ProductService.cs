@@ -15,6 +15,7 @@ using System.ComponentModel;
 using Component = Etailor.API.Repository.EntityModels.Component;
 using Microsoft.AspNetCore.Components;
 using Etailor.API.Repository.Repository;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Etailor.API.Service.Service
 {
@@ -1083,12 +1084,89 @@ namespace Etailor.API.Service.Service
             return product == null ? null : product.IsActive == true ? product : null;
         }
 
-        public async Task AssignTaskToStaff(string productId, string? staffId, int? index)
+        public async Task<bool> AssignTaskToStaff(string productId, string staffId)
         {
-            if (index == null)
+            var product = productRepository.Get(productId);
+            if (product != null && product.Status > 0 && product.IsActive == true)
             {
-                throw new UserException("Thiếu thứ tự nhiệm vụ");
+                var order = orderRepository.Get(product.OrderId);
+                if (order != null && order.Status > 0 && order.IsActive == true)
+                {
+                    var staff = staffRepository.Get(staffId);
+                    if (staff != null && staff.IsActive == true)
+                    {
+                        await SwapTaskIndex(productId, staffId, null);
+
+                        return true;
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy nhân viên");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy hóa đơn");
+                }
             }
+            else
+            {
+                throw new UserException("Không tìm thấy sản phẩm");
+            }
+        }
+        public async Task<bool> UnAssignStaffTask(string productId, string staffId)
+        {
+            var staff = staffRepository.Get(staffId);
+            if (staff != null && staff.IsActive == true)
+            {
+                var product = productRepository.Get(productId);
+                if (product != null && product.Status > 0 && product.IsActive == true)
+                {
+                    var order = orderRepository.Get(product.OrderId);
+                    if (order != null && order.Status > 0 && order.IsActive == true)
+                    {
+                        var currentStaffTasks = productRepository.GetAll(x => x.Status > 0 && x.Status < 4 && x.StaffMakerId == staffId && x.Index != null && x.IsActive == true);
+                        if (currentStaffTasks != null && currentStaffTasks.Any())
+                        {
+                            currentStaffTasks = currentStaffTasks.ToList();
+
+                            if (currentStaffTasks.Select(x => x.Id).Contains(productId))
+                            {
+                                var task = currentStaffTasks.FirstOrDefault(x => x.Id == productId);
+
+                                if (task != null)
+                                {
+                                    task.StaffMakerId = null;
+                                    task.StaffMaker = null;
+                                    task.Index = null;
+                                    if (productRepository.Update(task.Id, task))
+                                    {
+                                        await SwapTaskIndex(task.Id, null, null);
+
+                                    }
+                                }
+                            }
+                        }
+                        throw new UserException("Không tìm thấy nhiệm vụ của nhân viên");
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy hóa đơn");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy sản phẩm");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy nhân viên");
+            }
+        }
+
+        public async Task SwapTaskIndex(string productId, string? staffId, int? index)
+        {
             var product = productRepository.Get(productId);
             if (product != null && product.IsActive == true && product.Status != 0)
             {
@@ -1135,6 +1213,11 @@ namespace Etailor.API.Service.Service
 
                         var minIndex = listTasks.OrderBy(x => x.Index).First().Index;
                         var maxIndex = listTasks.OrderByDescending(x => x.Index).First().Index;
+
+                        if (index == null)
+                        {
+                            index = maxIndex + 1;
+                        }
 
                         if (index < minIndex.Value - 1 || index > maxIndex.Value + 1)
                         {
@@ -1312,6 +1395,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không tìm thấy sản phẩm");
             }
         }
+
         public async void ResetIndex(string? staffId)
         {
             var listTasks = new List<Product>();
@@ -1360,5 +1444,60 @@ namespace Etailor.API.Service.Service
                 await productRepository.UpdateRangeProduct(listTasks);
             }
         }
+
+        public async void ResetBlankIndex(string? staffId)
+        {
+            var listTasks = new List<Product>();
+            if (string.IsNullOrEmpty(staffId))
+            {
+                var unAssignTasks = productRepository.GetAll(x => x.Status > 0 && x.Status < 4 && x.StaffMakerId == null && x.Index != null && x.IsActive == true);
+                if (unAssignTasks != null && unAssignTasks.Any())
+                {
+                    listTasks = unAssignTasks.OrderBy(x => x.Index).ToList();
+                }
+                else
+                {
+                    listTasks = null;
+                }
+            }
+            else
+            {
+                var staff = staffRepository.Get(staffId);
+                if (staff == null || staff.IsActive == false)
+                {
+                    throw new UserException("Không tìm thấy nhân viên");
+                }
+                else
+                {
+                    var staffCurrentTask = productRepository.GetAll(x => x.Status > 0 && x.Status < 4 && x.StaffMakerId == staff.Id && x.Index != null && x.IsActive == true);
+                    if (staffCurrentTask != null && staffCurrentTask.Any())
+                    {
+                        listTasks = staffCurrentTask.OrderBy(x => x.Index).ToList();
+                    }
+                    else
+                    {
+                        listTasks = null;
+                    }
+                }
+            }
+
+            if (listTasks != null && listTasks.Any())
+            {
+                listTasks = listTasks.OrderBy(x => x.CreatedTime).ToList();
+                for (int i = 0; i < listTasks.Count; i++)
+                {
+                    listTasks[i].Index = i + 1;
+                    listTasks[i].StaffMakerId = staffId;
+                }
+
+                var lastIndex = listTasks.LastOrDefault();
+
+                lastIndex.StaffMakerId = null;
+                lastIndex.StaffMaker = null;
+
+                await productRepository.UpdateRangeProduct(listTasks);
+            }
+        }
+
     }
 }
