@@ -83,6 +83,7 @@
 
     public class TaskDetailByStaffVM
     {
+        public string? Id { get; set; }
         public string? OrderId { get; set; }
         public string? ProductTemplateId { get; set; }
         public string? ProductTemplateName { get; set; }
@@ -96,6 +97,20 @@
         public string? MaterialImage {  get; set; }
         public decimal? MaterialQuantity {  get; set; }
         public DateTime? CreatedTime { get; set; }
+
+        public List<ProductStageDetailVM> ProductStages { get; set; }
+    }
+
+    public class ProductStageDetailVM
+    {
+        public string ProductStageId { get; set; }
+        public string? StaffId { get; set; }
+        public string? TemplateStageId { get; set; }
+        public string? TemplateStageName { get; set; }
+        public int? TaskIndex { get; set; }
+        public int? StageNum { get; set; }
+        public DateTime? Deadline { get; set; }
+        public int? Status { get; set; }
     }
 
     public class ProfileBodyDetailVM

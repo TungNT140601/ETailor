@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Etailor.API.Repository.EntityModels;
 using Etailor.API.Ultity.CommonValue;
 using System.Security.Claims;
+using Etailor.API.Repository.Repository;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -25,13 +26,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IBodyAttributeService bodyAttributeService;
         private readonly IMaterialService materialService;
         private readonly IProductTemplateService productTemplateService;
+        private readonly ITemplateStageService templateStageService;
         private readonly IMapper mapper;
         private readonly string _wwwroot;
 
         public TaskController(ITaskService taskService, IProductService productService, IProductStageService productStageService,
             IStaffService staffService, ICustomerService customerService,
             IProfileBodyService profileBodyService, IBodySizeService bodySizeService,IBodyAttributeService bodyAttributeService, 
-            IMaterialService materialService, IProductTemplateService productTemplateService,
+            IMaterialService materialService, IProductTemplateService productTemplateService, ITemplateStageService templateStageService,
             IMapper mapper, IWebHostEnvironment webHost)
         {
             this.taskService = taskService;
@@ -44,6 +46,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.bodyAttributeService = bodyAttributeService;
             this.materialService = materialService;
             this.productTemplateService = productTemplateService;
+            this.templateStageService = templateStageService;
             this.mapper = mapper;
             this._wwwroot = webHost.WebRootPath;
         }
@@ -115,6 +118,26 @@ namespace Etailor.API.WebAPI.Controllers
                                     task.MaterialImage = await Ultils.GetUrlImage(material.Image);
                                 });
                                 await Task.WhenAll(setImage);
+
+
+                                var productStageList = await taskService.GetProductStagesOfEachTask(task.Id);
+
+                                task.ProductStages = new List<ProductStageDetailVM>();
+
+                                foreach (var productStage in productStageList)
+                                {
+                                    ProductStageDetailVM productStageDetail = new ProductStageDetailVM();
+                                    productStageDetail.ProductStageId = productStage.Id;
+                                    productStageDetail.StaffId = productStage.StaffId;
+                                    productStageDetail.TemplateStageId = productStage.TemplateStageId;
+                                    productStageDetail.TemplateStageName = templateStageService.GetTemplateStage(productStage.TemplateStageId).Name;
+                                    productStageDetail.TaskIndex = productStage.TaskIndex;
+                                    productStageDetail.StageNum = productStage.StageNum;
+                                    productStageDetail.Deadline = productStage.Deadline;
+                                    productStageDetail.Status = productStage.Status;
+                                    task.ProductStages.Add(productStageDetail);
+                                }
+
 
                                 return task != null ? Ok(task) : NotFound(id);
                             }
