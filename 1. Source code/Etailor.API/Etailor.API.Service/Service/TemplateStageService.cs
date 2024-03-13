@@ -1,5 +1,6 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
+using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
@@ -28,6 +29,11 @@ namespace Etailor.API.Service.Service
             this.productTemplateService = productTemplateService;
         }
 
+        public TemplateStage GetTemplateStage(string id)
+        {
+            var templateState = templateStateRepository.Get(id);
+            return templateState == null ? null : templateState.IsActive == true ? templateState : null;
+        }
         public List<TemplateStage> GetAll(string templateId, string? search)
         {
             var template = productTemplateRepository.Get(templateId);

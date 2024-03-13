@@ -15,5 +15,7 @@ namespace Etailor.API.Service.Interface
         bool DeleteComponent(string id);
         Task<IEnumerable<Component>> GetAllByComponentType(string componentTypeId,string templateId);
         Task<bool> CheckDefaultComponent(string templateId);
+        Task<Component> GetComponent(string id);
+        Task<IEnumerable<Component>> GetComponents();
     }
 }
