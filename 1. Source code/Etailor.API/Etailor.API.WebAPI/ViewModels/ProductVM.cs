@@ -78,6 +78,7 @@
         public string? Name { get; set; }
         public int? Status { get; set; }
         public string? FabricMaterialId { get; set; }
+        public DateTime? Deadline { get; set; }
         public int? Index { get; set; }
     }
 
