@@ -90,8 +90,9 @@ namespace Etailor.API.WebAPI.Controllers
                             if (t!= null && t.StaffMakerId == staffId)
                             {
                                 var task = mapper.Map<TaskDetailByStaffVM>(t);
-
-                                task.ProductTemplateName = (await productTemplateService.GetById(task.ProductTemplateId)).Name;
+                                var pTemplate = (await productTemplateService.GetById(task.ProductTemplateId));
+                                task.ProductTemplateName = pTemplate.Name;
+                                task.ThumbnailProductTemplate = pTemplate.ThumbnailImage;
 
                                 task.ProfileBodyName = profileBodyService.GetProfileBody(task.ReferenceProfileBodyId).Name;
 
@@ -160,7 +161,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                                         pC = await componentService.GetComponent(productComponent.ComponentId);
                                         productComponentDetail.Component = mapper.Map<ComponentDetailVM>(pC);
-
+                                        
                                         task.ProductComponents.Add(productComponentDetail);
                                     }
                                 }
