@@ -88,6 +88,7 @@
         public string? OrderId { get; set; }
         public string? ProductTemplateId { get; set; }
         public string? ProductTemplateName { get; set; }
+        public string? ThumbnailProductTemplate { get; set; }
         public string? Name { get; set; }
         public string? Note { get; set; }
         public string? ReferenceProfileBodyId { get; set; }
@@ -124,6 +125,7 @@
         public string? Image { get; set; }
         public int? Index { get; set; }
         public bool? Default { get; set; }
+        
     }
 
     public class ProductStageDetailVM
