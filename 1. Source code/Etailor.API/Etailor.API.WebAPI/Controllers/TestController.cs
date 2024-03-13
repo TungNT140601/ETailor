@@ -27,6 +27,9 @@ using Hangfire;
 using System.Collections.Concurrent;
 using System.Reflection;
 using Hangfire.MemoryStorage;
+using System.IO.Compression;
+using System.IO;
+using Serilog;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -891,7 +894,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                if(!string.IsNullOrWhiteSpace(log))
+                if (!string.IsNullOrWhiteSpace(log))
                 {
                     throw new SystemsException(log, nameof(TestController));
                 }
@@ -899,6 +902,88 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Ok();
                 }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpGet]
+        public async Task<IActionResult> DownloadFile(string username, string password, string fileName)
+        {
+            try
+            {
+                if (username == "tung" && password == "123456789aA@")
+                {
+                    // Validate input
+                    if (string.IsNullOrEmpty(fileName))
+                    {
+                        return BadRequest("File name cannot be empty");
+                    }
+
+                    // Combine file name with folder path to get the full file path
+                    string filePath = Path.Combine(_wwwrootPath, "Log", "Check", fileName);
+
+                    // Check if the file exists
+                    if (!System.IO.File.Exists(filePath))
+                    {
+                        return NotFound("File not found");
+                    }
+                    else
+                    {
+                        var fileNameNew = Path.GetFileNameWithoutExtension(fileName) + "_abc" + Path.GetExtension(fileName);
+                        string filePathNew = Path.Combine(_wwwrootPath, "Log", "Check", fileNameNew);
+
+                        System.IO.File.Copy(filePath, filePathNew, overwrite: true);
+                        if (!System.IO.File.Exists(filePathNew))
+                        {
+                            return NotFound("File not copy");
+                        }
+                        else
+                        {
+                            // Read file content into a byte array
+                            byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePathNew);
+
+                            System.IO.File.Delete(filePathNew);
+
+                            // Return the file content as a downloadable file
+                            return File(fileBytes, "application/octet-stream", fileName);
+                        }
+                    }
+                }
+                else
+                {
+                    return Unauthorized("Sai thông tin rồi");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("staff/{staffId}/{productId}")]
+        public async Task<IActionResult> AssignStaffTask(string staffId, string productId, int index)
+        {
+            try
+            {
+                await productService.AssignTaskToStaff(productId, staffId, index);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("reset-task-index")]
+        public async Task<IActionResult> ResetTaskIndex(string? staffId)
+        {
+            try
+            {
+                productService.ResetIndex(staffId);
+
+                return Ok();
             }
             catch (Exception ex)
             {

@@ -15,11 +15,13 @@ namespace Etailor.API.Service.Interface
 
         Task<bool> DeleteProduct(string id);
         Task<Product> GetProductOrder(string id, string orderId);
-        Task<Product> GetProductOrderByCus(string id, string orderId,string cusId);
+        Task<Product> GetProductOrderByCus(string id, string orderId, string cusId);
         Task<IEnumerable<Product>> GetProductsByOrderId(string orderId);
         Task<IEnumerable<Product>> GetProductsByOrderIds(List<string> orderIds);
         Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId);
         void AutoCreateEmptyTaskProduct();
         Product GetProduct(string id);
+        Task AssignTaskToStaff(string productId, string? staffId, int? index);
+        void ResetIndex(string? staffId);
     }
 }

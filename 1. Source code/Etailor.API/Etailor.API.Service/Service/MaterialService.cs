@@ -107,13 +107,9 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(async () =>
                 {
-                    if (image != null && !string.IsNullOrWhiteSpace(dbMaterial.Image))
+                    if (image != null)
                     {
                         dbMaterial.Image = await Ultils.UploadImage(wwwroot, "Materials", image, dbMaterial.Image);
-                    }
-                    else
-                    {
-                        dbMaterial.Image = "";
                     }
                 }));
 

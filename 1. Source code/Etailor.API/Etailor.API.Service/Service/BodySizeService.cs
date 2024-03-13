@@ -62,7 +62,7 @@ namespace Etailor.API.Service.Service
                 existBodySize.Name = bodySize.Name;
                 if (image != null)
                 {
-                    existBodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, bodySize.Image);
+                    existBodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, existBodySize.Image);
                 }
                 existBodySize.GuideVideoLink = bodySize.GuideVideoLink;
                 existBodySize.MinValidValue = bodySize.MinValidValue;

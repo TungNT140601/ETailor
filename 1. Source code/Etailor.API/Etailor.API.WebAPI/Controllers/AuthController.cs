@@ -24,7 +24,9 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IMapper mapper;
         private readonly StorageClient _storage;
         private readonly string _wwwrootPath;
-        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost)
+        private readonly IAuthService authService;
+        public AuthController(ICustomerService customerService, IConfiguration configuration, IStaffService staffService
+            , IMapper mapper, IWebHostEnvironment webHost, IAuthService authService)
         {
             this.customerService = customerService;
             this.configuration = configuration;
@@ -37,6 +39,7 @@ namespace Etailor.API.WebAPI.Controllers
             _storage = StorageClient.Create(credential);
 
             _wwwrootPath = webHost.WebRootPath;
+            this.authService = authService;
         }
 
         #region Customer
@@ -385,6 +388,80 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        #endregion
+
+        #region MMA
+        [HttpPost("mma/regis")]
+        public async Task<IActionResult> CusMMARegis([FromForm] CusRegis cusRegis)
+        {
+
+            try
+            {
+                var check = await authService.Regis(cusRegis.Username, cusRegis.Email, cusRegis.Fullname, cusRegis.Phone, cusRegis.Address, cusRegis.Password, cusRegis.AvatarImage);
+                return check ? Ok("Đăng ký tài khoản thành công") : BadRequest("Đăng ký tài khoản thất bại");
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpPost("mma/login")]
+        public async Task<IActionResult> MMALogin([FromBody] CusLoginEmail cusLoginEmail)
+        {
+
+            try
+            {
+                var customer = authService.CheckLoginCus(cusLoginEmail.EmailOrUsername, cusLoginEmail.Password);
+                if (customer == null)
+                {
+                    var staff = authService.CheckLoginStaff(cusLoginEmail.EmailOrUsername, cusLoginEmail.Password);
+                    if (staff == null)
+                    {
+                        throw new UserException("Sai thông tin đăng nhập");
+                    }
+                    else
+                    {
+                        return Ok(new
+                        {
+                            Name = staff.Fullname ?? string.Empty,
+                            Avatar = staff.Avatar != string.Empty ? await Ultils.GetUrlImage(staff.Avatar) : "",
+                            Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration),
+                            Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF
+                        });
+                    }
+                }
+                else
+                {
+                    return Ok(new
+                    {
+                        Name = customer.Fullname ?? "",
+                        Avatar = customer.Avatar != string.Empty ? await Ultils.GetUrlImage(customer.Avatar) : "",
+                        Token = Ultils.GetToken(customer.Id, customer.Fullname ?? string.Empty, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration),
+                        Role = RoleName.CUSTOMER
+                    });
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
         #endregion
     }
 }

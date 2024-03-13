@@ -32,32 +32,17 @@ namespace Etailor.API.Service.Service
 
         }
 
-        //private async Task<List<string>> GetImageLinks()
-        //{
-        //    var storage = Google.Cloud.Storage.V1.StorageClient.Create();
-
-        //    // Specify your Firebase Storage bucket name
-        //    string bucketName = AppValue.BUCKET_NAME;
-
-        //    // List all objects in the Firebase Storage bucket
-        //    var objects = storage.ListObjects(bucketName);
-
-        //    return objects;
-        //}
-
         public void StartSchedule(string? id)
         {
             if (string.IsNullOrEmpty(id))
             {
                 AutoCreateEmptyTaskProductSchedule(true);
                 KeepServerAliveMethodSchedule(true);
-                //DemoRunMethodSchedule(true);
             }
             else
             {
                 if (id == "DemoRunMethod")
                 {
-                    //DemoRunMethodSchedule(true);
                 }
                 else if (id == "AutoCreateEmptyTaskProduct")
                 {
@@ -75,13 +60,11 @@ namespace Etailor.API.Service.Service
             {
                 AutoCreateEmptyTaskProductSchedule(false);
                 KeepServerAliveMethodSchedule(false);
-                //DemoRunMethodSchedule(false);
             }
             else
             {
                 if (id == "DemoRunMethod")
                 {
-                    //DemoRunMethodSchedule(false);
                 }
                 else if (id == "AutoCreateEmptyTaskProduct")
                 {
@@ -110,24 +93,12 @@ namespace Etailor.API.Service.Service
         {
             if (startOrStop)
             {
-                RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), "* * * * * *");
+                RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwrootPath), "*/5 * * * *");
             }
             else
             {
                 RecurringJob.RemoveIfExists("KeepServerAliveMethod");
             }
         }
-
-        //private void DemoRunMethodSchedule(bool startOrStop)
-        //{
-        //    if (startOrStop)
-        //    {
-        //        RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod", x => x.SendDemoSchedule("* * * * * *"), "* * * * * *");
-        //    }
-        //    else
-        //    {
-        //        RecurringJob.RemoveIfExists("DemoRunMethod");
-        //    }
-        //}
     }
 }
