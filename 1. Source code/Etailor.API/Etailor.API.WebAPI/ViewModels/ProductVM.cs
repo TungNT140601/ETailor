@@ -99,6 +99,30 @@
         public DateTime? CreatedTime { get; set; }
 
         public List<ProductStageDetailVM> ProductStages { get; set; }
+
+        public List<ProductComponentDetailVM> ProductComponents { get; set; }  
+    }
+
+    public class ProductComponentDetailVM
+    {
+        public string ProductComponentId { get; set; }
+        public string? ComponentId { get; set; }
+        public string? ProductStageId { get; set; }
+        public string? ProductComponentName { get; set; }
+        public string? Image { get; set; }
+        public ComponentDetailVM Component {  get; set; }
+
+    }
+
+    public class ComponentDetailVM
+    {
+        public string Id { get; set; }
+        public string? ComponentTypeId { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? Name { get; set; }
+        public string? Image { get; set; }
+        public int? Index { get; set; }
+        public bool? Default { get; set; }
     }
 
     public class ProductStageDetailVM

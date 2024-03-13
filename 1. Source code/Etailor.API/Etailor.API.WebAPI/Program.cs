@@ -121,6 +121,7 @@ builder.Services.AddScoped<IProductStageRepository, ProductStageRepository>();
 builder.Services.AddScoped<IProductStageService, ProductStageService>();
 
 builder.Services.AddScoped<IProductComponentRepository, ProductComponentRepository>();
+builder.Services.AddScoped<IProductComponentService, ProductComponentService>();
 
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -176,6 +177,8 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
 
 builder.Services.AddScoped<ITaskService, TaskService>();
+
+
 
 builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
 

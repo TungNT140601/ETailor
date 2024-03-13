@@ -27,6 +27,8 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IMaterialService materialService;
         private readonly IProductTemplateService productTemplateService;
         private readonly ITemplateStageService templateStageService;
+        private readonly IProductComponentService productComponentService;
+        private readonly IComponentService componentService;
         private readonly IMapper mapper;
         private readonly string _wwwroot;
 
@@ -34,6 +36,7 @@ namespace Etailor.API.WebAPI.Controllers
             IStaffService staffService, ICustomerService customerService,
             IProfileBodyService profileBodyService, IBodySizeService bodySizeService,IBodyAttributeService bodyAttributeService, 
             IMaterialService materialService, IProductTemplateService productTemplateService, ITemplateStageService templateStageService,
+            IProductComponentService productComponentService, IComponentService componentService,
             IMapper mapper, IWebHostEnvironment webHost)
         {
             this.taskService = taskService;
@@ -47,6 +50,8 @@ namespace Etailor.API.WebAPI.Controllers
             this.materialService = materialService;
             this.productTemplateService = productTemplateService;
             this.templateStageService = templateStageService;
+            this.productComponentService = productComponentService;
+            this.componentService = componentService;
             this.mapper = mapper;
             this._wwwroot = webHost.WebRootPath;
         }
@@ -121,12 +126,13 @@ namespace Etailor.API.WebAPI.Controllers
 
 
                                 var productStageList = await taskService.GetProductStagesOfEachTask(task.Id);
-
                                 task.ProductStages = new List<ProductStageDetailVM>();
-
+                                task.ProductComponents = new List<ProductComponentDetailVM>();
+                                Component pC; 
                                 foreach (var productStage in productStageList)
                                 {
                                     ProductStageDetailVM productStageDetail = new ProductStageDetailVM();
+
                                     productStageDetail.ProductStageId = productStage.Id;
                                     productStageDetail.StaffId = productStage.StaffId;
                                     productStageDetail.TemplateStageId = productStage.TemplateStageId;
@@ -136,7 +142,30 @@ namespace Etailor.API.WebAPI.Controllers
                                     productStageDetail.Deadline = productStage.Deadline;
                                     productStageDetail.Status = productStage.Status;
                                     task.ProductStages.Add(productStageDetail);
+
+                                    var productComponentList = await productComponentService.GetProductComponents(productStage.Id);
+                                    if (productComponentList != null && productComponentList.Any())
+                                    {
+                                        productComponentList = productComponentList.ToList();
+                                    }
+                                    foreach (var productComponent in productComponentList)
+                                    {
+                                        ProductComponentDetailVM productComponentDetail = new ProductComponentDetailVM();
+                                        
+                                        productComponentDetail.ProductComponentId = productComponent.Id;
+                                        productComponentDetail.ComponentId = productComponent.ComponentId;
+                                        productComponentDetail.ProductStageId = productComponent.ProductStageId;
+                                        productComponentDetail.ProductComponentName = productComponent.Name;
+                                        productComponentDetail.Image = productComponent.Image;
+
+                                        pC = await componentService.GetComponent(productComponent.ComponentId);
+                                        productComponentDetail.Component = mapper.Map<ComponentDetailVM>(pC);
+
+                                        task.ProductComponents.Add(productComponentDetail);
+                                    }
                                 }
+
+                                
 
 
                                 return task != null ? Ok(task) : NotFound(id);

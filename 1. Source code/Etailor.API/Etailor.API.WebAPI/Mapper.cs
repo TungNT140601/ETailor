@@ -30,6 +30,7 @@ namespace Etailor.API.WebAPI
 
             CreateMap<Component, ComponentVM>().ReverseMap();
             CreateMap<Component, ComponentOrderVM>().ReverseMap();
+            CreateMap<Component, ComponentDetailVM>().ReverseMap();
 
             CreateMap<ComponentStage, ComponentStageVM>().ReverseMap();
 
