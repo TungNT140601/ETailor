@@ -19,6 +19,7 @@ namespace Etailor.API.WebAPI
 
             CreateMap<MaterialType, MaterialTypeVM>().ReverseMap();
             CreateMap<MaterialType, MaterialTypeAllVM>().ReverseMap();
+            CreateMap<MaterialType, MaterialTypeTaskDetailVM>().ReverseMap();
 
             CreateMap<Category, CategoryVM>().ReverseMap();
             CreateMap<Category, CategoryAllVM>().ReverseMap();
@@ -47,6 +48,7 @@ namespace Etailor.API.WebAPI
             CreateMap<ProductTemplate, ProductTemplateALLVM>();
             CreateMap<ProductTemplateALLVM, ProductTemplate>();
             CreateMap<ProductTemplate, ProductTemplateCreateVM>().ReverseMap();
+            CreateMap<ProductTemplate, ProductTemplateTaskDetailVM>().ReverseMap();
 
             CreateMap<Product, ProductVM>().ReverseMap();
             CreateMap<Product, ProductOrderVM>().ReverseMap();
@@ -54,12 +56,16 @@ namespace Etailor.API.WebAPI
             CreateMap<Product, ProductListOrderDetailVM>().ReverseMap();
 
             CreateMap<ProductComponent, ProductComponentOrderVM>().ReverseMap();
+            CreateMap<ProductComponent, ProductComponentTaskDetailVM>().ReverseMap();
+
+            CreateMap<ProductBodySize, ProductBodySizeTaskDetailVM>().ReverseMap();
 
             CreateMap<ProductComponentMaterial, ProductComponentMaterialOrderVM>().ReverseMap();
 
             CreateMap<BodySize, BodySizeVM>().ReverseMap();
             CreateMap<BodySize, CreateUpdateBodySizeVM>().ReverseMap();
             CreateMap<BodySize, CreateBodySizeVM>().ReverseMap();
+            CreateMap<BodySize, BodySizeTaskDetailVM>().ReverseMap();
 
             CreateMap<ProfileBody, ProfileBodyVM>().ReverseMap();
             CreateMap<ProfileBody, CreateProfileBodyVM>().ReverseMap();
@@ -88,12 +94,14 @@ namespace Etailor.API.WebAPI
             CreateMap<MaterialCategory, MaterialCategoryVM>().ReverseMap();
             CreateMap<MaterialCategory, CreateMaterialCategoryVM>().ReverseMap();
             CreateMap<MaterialCategory, UpdateMaterialCategoryVM>().ReverseMap();
+            CreateMap<MaterialCategory, MaterialCaterogyTaskDetailVM>().ReverseMap();
 
             CreateMap<Product, TaskListVM>().ReverseMap();
             CreateMap<Product, TaskListByStaffVM>().ReverseMap();
             CreateMap<Product, TaskDetailByStaffVM>().ReverseMap();
 
             CreateMap<ProductStage, ProductStagesNeedForTask>().ReverseMap();
+            CreateMap<ProductStage, ProductStageTaskDetailVM>().ReverseMap();
         }
     }
 }

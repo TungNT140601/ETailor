@@ -30,8 +30,9 @@ namespace Etailor.API.WebAPI.Controllers
 
         public TaskController(ITaskService taskService, IProductService productService, IProductStageService productStageService,
             IStaffService staffService, ICustomerService customerService,
-            IProfileBodyService profileBodyService, IBodySizeService bodySizeService,IBodyAttributeService bodyAttributeService, 
-            IMaterialService materialService, IProductTemplateService productTemplateService,
+            IProfileBodyService profileBodyService, IBodySizeService bodySizeService, IBodyAttributeService bodyAttributeService,
+            IMaterialService materialService, IProductTemplateService productTemplateService, ITemplateStageService templateStageService,
+             IComponentService componentService,
             IMapper mapper, IWebHostEnvironment webHost)
         {
             this.taskService = taskService;
@@ -53,70 +54,126 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (!(role == RoleName.STAFF))
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                if (id == null)
                 {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (!(role == RoleName.STAFF))
-                {
-                    return Unauthorized("Không có quyền truy cập");
+                    return NotFound("Id sản phẩm không tồn tại");
                 }
                 else
                 {
-                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        if (id == null)
-                        {
-                            return NotFound("Id sản phẩm không tồn tại");
-                        }
-                        else
-                        {
-                            var task = mapper.Map<TaskDetailByStaffVM>(await taskService.GetTask(id));
+                    var task = await taskService.GetTask(id);
 
-                            task.ProductTemplateName = (await productTemplateService.GetById(task.ProductTemplateId)).Name;
+                    return Ok(mapper.Map<TaskDetailByStaffVM>(task));
+                    //if (t != null && t.StaffMakerId == staffId)
+                    //if (t != null && t.StaffMakerId == "2d5bc592-27ed-497f-b45e-e1caa8")
+                    //{
+                    //    var task = mapper.Map<TaskDetailByStaffVM>(t);
+                    //    var pTemplate = (await productTemplateService.GetById(task.ProductTemplateId));
+                    //    task.ProductTemplateName = pTemplate.Name;
+                    //    task.ThumbnailProductTemplate = pTemplate.ThumbnailImage;
 
-                            task.ProfileBodyName = profileBodyService.GetProfileBody(task.ReferenceProfileBodyId).Name;
+                    //    task.ProfileBodyName = profileBodyService.GetProfileBody(task.ReferenceProfileBodyId).Name;
 
-                            var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(task.ReferenceProfileBodyId)
-                                                                        .Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
+                    //    var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(task.ReferenceProfileBodyId)
+                    //                                                .Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
 
-                            BodySize bodySize;
-                            //var bodySizeList = bodySizeService.GetBodySize("");
+                    //    BodySize bodySize;
+                    //    //var bodySizeList = bodySizeService.GetBodySize("");
 
-                            ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
-                            task.ProfileBodyValue = new List<ProfileBodyDetailVM>();
+                    //    ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                    //    task.ProfileBodyValue = new List<ProfileBodyDetailVM>();
 
-                            foreach (var bodyAttribute in bodyAttributeList)
-                            {
-                                bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                    //    foreach (var bodyAttribute in bodyAttributeList)
+                    //    {
+                    //        bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
 
-                                ProfileBodyDetailVM profileBodyDetail = new ProfileBodyDetailVM();
-                                profileBodyDetail.Id = bodyAttribute.BodySizeId;
-                                profileBodyDetail.Name = bodySize.Name;
-                                profileBodyDetail.Value = (decimal)bodyAttribute.Value;
-                                task.ProfileBodyValue.Add(profileBodyDetail);
-                            }
+                    //        ProfileBodyDetailVM profileBodyDetail = new ProfileBodyDetailVM();
+                    //        profileBodyDetail.Id = bodyAttribute.BodySizeId;
+                    //        profileBodyDetail.Name = bodySize.Name;
+                    //        profileBodyDetail.Value = (decimal)bodyAttribute.Value;
+                    //        task.ProfileBodyValue.Add(profileBodyDetail);
+                    //    }
 
-                            var material = materialService.GetMaterial(task.FabricMaterialId);
-                            task.MaterialName = material.Name;
-                            task.MaterialQuantity = material.Quantity;
-                            var setImage = Task.Run(async () =>
-                            {
-                                task.MaterialImage = await Ultils.GetUrlImage(material.Image);
-                            });
-                            await Task.WhenAll(setImage);
+                    //    var material = materialService.GetMaterial(task.FabricMaterialId);
+                    //    task.MaterialName = material.Name;
+                    //    task.MaterialQuantity = material.Quantity;
+                    //    var setImage = Task.Run(async () =>
+                    //    {
+                    //        task.MaterialImage = await Ultils.GetUrlImage(material.Image);
+                    //    });
+                    //    await Task.WhenAll(setImage);
 
-                            return task != null ? Ok(task) : NotFound(id);
-                        }
-                    }
-                }                   
+
+                    //    var productStageList = await taskService.GetProductStagesOfEachTask(task.Id);
+                    //    task.ProductStages = new List<ProductStageDetailVM>();
+                    //    task.ProductComponents = new List<ProductComponentDetailVM>();
+                    //    Component pC;
+                    //    foreach (var productStage in productStageList)
+                    //    {
+                    //        ProductStageDetailVM productStageDetail = new ProductStageDetailVM();
+
+                    //        productStageDetail.ProductStageId = productStage.Id;
+                    //        productStageDetail.StaffId = productStage.StaffId;
+                    //        productStageDetail.TemplateStageId = productStage.TemplateStageId;
+                    //        productStageDetail.TemplateStageName = templateStageService.GetTemplateStage(productStage.TemplateStageId).Name;
+                    //        productStageDetail.TaskIndex = productStage.TaskIndex;
+                    //        productStageDetail.StageNum = productStage.StageNum;
+                    //        productStageDetail.Deadline = productStage.Deadline;
+                    //        productStageDetail.Status = productStage.Status;
+                    //        task.ProductStages.Add(productStageDetail);
+
+                    //        var productComponentList = await productComponentService.GetProductComponents(productStage.Id);
+                    //        if (productComponentList != null && productComponentList.Any())
+                    //        {
+                    //            productComponentList = productComponentList.ToList();
+                    //        }
+                    //        foreach (var productComponent in productComponentList)
+                    //        {
+                    //            ProductComponentDetailVM productComponentDetail = new ProductComponentDetailVM();
+
+                    //            productComponentDetail.ProductComponentId = productComponent.Id;
+                    //            productComponentDetail.ComponentId = productComponent.ComponentId;
+                    //            productComponentDetail.ProductStageId = productComponent.ProductStageId;
+                    //            productComponentDetail.ProductComponentName = productComponent.Name;
+                    //            productComponentDetail.Image = productComponent.Image;
+
+                    //            pC = await componentService.GetComponent(productComponent.ComponentId);
+                    //            productComponentDetail.Component = mapper.Map<ComponentDetailVM>(pC);
+
+                    //            task.ProductComponents.Add(productComponentDetail);
+                    //        }
+                    //    }
+
+
+
+
+                    //    return task != null ? Ok(task) : NotFound(id);
+                    //}
+                    //else
+                    //{
+                    //    throw new UserException("ID công việc này không phải của bạn. Vui lòng nhập lại ");
+                    //}
+                }
+                //}
+                //}                   
             }
             catch (UserException ex)
             {

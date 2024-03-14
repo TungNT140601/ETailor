@@ -4,8 +4,10 @@ using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.AspNetCore.Components;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,26 +20,219 @@ namespace Etailor.API.Service.Service
         private readonly IProductStageRepository productStageRepository;
         private readonly IProductComponentRepository productComponentRepository;
         private readonly IOrderRepository orderRepository;
+        private readonly IProductTemplateRepository productTemplateRepository;
+        private readonly IComponentRepository componentRepository;
+        private readonly IProductBodySizeRepository productBodySizeRepository;
+        private readonly IBodySizeRepository bodySizeRepository;
+        private readonly IMaterialRepository materialRepository;
+        private readonly IMaterialCategoryRepository materialCategoryRepository;
+        private readonly IMaterialTypeRepository materialTypeRepository;
 
-        public TaskService(IProductRepository productRepository, IProductStageRepository productStageRepository, IProductComponentRepository productComponentRepository, IOrderRepository orderRepository)
+        public TaskService(IProductRepository productRepository, IProductStageRepository productStageRepository
+            , IProductComponentRepository productComponentRepository, IOrderRepository orderRepository
+            , IProductTemplateRepository productTemplateRepository, IComponentRepository componentRepository
+            , IProductBodySizeRepository productBodySizeRepository, IBodySizeRepository bodySizeRepository
+            , IMaterialCategoryRepository materialCategoryRepository, IMaterialRepository materialRepository, IMaterialTypeRepository materialTypeRepository)
         {
             this.productRepository = productRepository;
             this.productStageRepository = productStageRepository;
             this.productComponentRepository = productComponentRepository;
             this.orderRepository = orderRepository;
+            this.productTemplateRepository = productTemplateRepository;
+            this.componentRepository = componentRepository;
+            this.productBodySizeRepository = productBodySizeRepository;
+            this.bodySizeRepository = bodySizeRepository;
+            this.materialCategoryRepository = materialCategoryRepository;
+            this.materialTypeRepository = materialTypeRepository;
+            this.materialRepository = materialRepository;
         }
 
-        public async Task<Product> GetTask(string id)
+        public async Task<Product> GetTask(string productId)
         {
-            var product = productRepository.Get(id);
+            var tasks = new List<Task>();
 
-            var setThumbnail = Task.Run(async () =>
+            var product = productRepository.Get(productId);
+
+            if (product != null && product.Status > 0 && product.IsActive == true)
             {
+                var order = orderRepository.Get(product.OrderId);
+                var fabricMaterial = materialRepository.Get(product.FabricMaterialId);
+                var template = productTemplateRepository.Get(product.ProductTemplateId);
+                var productStages = productStageRepository.GetAll(x => x.ProductId == productId && x.IsActive == true);
 
-            });
-            await Task.WhenAll(setThumbnail);
+                if (!(order != null && order.Status > 2 && order.IsActive == true))
+                {
+                    return null;
+                }
+                tasks.Add(Task.Run(() =>
+                {
+                    if (product.Order == null)
+                    {
+                        product.Order = order;
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (product.FabricMaterial == null)
+                    {
+                        product.FabricMaterial = fabricMaterial;
+                    }
+                    if (!string.IsNullOrEmpty(product.FabricMaterial.Image) && !product.FabricMaterial.Image.StartsWith("https://firebasestorage.googleapis.com"))
+                    {
+                        product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                    }
+                    else if (product.FabricMaterial.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                    {
 
-            return product == null ? null : product.IsActive == true ? product : null;
+                    }
+                    else
+                    {
+                        product.FabricMaterial.Image = string.Empty;
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (product.ProductTemplate == null)
+                    {
+                        product.ProductTemplate = template;
+                    }
+                    if (!string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage) && !product.ProductTemplate.ThumbnailImage.StartsWith("https://firebasestorage.googleapis.com/"))
+                    {
+                        product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                    }
+                    else if (product.ProductTemplate.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                    {
+
+                    }
+                    else
+                    {
+                        product.ProductTemplate.ThumbnailImage = string.Empty;
+                    }
+                }));
+
+                if (template != null)
+                {
+                    if (productStages != null && productStages.Any())
+                    {
+                        productStages = productStages.OrderBy(x => x.StageNum).ToList();
+
+                        var productComponents = productComponentRepository.GetAll(x => productStages != null && productStages.Any() && productStages.Select(c => c.Id).Contains(x.ProductStageId));
+
+                        if (productComponents != null && productComponents.Any())
+                        {
+                            productComponents = productComponents.ToList();
+
+                            var productTemplateComponents = componentRepository.GetAll(x => productComponents != null && productComponents.Any() && productComponents.Select(c => c.ComponentId).Contains(x.Id));
+
+                            if (productTemplateComponents != null && productTemplateComponents.Any())
+                            {
+                                productTemplateComponents = productTemplateComponents.ToList();
+
+                                var productBodySizes = productBodySizeRepository.GetAll(x => product != null && x.ProductId == productId);
+
+                                if (productBodySizes != null && productBodySizes.Any())
+                                {
+                                    productBodySizes = productBodySizes.ToList();
+
+                                    var bodySizes = bodySizeRepository.GetAll(x => productBodySizes != null && productBodySizes.Any() && productBodySizes.Select(c => c.BodySizeId).Contains(x.Id));
+
+                                    if (bodySizes != null && bodySizes.Any())
+                                    {
+                                        bodySizes = bodySizes.ToList();
+
+                                        await Task.WhenAll(tasks);
+
+                                        tasks.Add(Task.Run(() =>
+                                        {
+                                            if (product.ProductStages == null)
+                                            {
+                                                product.ProductStages = productStages.ToList();
+                                            }
+                                        }));
+
+                                        tasks.Add(Task.Run(async () =>
+                                        {
+                                            var insideTasks1 = new List<Task>();
+                                            foreach (var stage in product.ProductStages)
+                                            {
+                                                insideTasks1.Add(Task.Run(async () =>
+                                                {
+                                                    var insideTasks2 = new List<Task>();
+                                                    insideTasks2.Add(Task.Run(() =>
+                                                    {
+                                                        if (stage.ProductComponents == null)
+                                                        {
+                                                            stage.ProductComponents = productComponents.Where(x => x.ProductStageId == stage.Id).ToList();
+                                                        }
+                                                    }));
+                                                    foreach (var component in stage.ProductComponents)
+                                                    {
+                                                        insideTasks2.Add(Task.Run(async () =>
+                                                        {
+                                                            if (component.Component == null)
+                                                            {
+                                                                component.Component = productTemplateComponents.FirstOrDefault(x => x.Id == component.ComponentId);
+                                                            }
+                                                            if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                            {
+                                                                component.Component.Image = await Ultils.GetUrlImage(component.Component.Image);
+                                                            }
+                                                            else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                            {
+
+                                                            }
+                                                            else
+                                                            {
+                                                                component.Component.Image = string.Empty;
+                                                            }
+
+                                                        }));
+                                                    }
+                                                    await Task.WhenAll(insideTasks2);
+                                                }));
+                                            }
+                                            await Task.WhenAll(insideTasks1);
+                                        }));
+                                        tasks.Add(Task.Run(async () =>
+                                        {
+                                            var insideTasks1 = new List<Task>();
+                                            insideTasks1.Add(Task.Run(() =>
+                                            {
+                                                if (product.ProductBodySizes == null)
+                                                {
+                                                    product.ProductBodySizes = productBodySizes.ToList();
+                                                }
+                                            }));
+                                            insideTasks1.Add(Task.Run(async () =>
+                                            {
+                                                var insideTasks2 = new List<Task>();
+                                                foreach (var productBodySize in product.ProductBodySizes)
+                                                {
+                                                    insideTasks2.Add(Task.Run(() =>
+                                                    {
+                                                        if (productBodySize.BodySize == null)
+                                                        {
+                                                            productBodySize.BodySize = bodySizes.FirstOrDefault(x => x.Id == productBodySize.BodySizeId);
+                                                        }
+                                                    }));
+                                                }
+                                                await Task.WhenAll(insideTasks2);
+                                            }));
+                                            await Task.WhenAll(insideTasks1);
+                                        }));
+
+                                        await Task.WhenAll(tasks);
+
+                                        return product;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
 
         public async Task<IEnumerable<ProductStage>> GetProductStagesOfEachTask(string taskId)

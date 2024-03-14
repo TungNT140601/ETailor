@@ -23,5 +23,11 @@
         public string? CollectionImage { get; set; }
         public string? UrlPath { get; set; }
     }
+    public class ProductTemplateTaskDetailVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? ThumbnailImage { get; set; }
+    }
 
 }

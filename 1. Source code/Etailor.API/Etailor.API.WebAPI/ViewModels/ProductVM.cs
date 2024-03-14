@@ -1,4 +1,6 @@
-﻿namespace Etailor.API.WebAPI.ViewModels
+﻿using Etailor.API.Repository.EntityModels;
+
+namespace Etailor.API.WebAPI.ViewModels
 {
     public class ProductVM
     {
@@ -83,19 +85,21 @@
 
     public class TaskDetailByStaffVM
     {
+        public string? Id { get; set; }
         public string? OrderId { get; set; }
         public string? ProductTemplateId { get; set; }
-        public string? ProductTemplateName { get; set; }
         public string? Name { get; set; }
         public string? Note { get; set; }
+        public int? Status { get; set; }
+        public string? EvidenceImage { get; set; }
         public string? ReferenceProfileBodyId { get; set; }
-        public string? ProfileBodyName { get; set; }
-        public List<ProfileBodyDetailVM> ProfileBodyValue { get; set; }
         public string? FabricMaterialId { get; set; }
-        public string? MaterialName { get; set; }
-        public string? MaterialImage {  get; set; }
-        public decimal? MaterialQuantity {  get; set; }
-        public DateTime? CreatedTime { get; set; }
+        public int? Index { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public FabricMaterialVM? FabricMaterial { get; set; }
+        public ProductTemplateTaskDetailVM? ProductTemplate { get; set; }
+        public ICollection<ProductBodySizeTaskDetailVM>? ProductBodySizes { get; set; }
+        public ICollection<ProductStageTaskDetailVM>? ProductStages { get; set; }
     }
 
     public class ProfileBodyDetailVM

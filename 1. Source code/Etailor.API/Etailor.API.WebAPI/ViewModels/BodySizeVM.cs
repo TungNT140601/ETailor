@@ -34,4 +34,9 @@
         public decimal? MinValidValue { get; set; }
         public decimal? MaxValidValue { get; set; }
     }
+    public class BodySizeTaskDetailVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+    }
 }
