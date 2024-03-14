@@ -137,7 +137,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPatch("change-password")]
-        public IActionResult ChangePass(string? id, [FromBody] StaffChangePassVM staff)
+        public async Task<IActionResult> ChangePass(string? id, [FromBody] StaffChangePassVM staff)
         {
             try
             {
@@ -166,7 +166,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            return staffService.ChangePass(id, staff.OldPassword, staff.NewPassword, role) ? Ok("Thay đổi mật khẩu thành công") : BadRequest("Thay đổi mật khẩu thất bại");
+                            return await staffService.ChangePass(id, staff.OldPassword, staff.NewPassword, role) ? Ok("Thay đổi mật khẩu thành công") : BadRequest("Thay đổi mật khẩu thất bại");
                         }
                     }
                 }
@@ -228,7 +228,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("info")]
-        public IActionResult StaffInfo(string? id)
+        public async Task<IActionResult> StaffInfo(string? id)
         {
             try
             {
@@ -253,7 +253,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         if (role == RoleName.STAFF)
                         {
-                            return Ok(mapper.Map<StaffListVM>(staffService.GetStaff(staffId)));
+                            return Ok(mapper.Map<StaffListVM>(await staffService.GetStaff(staffId)));
                         }
                         else
                         {
@@ -267,48 +267,6 @@ namespace Etailor.API.WebAPI.Controllers
                                 return Ok(mapper.Map<StaffListVM>(staff));
                             }
                         }
-                    }
-                }
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpGet("info")]
-        public async Task<IActionResult> GetStaffInfo(string? id)
-        {
-            try
-            {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (!(role == RoleName.STAFF))
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
-                {
-                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        return Ok(mapper.Map<StaffListVM>(staffService.GetStaffInfo(staffId)));
                     }
                 }
             }

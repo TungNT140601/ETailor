@@ -195,7 +195,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("/staff/product-stages/{taskId}")]
+        [HttpGet("staff/product-stages/{taskId}")]
         public async Task<IActionResult> GetProductStageNeedForTask(string? taskId)
         {
             try
@@ -239,7 +239,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         //For manager to get all
-        [HttpGet("/manager/get-all")]
+        [HttpGet("manager/get-all")]
         public async Task<IActionResult> GetTasks()
         {
             try
@@ -282,7 +282,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("/staff/get-all")]
+        [HttpGet("staff/get-all")]
         public async Task<IActionResult> GetTasksByStaffId()
         {
             try

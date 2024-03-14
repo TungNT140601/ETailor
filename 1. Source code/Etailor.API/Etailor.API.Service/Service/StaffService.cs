@@ -178,7 +178,7 @@ namespace Etailor.API.Service.Service
         {
             var bkStaff = new Staff();
             var bkMastery = new List<string>();
-            var dbStaff = GetStaff(staff.Id);
+            var dbStaff = await GetStaff(staff.Id);
             if (dbStaff != null)
             {
                 bkMastery = masteryRepository.GetAll(x => x.StaffId == dbStaff.Id)?.Select(c => c.CategoryId).ToList();
@@ -311,11 +311,11 @@ namespace Etailor.API.Service.Service
         }
 
 
-        public bool ChangePass(string id, string? oldPassword, string newPassword, string role)
+        public async Task<bool> ChangePass(string id, string? oldPassword, string newPassword, string role)
         {
             try
             {
-                var dbStaff = GetStaff(id);
+                var dbStaff = await GetStaff(id);
                 if (dbStaff != null)
                 {
                     if (role == RoleName.MANAGER)
@@ -404,11 +404,19 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Staff GetStaff(string id)
+        public async Task<Staff> GetStaff(string id)
         {
             try
             {
-                return staffRepository.Get(id);
+                var staff = staffRepository.Get(id);
+                if (staff != null)
+                {
+                    if (!string.IsNullOrEmpty(staff.Avatar))
+                    {
+                        staff.Avatar = await Ultils.GetUrlImage(staff.Avatar);
+                    }
+                }
+                return staff;
             }
             catch (UserException ex)
             {

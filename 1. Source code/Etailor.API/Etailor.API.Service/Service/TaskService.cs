@@ -223,6 +223,8 @@ namespace Etailor.API.Service.Service
 
                                         await Task.WhenAll(tasks);
 
+                                        product.ProductStages = product.ProductStages.OrderBy(x => x.StageNum).ToList();
+
                                         return product;
                                     }
                                 }

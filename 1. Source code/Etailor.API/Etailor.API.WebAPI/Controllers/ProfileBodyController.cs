@@ -393,7 +393,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             if (staffService.GetStaff(profileBody.StaffId) != null)
                             {
-                                profileBody.StaffName = staffService.GetStaff(profileBody.StaffId).Fullname;
+                                profileBody.StaffName = (await staffService.GetStaff(profileBody.StaffId))?.Fullname;
                             }
                             else
                             {

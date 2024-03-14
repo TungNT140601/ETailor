@@ -8,7 +8,15 @@ using Etailor.API.Ultity.PaymentConfig;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using System.Security.Claims;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
+using QRCoder;
+using SixLabors.ImageSharp.Formats;
+using ZXing.QrCode.Internal;
+using QRCode = QRCoder.QRCode;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -59,7 +67,19 @@ namespace Etailor.API.WebAPI.Controllers
                         var result = await paymentService.CreatePayment(orderId, amount, payType, platform, GetIpAddress(), staffId);
                         if (result != null)
                         {
+                            if (result.StartsWith("https://"))
+                            {
+                                return Ok(new
+                                {
+                                    Link  = result,
+                                    QRImage = GenQRImage(result)
+                                });
+                            }
+                            else
+                            {
                             return Ok(result);
+
+                            }
                         }
                         else
                         {
@@ -196,6 +216,48 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        private string GenQRImage(string link)
+        {
+            try
+            {
+                // Create a QRCodeGenerator object
+                QRCodeGenerator qrGenerator = new QRCodeGenerator();
+
+                // Generate QRCode data
+                QRCodeData qrCodeData = qrGenerator.CreateQrCode("Your QR Code Data Here", QRCodeGenerator.ECCLevel.Q);
+
+                // Create a QRCode object
+                QRCode qrCode = new QRCode(qrCodeData);
+
+
+                // Render QRCode as Bitmap
+                Bitmap qrCodeImage = qrCode.GetGraphic(20);
+
+                // Convert the Bitmap to a base64 string
+                string base64Image = ConvertImageToBase64(qrCodeImage);
+
+                return base64Image;
+            }
+            catch (Exception ex)
+            {
+                // Handle exception or log error
+                throw ex; // Rethrow the exception or handle it based on your application's logic
+            }
+        }
+        private string ConvertImageToBase64(Bitmap image)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                // Convert Image to byte[]
+                image.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                byte[] imageBytes = ms.ToArray();
+
+                // Convert byte[] to base64 string
+                string base64String = Convert.ToBase64String(imageBytes);
+                return base64String;
             }
         }
     }
