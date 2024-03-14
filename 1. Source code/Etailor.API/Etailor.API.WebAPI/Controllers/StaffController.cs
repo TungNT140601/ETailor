@@ -284,7 +284,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("info")]
+        [HttpGet("id")]
         public async Task<IActionResult> GetStaffInfo(string? id)
         {
             try
