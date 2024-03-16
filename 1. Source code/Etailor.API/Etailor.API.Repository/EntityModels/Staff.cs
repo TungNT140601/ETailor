@@ -10,7 +10,7 @@ namespace Etailor.API.Repository.EntityModels
             Blogs = new HashSet<Blog>();
             Payments = new HashSet<Payment>();
             Products = new HashSet<Product>();
-            ChatHistories = new HashSet<ChatHistory>();
+            ChatLists = new HashSet<ChatList>();
             Masteries = new HashSet<Mastery>();
             Notifications = new HashSet<Notification>();
             Orders = new HashSet<Order>();
@@ -36,7 +36,7 @@ namespace Etailor.API.Repository.EntityModels
         public virtual ICollection<Blog> Blogs { get; set; }
         public virtual ICollection<Payment> Payments { get; set; }
         public virtual ICollection<Product> Products { get; set; }
-        public virtual ICollection<ChatHistory> ChatHistories { get; set; }
+        public virtual ICollection<ChatList> ChatLists { get; set; }
         public virtual ICollection<Mastery> Masteries { get; set; }
         public virtual ICollection<Notification> Notifications { get; set; }
         public virtual ICollection<Order> Orders { get; set; }

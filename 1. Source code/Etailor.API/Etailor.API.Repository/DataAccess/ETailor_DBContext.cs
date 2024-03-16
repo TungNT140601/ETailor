@@ -24,7 +24,7 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<BodySize> BodySizes { get; set; } = null!;
         public virtual DbSet<Category> Categories { get; set; } = null!;
         public virtual DbSet<Chat> Chats { get; set; } = null!;
-        public virtual DbSet<ChatHistory> ChatHistories { get; set; } = null!;
+        public virtual DbSet<ChatList> ChatLists { get; set; } = null!;
         public virtual DbSet<Component> Components { get; set; } = null!;
         public virtual DbSet<ComponentStage> ComponentStages { get; set; } = null!;
         public virtual DbSet<ComponentType> ComponentTypes { get; set; } = null!;
@@ -178,21 +178,21 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.CustomerId).HasMaxLength(30);
+                entity.Property(e => e.OrderId).HasMaxLength(30);
 
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
                 entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
-                entity.HasOne(d => d.Customer)
+                entity.HasOne(d => d.Order)
                     .WithMany(p => p.Chats)
-                    .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__Chat__CustomerId__125EB334");
+                    .HasForeignKey(d => d.OrderId)
+                    .HasConstraintName("FK__Chat__OrderId__125EB334");
             });
 
-            modelBuilder.Entity<ChatHistory>(entity =>
+            modelBuilder.Entity<ChatList>(entity =>
             {
-                entity.ToTable("ChatHistory");
+                entity.ToTable("ChatList");
 
                 entity.Property(e => e.Id).HasMaxLength(30);
 
@@ -215,12 +215,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.SendTime).HasColumnType("datetime");
 
                 entity.HasOne(d => d.Chat)
-                    .WithMany(p => p.ChatHistories)
+                    .WithMany(p => p.ChatLists)
                     .HasForeignKey(d => d.ChatId)
                     .HasConstraintName("FK__ChatHisto__ChatI__162F4418");
 
                 entity.HasOne(d => d.Replier)
-                    .WithMany(p => p.ChatHistories)
+                    .WithMany(p => p.ChatLists)
                     .HasForeignKey(d => d.ReplierId)
                     .HasConstraintName("FK__ChatHisto__Repli__17236851");
             });

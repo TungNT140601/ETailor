@@ -7,7 +7,6 @@ namespace Etailor.API.Repository.EntityModels
     {
         public Customer()
         {
-            Chats = new HashSet<Chat>();
             CustomerClients = new HashSet<CustomerClient>();
             Notifications = new HashSet<Notification>();
             Orders = new HashSet<Order>();
@@ -34,7 +33,6 @@ namespace Etailor.API.Repository.EntityModels
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
 
-        public virtual ICollection<Chat> Chats { get; set; }
         public virtual ICollection<CustomerClient> CustomerClients { get; set; }
         public virtual ICollection<Notification> Notifications { get; set; }
         public virtual ICollection<Order> Orders { get; set; }

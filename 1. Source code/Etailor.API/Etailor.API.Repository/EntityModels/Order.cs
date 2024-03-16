@@ -10,6 +10,7 @@ namespace Etailor.API.Repository.EntityModels
             OrderMaterials = new HashSet<OrderMaterial>();
             Payments = new HashSet<Payment>();
             Products = new HashSet<Product>();
+            Chats = new HashSet<Chat>();
         }
 
         public string Id { get; set; } = null!;
@@ -36,6 +37,7 @@ namespace Etailor.API.Repository.EntityModels
         public virtual Staff? Creater { get; set; }
         public virtual Customer? Customer { get; set; }
         public virtual Discount? Discount { get; set; }
+        public virtual ICollection<Chat> Chats { get; set; }
         public virtual ICollection<OrderMaterial> OrderMaterials { get; set; }
         public virtual ICollection<Payment> Payments { get; set; }
         public virtual ICollection<Product> Products { get; set; }
