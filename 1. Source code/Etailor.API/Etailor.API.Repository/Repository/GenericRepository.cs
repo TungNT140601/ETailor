@@ -113,7 +113,7 @@ namespace Etailor.API.Repository.Repository
         {
             try
             {
-                return dbSet.Where(where);
+                return dbSet.TakeWhile(where);
             }
             catch (Exception ex)
             {

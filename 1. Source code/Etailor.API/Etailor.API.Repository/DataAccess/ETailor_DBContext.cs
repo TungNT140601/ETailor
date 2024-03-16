@@ -208,6 +208,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Message).HasMaxLength(500);
 
+                entity.Property(e => e.Images).HasColumnType("text");
+
                 entity.Property(e => e.ReadTime).HasColumnType("datetime");
 
                 entity.Property(e => e.ReplierId).HasMaxLength(30);

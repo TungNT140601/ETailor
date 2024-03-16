@@ -9,6 +9,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? ChatId { get; set; }
         public string? ReplierId { get; set; }
         public string? Message { get; set; }
+        public string? Images { get; set; }
         public bool? FromCus { get; set; } = false;
         public DateTime? SendTime { get; set; }
         public bool? IsRead { get; set; }

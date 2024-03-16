@@ -762,7 +762,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await signalRService.SendMessageToUser(id, message, role);
+                await signalRService.SendNotificationToUser(id, message, role);
 
                 return Ok(new
                 {
@@ -784,23 +784,23 @@ namespace Etailor.API.WebAPI.Controllers
             {
                 if (role == RoleName.CUSTOMER)
                 {
-                    await signalRService.SendMessageToCustomer(message);
+                    await signalRService.SendNotificationToCustomer(message);
                 }
                 else if (role == RoleName.MANAGER)
                 {
-                    await signalRService.SendMessageToManager(message);
+                    await signalRService.SendNotificationToManager(message);
                 }
                 else if (role == RoleName.STAFF)
                 {
-                    await signalRService.SendMessageToStaff(message);
+                    await signalRService.SendNotificationToStaff(message);
                 }
                 else if (role == RoleName.ADMIN)
                 {
-                    await signalRService.SendMessageToAdmin(message);
+                    await signalRService.SendNotificationToAdmin(message);
                 }
                 else
                 {
-                    await signalRService.SendMessageToAllStaff(message);
+                    await signalRService.SendNotificationToAllStaff(message);
                 }
 
                 return Ok(new

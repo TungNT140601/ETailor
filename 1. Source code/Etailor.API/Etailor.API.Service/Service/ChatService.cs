@@ -1,0 +1,244 @@
+﻿using Etailor.API.Repository.EntityModels;
+using Etailor.API.Repository.Interface;
+using Etailor.API.Service.Interface;
+using Etailor.API.Ultity;
+using Etailor.API.Ultity.CommonValue;
+using Etailor.API.Ultity.CustomException;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Etailor.API.Service.Service
+{
+    public class ChatService : IChatService
+    {
+        private readonly IChatRepository chatRepository;
+        private readonly IChatListRepository chatListRepository;
+        private readonly IStaffRepository staffRepository;
+        private readonly ICustomerRepository customerRepository;
+        private readonly IOrderRepository orderRepository;
+        private readonly ISignalRService signalRService;
+
+        public ChatService(IChatRepository chatRepository, IChatListRepository chatListRepository, IStaffRepository staffRepository,
+            ICustomerRepository customerRepository, ISignalRService signalRService, IOrderRepository orderRepository)
+        {
+            this.chatRepository = chatRepository;
+            this.chatListRepository = chatListRepository;
+            this.staffRepository = staffRepository;
+            this.customerRepository = customerRepository;
+            this.signalRService = signalRService;
+            this.orderRepository = orderRepository;
+        }
+
+        public async Task SendChat(string wwwrootPath, string orderId, string? staffId, string? customerId, string? message, List<IFormFile>? images)
+        {
+            var order = orderRepository.Get(orderId);
+            if (order != null && order.IsActive == true)
+            {
+                if (!string.IsNullOrEmpty(customerId))
+                {
+                    var customer = customerRepository.Get(customerId);
+                    if (customer != null && customer.IsActive == true)
+                    {
+                        if (order.CustomerId != customer.Id)
+                        {
+                            throw new UserException("Khách hàng không phù hợp");
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Khách hàng không tồn tại");
+                    }
+                }
+                if (!string.IsNullOrEmpty(staffId))
+                {
+                    var staff = staffRepository.Get(staffId);
+                    if (staff == null || staff.IsActive == false)
+                    {
+                        throw new UserException("Nhân viên không tồn tại");
+                    }
+                }
+                if (order.Status >= 1 && order.Status < 7)
+                {
+                    var orderChats = chatRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+                    var orderChat = new Chat();
+                    if (orderChats == null || !orderChats.Any())
+                    {
+                        orderChat = new Chat()
+                        {
+                            CreatedTime = DateTime.UtcNow,
+                            Id = Ultils.GenGuidString(),
+                            IsActive = true,
+                            OrderId = orderId,
+                            InactiveTime = null
+                        };
+
+                        chatRepository.Create(orderChat);
+                    }
+                    else
+                    {
+                        orderChat = orderChats.First();
+                    }
+
+                    var chatDetail = new ChatList()
+                    {
+                        ChatId = orderChat.Id,
+                        FromCus = !string.IsNullOrEmpty(customerId),
+                        Id = Ultils.GenGuidString(),
+                        InactiveTime = null,
+                        IsActive = true,
+                        IsRead = false,
+                        Message = message,
+                        ReadTime = null,
+                        ReplierId = !string.IsNullOrEmpty(staffId) ? staffId : null,
+                        SendTime = DateTime.UtcNow
+                    };
+
+                    if (images != null && images.Count > 0)
+                    {
+                        var uploadImageTasks = new List<Task>();
+                        var listImages = new List<string>();
+                        foreach (var image in images)
+                        {
+                            uploadImageTasks.Add(Task.Run(async () =>
+                            {
+                                listImages.Add(await Ultils.UploadImage(wwwrootPath, "OrderChatImages", image, null));
+                            }));
+                        }
+                        await Task.WhenAll(uploadImageTasks);
+
+                        chatDetail.Images = JsonConvert.SerializeObject(listImages);
+                    }
+
+                    if (chatListRepository.Create(chatDetail))
+                    {
+                        if (chatDetail.FromCus.Value)
+                        {
+                            await signalRService.CheckMessage(customerId);
+                        }
+                        else
+                        {
+                            await signalRService.CheckMessage(staffId);
+                        }
+                    }
+                    else
+                    {
+                        throw new SystemsException("Error When Create Chat List", nameof(ChatService));
+                    }
+                }
+                else
+                {
+                    throw new UserException("Hóa đơn đã hoàn thành.");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public async Task<Chat> GetChatDetail(string orderId, string role, string id)
+        {
+            var order = orderRepository.Get(orderId);
+            if (order != null && order.IsActive == true)
+            {
+                if (role == RoleName.CUSTOMER && order.CustomerId != id)
+                {
+                    return null;
+                }
+
+                var chats = chatRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+                if (chats != null && chats.Any())
+                {
+                    var chat = chats.First();
+
+                    if (chat.ChatLists == null || chat.ChatLists.Count == 0)
+                    {
+                        var chatLists = chatListRepository.GetAll(x => x.ChatId == chat.Id);
+
+                        if (chatLists != null && chatLists.Any())
+                        {
+                            chat.ChatLists = chatLists.OrderByDescending(x => x.SendTime).ToList();
+
+                            if (role == RoleName.CUSTOMER)
+                            {
+                                var unreadChats = chat.ChatLists.Where(x => x.FromCus == true && x.IsRead == false && x.IsActive == true);
+                                if (unreadChats != null && unreadChats.Any())
+                                {
+                                    var task1s = new List<Task>();
+                                    foreach (var chatList in unreadChats)
+                                    {
+                                        task1s.Add(Task.Run(() =>
+                                        {
+                                            chatList.IsRead = true;
+                                        }));
+                                    }
+                                    await Task.WhenAll(task1s);
+
+                                    chatListRepository.UpdateRange(unreadChats.ToList());
+                                }
+
+                            }
+                            else
+                            {
+                                var unreadChats = chat.ChatLists.Where(x => x.FromCus == false && x.IsRead == false && x.IsActive == true);
+                                if (unreadChats != null && unreadChats.Any())
+                                {
+                                    var task1s = new List<Task>();
+                                    foreach (var chatList in unreadChats)
+                                    {
+                                        task1s.Add(Task.Run(() =>
+                                        {
+                                            chatList.IsRead = true;
+                                        }));
+                                    }
+                                    await Task.WhenAll(task1s);
+
+                                    chatListRepository.UpdateRange(unreadChats.ToList());
+                                }
+                            }
+                        }
+
+                        var tasks = new List<Task>();
+                        foreach (var chatList in chatLists)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                if (!string.IsNullOrEmpty(chatList.Images))
+                                {
+                                    var listUrl = new List<string>();
+                                    var listImage = JsonConvert.DeserializeObject<List<string>>(chatList.Images);
+
+                                    if (listImage != null && listImage.Any())
+                                    {
+                                        var getImageUrlTasks = new List<Task>();
+                                        foreach (var image in listImage)
+                                        {
+                                            getImageUrlTasks.Add(Task.Run(async () =>
+                                            {
+                                                listUrl.Add(await Ultils.GetUrlImage(image));
+                                            }));
+                                        }
+                                        await Task.WhenAll(getImageUrlTasks);
+                                    }
+
+                                    chatList.Images = JsonConvert.SerializeObject(listUrl);
+                                }
+                            }));
+                        }
+
+                        await Task.WhenAll(tasks);
+                    }
+
+                    return chat;
+                }
+            }
+
+            return null;
+        }
+    }
+}

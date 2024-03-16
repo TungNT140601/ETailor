@@ -185,7 +185,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddScoped<ITaskService, TaskService>();
 
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
+builder.Services.AddScoped<IChatListRepository, ChatListRepository>();
 
 builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
 
