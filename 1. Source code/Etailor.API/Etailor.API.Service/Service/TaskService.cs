@@ -5,6 +5,8 @@ using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -372,7 +374,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không tìm thấy sản phẩm");
             }
         }
-        public async Task<bool> FinishTask(string productId, string productStageId, string staffId)
+        public async Task<bool> FinishTask(string wwwroot, string productId, string productStageId, string staffId, List<IFormFile>? images)
         {
             var product = productRepository.Get(productId);
             var order = orderRepository.Get(product != null ? product.OrderId : null);
@@ -407,10 +409,11 @@ namespace Etailor.API.Service.Service
                             {
                                 if (maxStageNum != null && productStage.StageNum == maxStageNum)
                                 {
-                                    tasks.Add(Task.Run(() =>
+                                    tasks.Add(Task.Run(async () =>
                                     {
                                         product.Status = 4;
                                         product.LastestUpdatedTime = DateTime.UtcNow;
+
                                         productRepository.Update(product.Id, product);
                                     }));
 
@@ -426,6 +429,31 @@ namespace Etailor.API.Service.Service
                                         }));
                                     }
                                 }
+
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    if (images != null && images.Any())
+                                    {
+                                        var imageUrls = new List<string>();
+
+                                        var tasks2 = new List<Task>();
+                                        foreach (var image in images)
+                                        {
+                                            tasks2.Add(Task.Run(async () =>
+                                            {
+                                                var imageObjectName = await Ultils.UploadImage(wwwroot, "ProductStageEvidences", image, null);
+                                                imageUrls.Add(imageObjectName);
+                                            }));
+                                        }
+                                        await Task.WhenAll(tasks2);
+
+                                        productStage.EvidenceImage = JsonConvert.SerializeObject(imageUrls);
+                                    }
+                                    else
+                                    {
+                                        throw new UserException("Cần phải có ít nhất 1 hình ảnh chứng minh công đoạn");
+                                    }
+                                }));
 
                                 tasks.Add(Task.Run(() =>
                                 {

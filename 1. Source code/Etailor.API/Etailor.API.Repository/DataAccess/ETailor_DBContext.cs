@@ -850,6 +850,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.TemplateStageId).HasMaxLength(30);
 
+                entity.Property(e => e.EvidenceImage).HasColumnType("text");
+
                 entity.HasOne(d => d.Product)
                     .WithMany(p => p.ProductStages)
                     .HasForeignKey(d => d.ProductId)
