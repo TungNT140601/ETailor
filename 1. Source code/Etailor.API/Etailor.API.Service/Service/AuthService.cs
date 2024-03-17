@@ -135,7 +135,7 @@ namespace Etailor.API.Service.Service
         {
             if (usernameOrEmail.Contains("@"))
             {
-                var customer = customerRepository.GetAll(x => x.Email == usernameOrEmail && x.IsActive == true).FirstOrDefault();
+                var customer = customerRepository.FirstOrDefault(x => x.Email == usernameOrEmail && x.IsActive == true);
 
                 if (customer != null)
                 {
@@ -154,7 +154,7 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                var customer = customerRepository.GetAll(x => x.Username == usernameOrEmail && x.IsActive == true).FirstOrDefault();
+                var customer = customerRepository.FirstOrDefault(x => x.Username == usernameOrEmail && x.IsActive == true);
 
                 if (customer != null)
                 {
@@ -175,7 +175,7 @@ namespace Etailor.API.Service.Service
 
         public Staff CheckLoginStaff(string? usernameOrEmail, string? password)
         {
-            var staff = staffRepository.GetAll(x => x.Username == usernameOrEmail && x.IsActive == true).FirstOrDefault();
+            var staff = staffRepository.FirstOrDefault(x => x.Username == usernameOrEmail && x.IsActive == true);
 
             if (staff != null)
             {
