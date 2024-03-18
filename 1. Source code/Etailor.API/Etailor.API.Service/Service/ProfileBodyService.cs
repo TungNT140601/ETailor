@@ -37,7 +37,7 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> CreateProfileBodyByStaff(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId)
         {
-            
+
             string profileBodyId = Ultils.GenGuidString();
             var checkDuplicateId = Task.Run(() =>
             {
@@ -52,7 +52,7 @@ namespace Etailor.API.Service.Service
             var setValue = Task.Run(() =>
             {
                 profileBody.Id = profileBodyId;
-                profileBody.StaffId = staffId; 
+                profileBody.StaffId = staffId;
                 profileBody.CustomerId = customerId;
                 profileBody.Name = name;
                 profileBody.IsLocked = true;
@@ -64,7 +64,7 @@ namespace Etailor.API.Service.Service
 
             await Task.WhenAll(checkDuplicateId, setValue);
 
-            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id , x.MinValidValue, x.MaxValidValue} ).ToList();
+            var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
             var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBody.Id && x.IsActive == true).Select(x => x.BodySizeId).ToList();
 
             var bodyAttributeList = new List<BodyAttribute>();
@@ -78,7 +78,7 @@ namespace Etailor.API.Service.Service
                 var maxValidValue = bodySizeObject.MaxValidValue;
                 tasks.Add(Task.Run(() =>
                 {
-                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue  && id.value <= x.MaxValidValue))
+                    if (existBodySizeList.Any(x => x.Id == id.id && id.value >= x.MinValidValue && id.value <= x.MaxValidValue))
                     {
                         if (id.value >= minValidValue && id.value <= maxValidValue)
                         {
@@ -100,7 +100,7 @@ namespace Etailor.API.Service.Service
                             {
                                 throw new UserException("Số đo đã tồn tại trong hệ thống");
                             }
-                        } 
+                        }
                         else
                         {
                             throw new UserException("Giá trị số đo phải phù hợp");
@@ -117,7 +117,7 @@ namespace Etailor.API.Service.Service
             await Task.WhenAll(tasks);
 
             profileBodyRepository.Create(profileBody);
-            return bodyAttributeRepository.CreateRange(bodyAttributeList);   
+            return bodyAttributeRepository.CreateRange(bodyAttributeList);
         }
 
         public async Task<bool> CreateProfileBodyByCustomer(string customerId, string name, List<(string id, decimal value)> bodySizeId)
@@ -163,7 +163,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (existBodySizeList.Any(x => x.Id == id.id))
                     {
-                        if (id.value >= minValidValue && id.value <= maxValidValue) 
+                        if (id.value >= minValidValue && id.value <= maxValidValue)
                         {
                             if (!existBodyAttributeList.Contains(id.id))
                             {
@@ -250,11 +250,11 @@ namespace Etailor.API.Service.Service
                             dbProfileBody.InactiveTime = null;
                             dbProfileBody.IsActive = true;
                         });
-                    } 
+                    }
                     else
                     {
                         throw new UserException("Mã Khách hàng không khớp");
-                    }               
+                    }
                 }
                 else
                 {
@@ -264,11 +264,11 @@ namespace Etailor.API.Service.Service
 
             var existBodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == profileBodyId && x.IsActive == true).ToList();
             var existBodySizeList = bodySizeRepository.GetAll(x => x.IsActive == true).Select(x => new { x.Id, x.MinValidValue, x.MaxValidValue }).ToList();
-            
+
             var tasks = new List<Task>();
             BodySize bodySizeObject = new BodySize();
 
-            foreach ( var bodyAttribute in existBodyAttributeList)
+            foreach (var bodyAttribute in existBodyAttributeList)
             {
                 tasks.Add(Task.Run(() =>
                 {
@@ -295,11 +295,11 @@ namespace Etailor.API.Service.Service
                             {
                                 throw new UserException("Giá trị số đo phải phù hợp");
                             }
-                            
+
                         }
                         else
                         {
-                            
+
                         }
                     }
                 }
@@ -378,7 +378,7 @@ namespace Etailor.API.Service.Service
                                 {
                                     throw new UserException("Số đo không tồn tại trong hệ thống");
                                 }
-                            } 
+                            }
                             else
                             {
                                 throw new UserException("Giá trị số đo phải phù hợp");
@@ -428,28 +428,49 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        //public async Task<ProfileBody> GetProfileBody(string id)
-        //{
-        //    //string? search = null;
-        //    //Task<BodySize> bodySize;
-        //    var profileBody = profileBodyRepository.Get(id);
-        //    //var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(id);
-        //    //foreach( var bodyAttribute in bodyAttributeList )
-        //    //{
-        //    //    bodySize = bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
-        //    //}
-
-        //    ////var bodySize = bodySizeService.GetBodySizes(search);
-
-
-        //    return profileBody == null ? null : profileBody.IsActive == true ? profileBody : null;
-        //}
-
-        public ProfileBody GetProfileBody(string id)
+        public async Task<ProfileBody> GetProfileBody(string id)
         {
             var profileBody = profileBodyRepository.Get(id);
 
-            return profileBody == null ? null : profileBody.IsActive == true ? profileBody : null;
+            if (profileBody != null && profileBody.IsActive == true)
+            {
+                var bodyAttributeList = bodyAttributeRepository.GetAll(x => x.ProfileBodyId == id && x.IsActive == true);
+                if (bodyAttributeList != null && bodyAttributeList.Any())
+                {
+                    bodyAttributeList = bodyAttributeList.ToList();
+                    var bodySizes = bodySizeRepository.GetAll(x => bodyAttributeList.Select(c => c.BodySizeId).Contains(x.Id));
+
+                    if (bodySizes != null && bodySizes.Any())
+                    {
+                        bodySizes = bodySizes.ToList();
+
+                        var tasks = new List<Task>();
+
+                        foreach (var bodyAttribute in bodyAttributeList)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                if (bodyAttribute.BodySize == null)
+                                {
+                                    bodyAttribute.BodySize = bodySizes.FirstOrDefault(x => x.Id == bodyAttribute.BodySizeId);
+                                }
+                                if (!string.IsNullOrWhiteSpace(bodyAttribute.BodySize.Image))
+                                {
+                                    bodyAttribute.BodySize.Image = await Ultils.GetUrlImage(bodyAttribute.BodySize.Image);
+                                }
+                            }));
+                        }
+
+                        await Task.WhenAll(tasks);
+
+                        profileBody.BodyAttributes = bodyAttributeList.ToList();
+                    }
+                }
+
+                return profileBody;
+            }
+
+            return null;
         }
 
         public IEnumerable<ProfileBody> GetProfileBodysOfCustomerId(string? search)

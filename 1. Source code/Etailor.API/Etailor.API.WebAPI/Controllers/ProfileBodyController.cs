@@ -187,12 +187,12 @@ namespace Etailor.API.WebAPI.Controllers
 
                             if (role == RoleName.STAFF || role == RoleName.MANAGER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByStaff(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM))) 
+                                return (await profileBodyService.UpdateProfileBodyByStaff(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else if (role == RoleName.CUSTOMER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByCustomer(accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM))) 
+                                return (await profileBodyService.UpdateProfileBodyByCustomer(accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else
@@ -293,38 +293,42 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            var pB = profileBodyService.GetProfileBody(id);
-                            if (pB != null && pB.CustomerId == customerId )
+                            var pB = await profileBodyService.GetProfileBody(id);
+                            if (pB != null && pB.CustomerId == customerId)
                             {
                                 var profileBody = mapper.Map<GetDetailProfileBodyVM>(pB);
 
-                                var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(id).Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
-
-                                BodySize bodySize;
-                                //var bodySizeList = bodySizeService.GetBodySize("");
-
-                                ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
                                 profileBody.valueBodyAttribute = new List<DetailProfileBody>();
 
-                                foreach (var bodyAttribute in bodyAttributeList)
-                                {
-                                    bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
+                                var tasks = new List<Task>();
 
-                                    DetailProfileBody detailProfileBody = new DetailProfileBody();
-                                    detailProfileBody.Id = bodyAttribute.BodySizeId;
-                                    detailProfileBody.Name = bodySize.Name;
-                                    detailProfileBody.Value = (decimal)bodyAttribute.Value;
-                                    detailProfileBody.Image = bodySize.Image;
-                                    profileBody.valueBodyAttribute.Add(detailProfileBody);
+                                foreach (var bodyAttribute in pB.BodyAttributes)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        var detailProfileBody = new DetailProfileBody();
+
+                                        detailProfileBody.Id = bodyAttribute.Id;
+                                        detailProfileBody.Value = bodyAttribute.Value.Value;
+
+                                        if (bodyAttribute.BodySize != null)
+                                        {
+                                            detailProfileBody.Name = bodyAttribute.BodySize.Name;
+                                            detailProfileBody.Image = bodyAttribute.BodySize.Image;
+                                        }
+                                        profileBody.valueBodyAttribute.Add(detailProfileBody);
+                                    }));
                                 }
+
+                                await Task.WhenAll(tasks);
 
                                 return pB != null ? Ok(profileBody) : NotFound(id);
                             }
                             else
                             {
-                                throw new UserException("ID Hồ sơ sô đo cơ thể này không phải của bạn. Vui lòng nhập lại");
+                                return NotFound("Không tìm thấy hồ sơ số đo");
                             }
-                            
+
                         }
                     }
                 }
@@ -407,7 +411,7 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 profileBody.CustomerName = null;
                             }
-                            
+
                         }
                         return Ok(profileBodyList);
                     }
@@ -450,7 +454,7 @@ namespace Etailor.API.WebAPI.Controllers
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
-                    {                      
+                    {
                         return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
                     }
                 }

@@ -19,9 +19,7 @@ namespace Etailor.API.Service.Interface
 
         Task<bool> DeleteProfileBody(string id);
 
-        //Task<ProfileBody> GetProfileBody(string id);
-
-        ProfileBody GetProfileBody(string id);
+        Task<ProfileBody> GetProfileBody(string id);
 
         IEnumerable<ProfileBody> GetProfileBodysOfCustomerId(string? search);
         IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string? search);
