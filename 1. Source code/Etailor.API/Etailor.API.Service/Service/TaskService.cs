@@ -491,5 +491,60 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không tìm thấy sản phẩm");
             }
         }
+        public bool PendingTask(string productId, string productStageId, string staffId)
+        {
+            var product = productRepository.Get(productId);
+            var order = orderRepository.Get(product != null ? product.OrderId : null);
+            var orderProducts = productRepository.GetAll(x => product != null && product.OrderId != null && x.OrderId == product.OrderId && x.Status != 0 && x.IsActive == true);
+            var productStages = productStageRepository.GetAll(x => x.IsActive == true && x.ProductId == productId && x.Status != 0);
+
+            if (product != null && product.IsActive == true && product.Status != 0)
+            {
+                if (order != null && order.Status != 0 && order.IsActive == true)
+                {
+                    if (orderProducts != null && orderProducts.Any())
+                    {
+                        orderProducts = orderProducts.ToList();
+                        if (productStages != null && productStages.Any())
+                        {
+                            var productStage = productStages.FirstOrDefault(x => x.Id == productStageId);
+
+                            if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId && productStage.StaffId == staffId)
+                            {
+                                product.Status = 3;
+                                product.LastestUpdatedTime = DateTime.UtcNow;
+
+                                productRepository.Update(product.Id, product);
+
+                                productStage.Status = 3;
+                                productStage.StaffId = staffId;
+
+                                return productStageRepository.Update(productStage.Id, productStage);
+                            }
+                            else
+                            {
+                                throw new UserException("Không tìm thấy nhiệm vụ");
+                            }
+                        }
+                        else
+                        {
+                            throw new UserException($"Không tìm thấy danh sách nhiệm vụ của sản phẩm: {product.Name}");
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy sản phẩm hóa đơn");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy hóa đơn");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy sản phẩm");
+            }
+        }
     }
 }

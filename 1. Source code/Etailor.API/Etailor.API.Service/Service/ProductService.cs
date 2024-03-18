@@ -804,7 +804,8 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                Ultils.SendMessageToDev("Run func AutoCreateEmptyTaskProduct");
+                var startTime = DateTime.UtcNow.AddHours(7);
+
                 var approveOrders = orderRepository.GetAll(x => x.Status == 2 && x.IsActive == true);
                 if (approveOrders != null && approveOrders.Any())
                 {
@@ -943,6 +944,10 @@ namespace Etailor.API.Service.Service
                     }
                 }
 
+                var endTime = DateTime.UtcNow.AddHours(7);
+
+                Ultils.SendMessageToDev($"Auto run function AutoCreateEmptyTaskProduct start time: {startTime}; end time: {endTime}");
+
                 AutoAssignTaskForStaff();
             }
             catch (Exception ex)
@@ -955,8 +960,8 @@ namespace Etailor.API.Service.Service
         {
             try
             {
+                var startTime = DateTime.UtcNow.AddHours(7);
                 var checkException = false;
-                Ultils.SendMessageToDev("Run func AutoCreateEmptyTaskProduct");
                 var notStartOrders = orderRepository.GetAll(x => x.Status == 3 && x.IsActive == true);
                 if (notStartOrders != null && notStartOrders.Any())
                 {
@@ -1045,6 +1050,17 @@ namespace Etailor.API.Service.Service
                                                     findFreeStaff.TryGetValue("MaxIndex", out string maxIndex);
                                                     int.TryParse(maxIndex, out int maxIndexInt);
                                                     product.Index = maxIndexInt + 1;
+
+                                                    if (product.ProductStages == null || !product.ProductStages.Any())
+                                                    {
+                                                        product.ProductStages = productStageRepository.GetAll(x => x.ProductId == product.Id && x.IsActive == true).ToList();
+                                                        foreach (var stage in product.ProductStages)
+                                                        {
+                                                            stage.Staff = null;
+                                                            stage.StaffId = staffId;
+                                                            stage.TaskIndex = stage.StageNum;
+                                                        }
+                                                    }
                                                     try
                                                     {
                                                         if (!productRepository.Update(product.Id, product))
@@ -1070,6 +1086,10 @@ namespace Etailor.API.Service.Service
                 {
                     throw new SystemsException("Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(ProductService));
                 }
+
+                var endTime = DateTime.UtcNow.AddHours(7);
+
+                Ultils.SendMessageToDev($"Run func AutoCreateEmptyTaskProduct start time: {startTime}; end time: {endTime}");
             }
             catch (Exception ex)
             {
@@ -1114,6 +1134,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không tìm thấy sản phẩm");
             }
         }
+
         public async Task<bool> UnAssignStaffTask(string productId, string staffId)
         {
             var staff = staffRepository.Get(staffId);
