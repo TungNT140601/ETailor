@@ -64,7 +64,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            List<(string id, decimal value)> list = new List<(string id, decimal value)>();
+                            List<(string id, decimal? value)> list = new List<(string id, decimal? value)>();
                             var listBodyAttribute = createProfileBodyByStaffVM.valueBodyAttribute;
                             foreach (var item in listBodyAttribute)
                             {
@@ -178,7 +178,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            List<(string id, decimal value)> list = new List<(string id, decimal value)>();
+                            List<(string id, decimal? value)> list = new List<(string id, decimal? value)>();
                             var listBodyAttribute = updateProfileBodyByStaffVM.valueBodyAttribute;
                             foreach (var item in listBodyAttribute)
                             {
@@ -294,33 +294,10 @@ namespace Etailor.API.WebAPI.Controllers
                         else
                         {
                             var pB = await profileBodyService.GetProfileBody(id);
+
                             if (pB != null && pB.CustomerId == customerId)
                             {
                                 var profileBody = mapper.Map<GetDetailProfileBodyVM>(pB);
-
-                                profileBody.valueBodyAttribute = new List<DetailProfileBody>();
-
-                                var tasks = new List<Task>();
-
-                                foreach (var bodyAttribute in pB.BodyAttributes)
-                                {
-                                    tasks.Add(Task.Run(() =>
-                                    {
-                                        var detailProfileBody = new DetailProfileBody();
-
-                                        detailProfileBody.Id = bodyAttribute.Id;
-                                        detailProfileBody.Value = bodyAttribute.Value.Value;
-
-                                        if (bodyAttribute.BodySize != null)
-                                        {
-                                            detailProfileBody.Name = bodyAttribute.BodySize.Name;
-                                            detailProfileBody.Image = bodyAttribute.BodySize.Image;
-                                        }
-                                        profileBody.valueBodyAttribute.Add(detailProfileBody);
-                                    }));
-                                }
-
-                                await Task.WhenAll(tasks);
 
                                 return pB != null ? Ok(profileBody) : NotFound(id);
                             }

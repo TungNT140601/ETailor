@@ -19,7 +19,7 @@ namespace Etailor.API.Service.Interface
         bool CreateSaveActiveTemplate(string id);
         Task<string> UpdateTemplate(string id, string wwwroot);
         bool DeleteTemplate(string id);
-        IEnumerable<ComponentType> GetTemplateComponent(string templateId);
+        Task<IEnumerable<ComponentType>> GetTemplateComponent(string templateId);
         Task<IEnumerable<ProductTemplate>> GetTemplates(string? search);
     }
 }

@@ -18,12 +18,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
         private readonly IChatService chatService;
+        private readonly string _wwwrootPath;
 
-        public ChatController(IStaffService staffService, ICustomerService customerService, IChatService chatService)
+        public ChatController(IStaffService staffService, ICustomerService customerService, IChatService chatService, IWebHostEnvironment webHost)
         {
             this.staffService = staffService;
             this.customerService = customerService;
             this.chatService = chatService;
+            _wwwrootPath = webHost.WebRootPath;
         }
 
         [HttpGet("order/{orderId}")]
@@ -40,15 +42,55 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    if ((role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(id, secrectKey)) || (role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(id, secrectKey)))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
-                        var chat = chatService.GetChatDetail(orderId, role, id);
+                        var chat = await chatService.GetChatDetail(orderId, role, id);
 
                         return Ok(chat);
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("order/{orderId}/send")]
+        public async Task<IActionResult> SendChat(string orderId, [FromForm] ChatVM chat)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if ((role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(id, secrectKey)) || (role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(id, secrectKey)))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        await chatService.SendChat(_wwwrootPath, orderId, role != RoleName.CUSTOMER ? id : null, role == RoleName.CUSTOMER ? id : null, chat.Message, chat.MessageImages);
+
+                        return Ok();
                     }
                 }
             }

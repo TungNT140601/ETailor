@@ -33,14 +33,35 @@ namespace Etailor.API.Service.Service
         }
         public async Task<string> AddTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
         {
+            var duplicate = productTemplateRepository.GetAll(x => x.Name == productTemplate.Name && x.IsActive == true);
+            var category = categoryRepository.Get(productTemplate.CategoryId);
+
+            var tasks = new List<Task>();
             if (string.IsNullOrEmpty(productTemplate.Id) || productTemplateRepository.Get(productTemplate.Id) == null)
             {
-                var genId = Task.Run(() =>
+                tasks.Add(Task.Run(() =>
                 {
                     productTemplate.Id = Ultils.GenGuidString();
-                });
-
-                var checkCategoryAndName = Task.Run(() =>
+                }));
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(productTemplate.Name))
+                    {
+                        throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
+                    }
+                    else
+                    {
+                        if (duplicate.Any())
+                        {
+                            throw new UserException($"Tên mẫu sản phẩm đã được sử dụng");
+                        }
+                        else
+                        {
+                            productTemplate.UrlPath = Ultils.ConvertToEnglishAlphabet(productTemplate.Name);
+                        }
+                    }
+                }));
+                tasks.Add(Task.Run(() =>
                 {
                     if (productTemplate.CategoryId == null)
                     {
@@ -48,80 +69,95 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        var category = categoryRepository.Get(productTemplate.CategoryId);
                         if (category == null || category.IsActive != true)
                         {
                             throw new UserException("Loại danh mục không tồn tại");
                         }
                     }
-
-
-                    if (string.IsNullOrWhiteSpace(productTemplate.Name))
-                    {
-                        throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
-                    }
-                    else
-                    {
-                        productTemplate.UrlPath = Ultils.ConvertToEnglishAlphabet(productTemplate.Name);
-                        if (productTemplateRepository.GetAll(x => (x.Name == productTemplate.Name || x.UrlPath == productTemplate.UrlPath) && x.IsActive == true).Any())
-                        {
-                            throw new UserException($"Tên mẫu sản phẩm đã được sử dụng: {productTemplate.UrlPath.Replace("-", " ")}");
-                        }
-                    }
-                });
-
-                var setDesc = Task.Run(() =>
+                }));
+                tasks.Add(Task.Run(() =>
                 {
                     if (string.IsNullOrWhiteSpace(productTemplate.Description))
                     {
                         productTemplate.Description = "";
                     }
-                });
-
-                var setThumbnailImage = Task.Run(async () =>
-                {
-                    if (thumbnailImage != null)
-                    {
-                        productTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, null);
-                    }
-                });
-
-                var checkPrice = Task.Run(() =>
+                }));
+                tasks.Add(Task.Run(() =>
                 {
                     if (productTemplate.Price == null || productTemplate.Price == 0)
                     {
                         throw new UserException("Vui lòng nhập giá tham khảo sản phẩm cho mẫu sản phẩm");
                     }
-                    else if (productTemplate.Price < 0)
+                    else if (productTemplate.Price < 10000)
                     {
                         throw new UserException("Giá tham khảo không phù hợp");
                     }
-                });
-
-                var setImage = Task.Run(async () =>
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (thumbnailImage != null)
+                    {
+                        productTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, null);
+                    }
+                    else
+                    {
+                        throw new UserException("Vui lòng chọn hình ảnh đại diện cho mẫu sản phẩm");
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
                 {
                     if (images != null && images.Count > 0)
                     {
-                        productTemplate.Image = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/Images", images));
-                    }
-                });
+                        var listImageObject = new List<string>();
 
-                var setCoolectionImage = Task.Run(async () =>
+                        var tasksImage = new List<Task>();
+
+                        foreach (var image in images)
+                        {
+                            tasksImage.Add(Task.Run(async () =>
+                            {
+                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/Images", image, null));
+                            }));
+                        }
+
+                        await Task.WhenAll(tasksImage);
+
+                        productTemplate.Image = JsonSerializer.Serialize(listImageObject);
+                    }
+                    else
+                    {
+                        throw new UserException("Vui lòng chọn ít nhất 1 hình ảnh cho mẫu sản phẩm");
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
                 {
                     if (collectionImages != null && collectionImages.Count > 0)
                     {
-                        productTemplate.CollectionImage = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/CollectionImages", collectionImages));
-                    }
-                });
+                        var listImageObject = new List<string>();
 
-                var setValue = Task.Run(() =>
+                        var tasksImage = new List<Task>();
+
+                        foreach (var image in collectionImages)
+                        {
+                            tasksImage.Add(Task.Run(async () =>
+                            {
+                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/CollectionImages", image, null));
+                            }));
+                        }
+
+                        await Task.WhenAll(tasksImage);
+
+                        productTemplate.CollectionImage = JsonSerializer.Serialize(listImageObject);
+                    }
+                }));
+                tasks.Add(Task.Run(() =>
                 {
                     productTemplate.LastestUpdatedTime = DateTime.Now;
                     productTemplate.InactiveTime = null;
                     productTemplate.IsActive = false;
-                });
+                }));
 
-                await Task.WhenAll(genId, checkCategoryAndName, setDesc, checkPrice, setThumbnailImage, setImage, setCoolectionImage, setValue);
+                await Task.WhenAll(tasks);
 
                 return productTemplateRepository.Create(productTemplate) ? productTemplate.Id : null;
             }
@@ -131,22 +167,27 @@ namespace Etailor.API.Service.Service
 
                 if (dbTemplate.IsActive == false)
                 {
-
-                    var checkCategoryAndName = Task.Run(() =>
+                    tasks.Add(Task.Run(() =>
                     {
                         if (productTemplate.CategoryId == null)
                         {
                             throw new UserException("Vui lòng chọn loại danh mục");
                         }
-                        else if (categoryRepository.Get(productTemplate.CategoryId) == null || categoryRepository.Get(productTemplate.CategoryId).IsActive != true)
+                        else if (category == null)
                         {
                             throw new UserException("Loại danh mục không tồn tại");
                         }
                         else
                         {
-                            dbTemplate.CategoryId = productTemplate.CategoryId;
+                            if (dbTemplate.CategoryId != productTemplate.CategoryId)
+                            {
+                                throw new UserException("Không thể thay đổi loại danh mục của bản mẫu");
+                            }
                         }
+                    }));
 
+                    tasks.Add(Task.Run(() =>
+                    {
                         if (string.IsNullOrWhiteSpace(productTemplate.Name))
                         {
                             throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
@@ -164,9 +205,8 @@ namespace Etailor.API.Service.Service
                                 dbTemplate.UrlPath = productTemplate.UrlPath;
                             }
                         }
-                    });
-
-                    var setDesc = Task.Run(() =>
+                    }));
+                    tasks.Add(Task.Run(() =>
                     {
                         if (string.IsNullOrWhiteSpace(productTemplate.Description))
                         {
@@ -176,16 +216,14 @@ namespace Etailor.API.Service.Service
                         {
                             dbTemplate.Description = productTemplate.Description;
                         }
-                    });
-
-
-                    var checkPrice = Task.Run(() =>
+                    }));
+                    tasks.Add(Task.Run(() =>
                     {
                         if (productTemplate.Price == null || productTemplate.Price == 0)
                         {
                             throw new UserException("Vui lòng nhập giá tham khảo sản phẩm cho mẫu sản phẩm");
                         }
-                        else if (productTemplate.Price < 0)
+                        else if (productTemplate.Price < 10000)
                         {
                             throw new UserException("Giá tham khảo không phù hợp");
                         }
@@ -193,41 +231,69 @@ namespace Etailor.API.Service.Service
                         {
                             dbTemplate.Price = productTemplate.Price;
                         }
-                    });
-
-
-                    var setThumbnailImage = Task.Run(async () =>
+                    }));
+                    tasks.Add(Task.Run(async () =>
                     {
                         if (thumbnailImage != null)
                         {
                             dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, dbTemplate.ThumbnailImage);
                         }
-                    });
-
-                    var setImage = Task.Run(async () =>
+                    }));
+                    tasks.Add(Task.Run(async () =>
                     {
                         if (images != null && images.Count > 0)
                         {
-                            dbTemplate.Image = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/Images", images));
-                        }
-                    });
+                            var listImageObject = new List<string>();
 
-                    var setCoolectionImage = Task.Run(async () =>
+                            var tasksImage = new List<Task>();
+
+                            foreach (var image in images)
+                            {
+                                tasksImage.Add(Task.Run(async () =>
+                                {
+                                    listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/Images", image, null));
+                                }));
+                            }
+
+                            await Task.WhenAll(tasksImage);
+
+                            dbTemplate.Image = JsonSerializer.Serialize(listImageObject);
+                        }
+                        else
+                        {
+                            throw new UserException("Vui lòng chọn ít nhất 1 hình ảnh cho mẫu sản phẩm");
+                        }
+                    }));
+                    tasks.Add(Task.Run(async () =>
                     {
+
                         if (collectionImages != null && collectionImages.Count > 0)
                         {
-                            dbTemplate.CollectionImage = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/CollectionImages", collectionImages));
-                        }
-                    });
+                            var listImageObject = new List<string>();
 
-                    var setValue = Task.Run(() =>
+                            var tasksImage = new List<Task>();
+
+                            foreach (var image in collectionImages)
+                            {
+                                tasksImage.Add(Task.Run(async () =>
+                                {
+                                    listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/CollectionImages", image, null));
+                                }));
+                            }
+
+                            await Task.WhenAll(tasksImage);
+
+                            dbTemplate.CollectionImage = JsonSerializer.Serialize(listImageObject);
+                        }
+                    }));
+                    tasks.Add(Task.Run(() =>
                     {
                         dbTemplate.LastestUpdatedTime = DateTime.Now;
                         dbTemplate.InactiveTime = null;
                         dbTemplate.IsActive = false;
-                    });
+                    }));
 
-                    await Task.WhenAll(checkCategoryAndName, setDesc, checkPrice, setThumbnailImage, setImage, setCoolectionImage, setValue);
+                    await Task.WhenAll(tasks);
 
                     return productTemplateRepository.Update(dbTemplate.Id, dbTemplate) ? dbTemplate.Id : null;
                 }
@@ -278,23 +344,6 @@ namespace Etailor.API.Service.Service
                 #region CheckCategoryAndName
                 //tasks.Add(Task.Run(() =>
                 //        {
-                //            if (productTemplate.CategoryId == null)
-                //            {
-                //                throw new UserException("Vui lòng chọn loại danh mục");
-                //            }
-                //            else
-                //            {
-                //                var category = categoryRepository.Get(productTemplate.CategoryId);
-                //                if (category == null || category.IsActive != true)
-                //                {
-                //                    throw new UserException("Loại danh mục không tồn tại");
-                //                }
-                //                else
-                //                {
-                //                    dbTemplate.CategoryId = productTemplate.CategoryId;
-                //                }
-                //            }
-
                 //            if (string.IsNullOrWhiteSpace(productTemplate.Name))
                 //            {
                 //                throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
@@ -809,34 +858,67 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
         }
-        public IEnumerable<ComponentType> GetTemplateComponent(string templateId)
+        public async Task<IEnumerable<ComponentType>> GetTemplateComponent(string templateId)
         {
             var template = productTemplateRepository.Get(templateId);
-            if (template == null || template.IsActive == false)
+            if (template == null)
             {
                 throw new UserException("Bản mẫu không tìm thấy");
             }
             else
             {
-                var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();
-
-                var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key).ToList();
-
-                var componentTypes = componentTypeRepository.GetAll(x => templateComponentTypeIds.Contains(x.Id)).ToList();
-
-                foreach (var componentType in componentTypes)
+                var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
+                if (templateComponents != null && templateComponents.Any())
                 {
-                    componentType.Components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).Select(c => new Component()
-                    {
-                        Id = c.Id,
-                        Default = c.Default,
-                        Image = Ultils.GetUrlImage(c.Image).Result,
-                        Name = c.Name,
-                        Index = c.Index
-                    }).OrderBy(x => x.Index).OrderBy(x => x.Name).ToList();
-                }
+                    templateComponents = templateComponents.OrderBy(x => x.Index).ToList();
 
-                return componentTypes;
+                    var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key);
+                    if (templateComponentTypeIds != null && templateComponentTypeIds.Any())
+                    {
+                        templateComponentTypeIds = templateComponentTypeIds.ToList();
+
+                        var componentTypes = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true);
+                        if (componentTypes != null && componentTypes.Any())
+                        {
+                            var tasks = new List<Task>();
+                            foreach (var componentType in componentTypes)
+                            {
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    componentType.Components = new List<Component>();
+                                    var components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id);
+                                    if (components != null && components.Any())
+                                    {
+                                        components = components.ToList();
+                                        var tasks1 = new List<Task>();
+                                        foreach (var component in components)
+                                        {
+                                            tasks1.Add(Task.Run(async () =>
+                                            {
+                                                if (!string.IsNullOrEmpty(component.Image))
+                                                {
+                                                    component.Image = await Ultils.GetUrlImage(component.Image);
+                                                }
+                                                componentType.Components.Add(component);
+                                            }));
+                                        }
+                                        await Task.WhenAll(tasks1);
+                                    }
+
+                                    if (componentType.Components != null && componentType.Components.Any())
+                                    {
+                                        componentType.Components = componentType.Components.OrderBy(x => x.Index).OrderBy(x => x.Name).ToList();
+                                    }
+                                }));
+                            }
+
+                            await Task.WhenAll(tasks);
+
+                            return componentTypes;
+                        }
+                    }
+                }
+                return null;
             }
         }
         public async Task<IEnumerable<ProductTemplate>> GetTemplates(string? search)

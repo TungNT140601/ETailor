@@ -54,6 +54,7 @@ namespace Etailor.API.Service.Service
                         throw new UserException("Khách hàng không tồn tại");
                     }
                 }
+
                 if (!string.IsNullOrEmpty(staffId))
                 {
                     var staff = staffRepository.Get(staffId);
@@ -62,6 +63,7 @@ namespace Etailor.API.Service.Service
                         throw new UserException("Nhân viên không tồn tại");
                     }
                 }
+
                 if (order.Status >= 1 && order.Status < 7)
                 {
                     var orderChats = chatRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
@@ -118,11 +120,11 @@ namespace Etailor.API.Service.Service
                     {
                         if (chatDetail.FromCus.Value)
                         {
-                            await signalRService.CheckMessage(customerId);
+                            await signalRService.CheckMessage(staffId);
                         }
                         else
                         {
-                            await signalRService.CheckMessage(staffId);
+                            await signalRService.CheckMessage(customerId);
                         }
                     }
                     else

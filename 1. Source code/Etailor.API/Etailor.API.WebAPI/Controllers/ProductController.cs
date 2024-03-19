@@ -82,7 +82,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{orderId}/{productId}")]
-        public async Task<IActionResult> UpdateProduct(string orderId,string productId, [FromBody] ProductOrderVM productVM)
+        public async Task<IActionResult> UpdateProduct(string orderId, string productId, [FromBody] ProductOrderVM productVM)
         {
             try
             {
@@ -218,7 +218,7 @@ namespace Etailor.API.WebAPI.Controllers
                                 {
                                     var componentIds = productComponents.Select(c => c.ComponentId).ToList();
 
-                                    productVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(product.ProductTemplateId).ToList());
+                                    productVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>((await productTemplateService.GetTemplateComponent(product.ProductTemplateId))?.ToList());
 
                                     tasks.Add(Task.Run(() =>
                                     {

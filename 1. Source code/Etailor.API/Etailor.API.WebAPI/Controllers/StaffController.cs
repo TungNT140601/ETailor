@@ -257,7 +257,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            var staff = staffService.GetStaff(id == null ? staffId : id);
+                            var staff = await staffService.GetStaff(id == null ? staffId : id);
                             if (staff == null)
                             {
                                 return NotFound();

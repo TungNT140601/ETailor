@@ -35,7 +35,7 @@ namespace Etailor.API.Service.Service
             this.bodyAttributeService = bodyAttributeService;
         }
 
-        public async Task<bool> CreateProfileBodyByStaff(string customerId, string staffId, string name, List<(string id, decimal value)> bodySizeId)
+        public async Task<bool> CreateProfileBodyByStaff(string customerId, string staffId, string name, List<(string id, decimal? value)> bodySizeId)
         {
 
             string profileBodyId = Ultils.GenGuidString();
@@ -120,7 +120,7 @@ namespace Etailor.API.Service.Service
             return bodyAttributeRepository.CreateRange(bodyAttributeList);
         }
 
-        public async Task<bool> CreateProfileBodyByCustomer(string customerId, string name, List<(string id, decimal value)> bodySizeId)
+        public async Task<bool> CreateProfileBodyByCustomer(string customerId, string name, List<(string id, decimal? value)> bodySizeId)
         {
             string profileBodyId = Ultils.GenGuidString();
             var checkDuplicateId = Task.Run(() =>
@@ -230,7 +230,7 @@ namespace Etailor.API.Service.Service
         //    }
         //}
 
-        public async Task<bool> UpdateProfileBodyByStaff(string customerId, string staffId, string name, string profileBodyId, List<(string id, decimal value)> bodySizeId, ProfileBody profileBody)
+        public async Task<bool> UpdateProfileBodyByStaff(string customerId, string staffId, string name, string profileBodyId, List<(string id, decimal? value)> bodySizeId, ProfileBody profileBody)
         {
             var dbProfileBody = profileBodyRepository.Get(profileBodyId);
             var checkExistProfileBodyId = Task.Run(() =>
@@ -311,7 +311,7 @@ namespace Etailor.API.Service.Service
             return profileBodyRepository.Update(profileBodyId, dbProfileBody);
         }
 
-        public async Task<bool> UpdateProfileBodyByCustomer(string customerId, string name, string profileBodyId, List<(string id, decimal value)> bodySizeId, ProfileBody profileBody)
+        public async Task<bool> UpdateProfileBodyByCustomer(string customerId, string name, string profileBodyId, List<(string id, decimal? value)> bodySizeId, ProfileBody profileBody)
         {
             var dbProfileBody = profileBodyRepository.Get(profileBodyId);
             var checkExistProfileBodyId = Task.Run(() =>
@@ -438,32 +438,52 @@ namespace Etailor.API.Service.Service
                 if (bodyAttributeList != null && bodyAttributeList.Any())
                 {
                     bodyAttributeList = bodyAttributeList.ToList();
-                    var bodySizes = bodySizeRepository.GetAll(x => bodyAttributeList.Select(c => c.BodySizeId).Contains(x.Id));
+                    var bodySizes = bodySizeRepository.GetAll(x => x.IsActive == true);
 
                     if (bodySizes != null && bodySizes.Any())
                     {
-                        bodySizes = bodySizes.ToList();
+                        bodySizes = bodySizes.OrderBy(x => x.BodyIndex).ToList();
 
                         var tasks = new List<Task>();
 
-                        foreach (var bodyAttribute in bodyAttributeList)
+                        foreach (var bodySize in bodySizes)
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                if (bodyAttribute.BodySize == null)
+                                if (!string.IsNullOrEmpty(bodySize.Image))
                                 {
-                                    bodyAttribute.BodySize = bodySizes.FirstOrDefault(x => x.Id == bodyAttribute.BodySizeId);
+                                    bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
                                 }
-                                if (!string.IsNullOrWhiteSpace(bodyAttribute.BodySize.Image))
+
+                                var bodyAttribute = bodyAttributeList.FirstOrDefault(x => x.BodySizeId == bodySize.Id);
+
+                                if (bodyAttribute != null)
                                 {
-                                    bodyAttribute.BodySize.Image = await Ultils.GetUrlImage(bodyAttribute.BodySize.Image);
+                                    bodyAttribute.BodySize = bodySize;
+                                    profileBody.BodyAttributes.Add(bodyAttribute);
+                                }
+                                else
+                                {
+                                    profileBody.BodyAttributes.Add(new BodyAttribute()
+                                    {
+                                        Id = Ultils.GenGuidString(),
+                                        BodySizeId = bodySize.Id,
+                                        CreatedTime = DateTime.UtcNow.AddHours(7),
+                                        InactiveTime = null,
+                                        IsActive = true,
+                                        LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                        ProfileBodyId = profileBody.Id,
+                                        ProfileBody = profileBody,
+                                        Value = null,
+                                        BodySize = bodySize
+                                    });
                                 }
                             }));
                         }
 
                         await Task.WhenAll(tasks);
 
-                        profileBody.BodyAttributes = bodyAttributeList.ToList();
+                        profileBody.BodyAttributes = profileBody.BodyAttributes.OrderBy(x => x.BodySize.BodyIndex).ToList();
                     }
                 }
 

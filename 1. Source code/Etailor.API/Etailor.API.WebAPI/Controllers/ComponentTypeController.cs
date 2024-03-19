@@ -251,7 +251,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                return Ok(mapper.Map<IEnumerable<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(id)));
+                return Ok(mapper.Map<IEnumerable<ComponentTypeOrderVM>>(await productTemplateService.GetTemplateComponent(id)));
             }
             catch (UserException ex)
             {

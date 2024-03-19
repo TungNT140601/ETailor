@@ -71,13 +71,13 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 return Ok(new
                                 {
-                                    Link  = result,
+                                    Link = result,
                                     QRImage = GenQRImage(result)
                                 });
                             }
                             else
                             {
-                            return Ok(result);
+                                return Ok(result);
 
                             }
                         }
@@ -227,7 +227,7 @@ namespace Etailor.API.WebAPI.Controllers
                 QRCodeGenerator qrGenerator = new QRCodeGenerator();
 
                 // Generate QRCode data
-                QRCodeData qrCodeData = qrGenerator.CreateQrCode("Your QR Code Data Here", QRCodeGenerator.ECCLevel.Q);
+                QRCodeData qrCodeData = qrGenerator.CreateQrCode(link, QRCodeGenerator.ECCLevel.Q);
 
                 // Create a QRCode object
                 QRCode qrCode = new QRCode(qrCodeData);
