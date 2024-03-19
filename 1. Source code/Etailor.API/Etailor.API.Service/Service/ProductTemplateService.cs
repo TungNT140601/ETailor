@@ -867,56 +867,65 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
-                if (templateComponents != null && templateComponents.Any())
+
+                var componentTypes = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true);
+                if (componentTypes != null && componentTypes.Any())
                 {
-                    templateComponents = templateComponents.OrderBy(x => x.Index).ToList();
-
-                    var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key);
-                    if (templateComponentTypeIds != null && templateComponentTypeIds.Any())
+                    componentTypes = componentTypes.ToList();
+                    var tasks = new List<Task>();
+                    foreach (var componentType in componentTypes)
                     {
-                        templateComponentTypeIds = templateComponentTypeIds.ToList();
-
-                        var componentTypes = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true);
-                        if (componentTypes != null && componentTypes.Any())
-                        {
-                            var tasks = new List<Task>();
-                            foreach (var componentType in componentTypes)
-                            {
-                                tasks.Add(Task.Run(async () =>
-                                {
-                                    componentType.Components = new List<Component>();
-                                    var components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id);
-                                    if (components != null && components.Any())
-                                    {
-                                        components = components.ToList();
-                                        var tasks1 = new List<Task>();
-                                        foreach (var component in components)
-                                        {
-                                            tasks1.Add(Task.Run(async () =>
-                                            {
-                                                if (!string.IsNullOrEmpty(component.Image))
-                                                {
-                                                    component.Image = await Ultils.GetUrlImage(component.Image);
-                                                }
-                                                componentType.Components.Add(component);
-                                            }));
-                                        }
-                                        await Task.WhenAll(tasks1);
-                                    }
-
-                                    if (componentType.Components != null && componentType.Components.Any())
-                                    {
-                                        componentType.Components = componentType.Components.OrderBy(x => x.Index).OrderBy(x => x.Name).ToList();
-                                    }
-                                }));
-                            }
-
-                            await Task.WhenAll(tasks);
-
-                            return componentTypes;
-                        }
+                        componentType.Components = new List<Component>();
                     }
+
+                    //var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
+                    //if (templateComponents != null && templateComponents.Any())
+                    //{
+                    //    templateComponents = templateComponents.ToList();
+
+                    //    var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key);
+                    //    if (templateComponentTypeIds != null && templateComponentTypeIds.Any())
+                    //    {
+                    //        templateComponentTypeIds = templateComponentTypeIds.ToList();
+
+
+                    //        await Task.WhenAll(tasks);
+                    //        foreach (var componentType in componentTypes)
+                    //        {
+                    //            tasks.Add(Task.Run(async () =>
+                    //            {
+                    //                componentType.Components = new List<Component>();
+                    //                var components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id);
+                    //                if (components != null && components.Any())
+                    //                {
+                    //                    components = components.ToList();
+                    //                    var tasks1 = new List<Task>();
+                    //                    foreach (var component in components)
+                    //                    {
+                    //                        tasks1.Add(Task.Run(async () =>
+                    //                        {
+                    //                            if (!string.IsNullOrEmpty(component.Image))
+                    //                            {
+                    //                                component.Image = await Ultils.GetUrlImage(component.Image);
+                    //                            }
+                    //                            componentType.Components.Add(component);
+                    //                        }));
+                    //                    }
+                    //                    await Task.WhenAll(tasks1);
+                    //                }
+
+                    //                if (componentType.Components != null && componentType.Components.Any())
+                    //                {
+                    //                    componentType.Components = componentType.Components.OrderBy(x => x.Index).OrderBy(x => x.Name).ToList();
+                    //                }
+                    //            }));
+                    //        }
+                    //        await Task.WhenAll(tasks);
+                    //    }
+                    //}
+
+                    await Task.WhenAll(tasks);
+                    return componentTypes;
                 }
                 return null;
             }
