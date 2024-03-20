@@ -30,6 +30,7 @@ using Hangfire.MemoryStorage;
 using System.IO.Compression;
 using System.IO;
 using Serilog;
+using Etailor.API.WebAPI.ViewModels;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -1013,6 +1014,21 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 productService.ResetBlankIndex(staffId);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("chat")]
+        public async Task<IActionResult> SendChat(string? id)
+        {
+            try
+            {
+                await signalRService.CheckMessage(id);
 
                 return Ok();
             }

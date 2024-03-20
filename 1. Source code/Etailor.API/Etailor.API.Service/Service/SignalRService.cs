@@ -68,11 +68,11 @@ namespace Etailor.API.Service.Service
         {
             if (string.IsNullOrEmpty(id))
             {
-                await hubContext.Clients.Group("AllStaff").SendAsync("MessageOrder", "Have message");
+                await hubContext.Clients.Group("AllStaff").SendAsync("ChatWithUs", "Have message");
             }
             else
             {
-                await hubContext.Clients.Group(id).SendAsync("MessageOrder", "Have message");
+                await hubContext.Clients.Group(id).SendAsync("ChatWithUs", "Have message");
             }
         }
     }

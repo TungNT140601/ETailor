@@ -311,43 +311,65 @@ namespace Etailor.API.Service.Service
                             tasks.Add(Task.Run(() =>
                             {
                                 productStage = productStages.First(x => x.Id == productStageId);
+
+                                switch (productStage.Status)
+                                {
+                                    case 0:
+                                        throw new UserException("Công đoạn bị hủy");
+                                    case 2:
+                                        throw new UserException("Công đoạn đang thực hiện");
+                                    case 4:
+                                        throw new UserException("Công đoạn đã hoàn thành");
+                                }
+
+                                if (productStages.Any(x => x.Id != productStage.Id && (x.Status == 2 || x.Status == 3)))
+                                {
+                                    throw new UserException("Có công đoạn đang chờ hoặc đang thực hiện. Vui lòng hoàn thành trước khi bắt đầu công đoạn này");
+                                }
                             }));
 
                             await Task.WhenAll(tasks);
 
                             if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId && productStage.StaffId == staffId)
                             {
-                                tasks.Add(Task.Run(() =>
+                                if (productStages.Any(x => x.StageNum < productStage.StageNum && x.Status < 4))
                                 {
-                                    product.Status = 2;
-                                    product.LastestUpdatedTime = DateTime.UtcNow;
-                                    productRepository.Update(product.Id, product);
-                                }));
-
-                                await Task.WhenAll(tasks);
-
-                                if (!orderProducts.Any(x => x.Id != product.Id && x.Status > 1 && x.IsActive == true))
+                                    throw new UserException("Công đoạn trước chưa hoàn thành");
+                                }
+                                else
                                 {
                                     tasks.Add(Task.Run(() =>
                                     {
-                                        order.Status = 4;
-                                        order.LastestUpdatedTime = DateTime.UtcNow;
-                                        orderRepository.Update(order.Id, order);
+                                        product.Status = 2;
+                                        product.LastestUpdatedTime = DateTime.UtcNow;
+                                        productRepository.Update(product.Id, product);
                                     }));
 
                                     await Task.WhenAll(tasks);
+
+                                    if (!orderProducts.Any(x => x.Id != product.Id && x.Status > 1 && x.IsActive == true))
+                                    {
+                                        tasks.Add(Task.Run(() =>
+                                        {
+                                            order.Status = 4;
+                                            order.LastestUpdatedTime = DateTime.UtcNow;
+                                            orderRepository.Update(order.Id, order);
+                                        }));
+
+                                        await Task.WhenAll(tasks);
+                                    }
+
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        productStage.Status = 2;
+                                        productStage.StaffId = staffId;
+                                        productStage.FinishTime = DateTime.UtcNow;
+                                    }));
+
+                                    await Task.WhenAll(tasks);
+
+                                    return productStageRepository.Update(productStage.Id, productStage);
                                 }
-
-                                tasks.Add(Task.Run(() =>
-                                {
-                                    productStage.Status = 2;
-                                    productStage.StaffId = staffId;
-                                    productStage.FinishTime = DateTime.UtcNow;
-                                }));
-
-                                await Task.WhenAll(tasks);
-
-                                return productStageRepository.Update(productStage.Id, productStage);
                             }
                             else
                             {
@@ -401,6 +423,21 @@ namespace Etailor.API.Service.Service
                             tasks.Add(Task.Run(() =>
                             {
                                 productStage = productStages.FirstOrDefault(x => x.Id == productStageId);
+
+                                if (productStage.Status != 2)
+                                {
+                                    switch (productStage.Status)
+                                    {
+                                        case 0:
+                                            throw new UserException("Công đoạn chưa được bắt đầu");
+                                        case 1:
+                                            throw new UserException("Công đoạn đang chờ");
+                                        case 3:
+                                            throw new UserException("Công đoạn đang tạm dừng");
+                                        case 4:
+                                            throw new UserException("Công đoạn đã hoàn thành");
+                                    }
+                                }
                             }));
 
                             await Task.WhenAll(tasks);
@@ -508,6 +545,18 @@ namespace Etailor.API.Service.Service
                         if (productStages != null && productStages.Any())
                         {
                             var productStage = productStages.FirstOrDefault(x => x.Id == productStageId);
+
+                            switch (productStage.Status)
+                            {
+                                case 0:
+                                    throw new UserException("Công đoạn chưa được bắt đầu");
+                                case 1:
+                                    throw new UserException("Công đoạn đang chờ");
+                                case 3:
+                                    throw new UserException("Công đoạn đang tạm dừng");
+                                case 4:
+                                    throw new UserException("Công đoạn đã hoàn thành");
+                            }
 
                             if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId && productStage.StaffId == staffId)
                             {
