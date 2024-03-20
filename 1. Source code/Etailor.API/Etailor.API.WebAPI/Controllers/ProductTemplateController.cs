@@ -346,7 +346,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                return Ok(await productTemplateService.UpdateDraftTemplate(mapper.Map<ProductTemplate>(templateCreateVM), _wwwroot, templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
+                return Ok(await productTemplateService.UpdateTemplate(_wwwroot, mapper.Map<ProductTemplate>(templateCreateVM), templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
                 //    }
                 //}
             }

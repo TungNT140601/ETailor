@@ -64,9 +64,16 @@ namespace Etailor.API.Service.Service
             await hubContext.Clients.Group("AllStaff").SendAsync("VNPayResult", Notification);
         }
 
-        public async Task CheckMessage(string id)
+        public async Task CheckMessage(string? id)
         {
-            await hubContext.Clients.Group(id).SendAsync("MessageOrder", "Have message");
+            if (string.IsNullOrEmpty(id))
+            {
+                await hubContext.Clients.Group("AllStaff").SendAsync("MessageOrder", "Have message");
+            }
+            else
+            {
+                await hubContext.Clients.Group(id).SendAsync("MessageOrder", "Have message");
+            }
         }
     }
 }

@@ -51,7 +51,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("template/{templateId}")]
-        public async Task<IActionResult> CreateTemplateStages(string templateId, [FromBody] List<TemplateStageCreateVM> stageCreateVMs)
+        public async Task<IActionResult> CreateTemplateStages(string templateId, [FromBody] List<TemplateStageCreateVM>? stageCreateVMs)
         {
 
             try
@@ -75,38 +75,57 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                int i = 1;
                 var stages = new List<TemplateStage>();
-                foreach (var stageCreateVM in stageCreateVMs)
+                if (stageCreateVMs != null && stageCreateVMs.Count > 0)
                 {
-                    var stage = mapper.Map<TemplateStage>(stageCreateVM);
-                    if (string.IsNullOrWhiteSpace(stage.Name))
+                    var tasks = new List<Task>();
+                    for (int i = 0; i < stageCreateVMs.Count; i++)
                     {
-                        throw new UserException("Tên giai đoạn không được để trống");
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            var stage = mapper.Map<TemplateStage>(stageCreateVMs[i]);
+                            if (string.IsNullOrWhiteSpace(stage.Name))
+                            {
+                                throw new UserException("Tên giai đoạn không được để trống");
+                            }
+                            else
+                            {
+                                stage.ProductTemplateId = templateId;
+                                stage.StageNum = i + 1;
+                                stage.ComponentStages = new List<ComponentStage>();
+                                if (stageCreateVMs[i].ComponentTypeIds != null && stageCreateVMs[i].ComponentTypeIds.Count > 0)
+                                {
+                                    var insideTasks = new List<Task>();
+                                    for (int j = 0; j < stageCreateVMs[i].ComponentTypeIds.Count; j++)
+                                    {
+                                        insideTasks.Add(Task.Run(async () =>
+                                        {
+                                            stage.ComponentStages.Add(new ComponentStage
+                                            {
+                                                ComponentTypeId = stageCreateVMs[i].ComponentTypeIds[j]
+                                            });
+                                        }));
+                                    }
+                                    await Task.WhenAll(insideTasks);
+                                }
+                                stages.Add(stage);
+                            }
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+
+                    if (await templateStageService.CreateTemplateStages(templateId, stages))
+                    {
+                        return productTemplateService.CreateSaveActiveTemplate(templateId) ? Ok("Tạo bản mẫu thành công") : BadRequest("Tạo bản mẫu thất bại");
                     }
                     else
                     {
-                        stage.ProductTemplateId = templateId;
-                        stage.StageNum = i;
-                        i++;
-                        stage.ComponentStages = new List<ComponentStage>();
-                        foreach (var id in stageCreateVM.ComponentTypeIds)
-                        {
-                            stage.ComponentStages.Add(new ComponentStage
-                            {
-                                ComponentTypeId = id
-                            });
-                        }
-                        stages.Add(stage);
+                        return BadRequest();
                     }
-                }
-                if (await templateStageService.CreateTemplateStages(templateId, stages))
-                {
-                    return productTemplateService.CreateSaveActiveTemplate(templateId) ? Ok() : BadRequest();
                 }
                 else
                 {
-                    return BadRequest();
+                    throw new UserException("Không có giai đoạn nào được tạo");
                 }
                 //    }
                 //}
@@ -150,32 +169,51 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                int i = 1;
                 var stages = new List<TemplateStage>();
-                foreach (var stageCreateVM in stageCreateVMs)
+                if (stageCreateVMs != null && stageCreateVMs.Count > 0)
                 {
-                    var stage = mapper.Map<TemplateStage>(stageCreateVM);
-                    if (string.IsNullOrWhiteSpace(stage.Name))
+                    var tasks = new List<Task>();
+                    for (int i = 0; i < stageCreateVMs.Count; i++)
                     {
-                        throw new UserException("Tên giai đoạn không được để trống");
-                    }
-                    else
-                    {
-                        stage.ProductTemplateId = templateId;
-                        stage.StageNum = i;
-                        i++;
-                        stage.ComponentStages = new List<ComponentStage>();
-                        foreach (var id in stageCreateVM.ComponentTypeIds)
+                        tasks.Add(Task.Run(async () =>
                         {
-                            stage.ComponentStages.Add(new ComponentStage
+                            var stage = mapper.Map<TemplateStage>(stageCreateVMs[i]);
+                            if (string.IsNullOrWhiteSpace(stage.Name))
                             {
-                                ComponentTypeId = id
-                            });
-                        }
-                        stages.Add(stage);
+                                throw new UserException("Tên giai đoạn không được để trống");
+                            }
+                            else
+                            {
+                                stage.ProductTemplateId = templateId;
+                                stage.StageNum = i + 1;
+                                stage.ComponentStages = new List<ComponentStage>();
+                                if (stageCreateVMs[i].ComponentTypeIds != null && stageCreateVMs[i].ComponentTypeIds.Count > 0)
+                                {
+                                    var insideTasks = new List<Task>();
+                                    for (int j = 0; j < stageCreateVMs[i].ComponentTypeIds.Count; j++)
+                                    {
+                                        insideTasks.Add(Task.Run(async () =>
+                                        {
+                                            stage.ComponentStages.Add(new ComponentStage
+                                            {
+                                                ComponentTypeId = stageCreateVMs[i].ComponentTypeIds[j]
+                                            });
+                                        }));
+                                    }
+                                    await Task.WhenAll(insideTasks);
+                                }
+                                stages.Add(stage);
+                            }
+                        }));
                     }
+                    await Task.WhenAll(tasks);
+
+                    return (await templateStageService.UpdateTemplateStages(templateId, stages, _wwwroot)) ? Ok("Cập nhật bản mẫu thành công") : BadRequest("Cập nhật bản mẫu thất bại");
                 }
-                return (await templateStageService.UpdateTemplateStages(templateId, stages, _wwwroot)) ? Ok() : BadRequest();
+                else
+                {
+                    throw new UserException("Không có giai đoạn nào được tạo");
+                }
                 //    }
                 //}
             }

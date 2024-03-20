@@ -357,7 +357,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var check = true;
+                        var check = taskService.PendingTask(taskId, stageId, staffId);
                         return check ? Ok() : BadRequest("Tạm dừng công việc thất bại");
                     }
                 }

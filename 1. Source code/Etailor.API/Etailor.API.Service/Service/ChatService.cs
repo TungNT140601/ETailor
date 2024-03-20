@@ -124,7 +124,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            await signalRService.CheckMessage(customerId);
+                            await signalRService.CheckMessage(order.CustomerId);
                         }
                     }
                     else

@@ -316,52 +316,38 @@ namespace Etailor.API.Service.Service
                 return false;
             }
         }
-        public async Task<string> UpdateDraftTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
+
+        public async Task<string> UpdateTemplate(string wwwroot, ProductTemplate productTemplate, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
         {
 
             var dbTemplate = productTemplateRepository.Get(productTemplate.Id);
 
             if (dbTemplate != null && dbTemplate.IsActive == true)
             {
-                var fileDraft = Path.Combine(wwwroot, "UpdateDraft", $"{dbTemplate.Id}.json");
-
-                var draftTemplate = new ProductTemplate();
-
-                if (File.Exists(fileDraft))
-                {
-                    //using (StreamReader reader = new StreamReader(fileDraft, Encoding.UTF8))
-                    //{
-                    //    string jsonString = reader.ReadToEnd();
-
-                    //    draftTemplate = JsonSerializer.Deserialize<ProductTemplate>(jsonString);
-                    //}
-                    string jsonString = File.ReadAllText(fileDraft);
-
-                    draftTemplate = JsonSerializer.Deserialize<ProductTemplate>(jsonString);
-                }
                 var tasks = new List<Task>();
+                var dupplicate = productTemplateRepository.GetAll(x => x.Id != dbTemplate.Id && (x.Name == productTemplate.Name && x.IsActive == true));
 
                 #region CheckCategoryAndName
-                //tasks.Add(Task.Run(() =>
-                //        {
-                //            if (string.IsNullOrWhiteSpace(productTemplate.Name))
-                //            {
-                //                throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
-                //            }
-                //            else
-                //            {
-                //                productTemplate.UrlPath = Ultils.ConvertToEnglishAlphabet(productTemplate.Name);
-                //                if (productTemplateRepository.GetAll(x => x.Id != dbTemplate.Id && (x.Name == productTemplate.Name || x.UrlPath == productTemplate.UrlPath) && x.IsActive == true).Any())
-                //                {
-                //                    throw new UserException($"Tên mẫu sản phẩm đã được sử dụng: {productTemplate.UrlPath.Replace("-", " ")}");
-                //                }
-                //                else
-                //                {
-                //                    dbTemplate.Name = productTemplate.Name;
-                //                    dbTemplate.UrlPath = productTemplate.UrlPath;
-                //                }
-                //            }
-                //        }));
+                tasks.Add(Task.Run(() =>
+                        {
+                            if (string.IsNullOrWhiteSpace(productTemplate.Name))
+                            {
+                                throw new UserException("Vui lòng nhập tên cho mẫu sản phẩm");
+                            }
+                            else
+                            {
+                                productTemplate.UrlPath = Ultils.ConvertToEnglishAlphabet(productTemplate.Name);
+                                if (dupplicate.Any())
+                                {
+                                    throw new UserException($"Tên mẫu sản phẩm đã được sử dụng: {productTemplate.UrlPath.Replace("-", " ")}");
+                                }
+                                else
+                                {
+                                    dbTemplate.Name = productTemplate.Name;
+                                    dbTemplate.UrlPath = productTemplate.UrlPath;
+                                }
+                            }
+                        }));
                 #endregion
 
                 #region SetDesc
@@ -369,7 +355,7 @@ namespace Etailor.API.Service.Service
                         {
                             if (string.IsNullOrWhiteSpace(productTemplate.Description))
                             {
-                                productTemplate.Description = "";
+                                dbTemplate.Description = "";
                             }
                             else
                             {
@@ -401,21 +387,7 @@ namespace Etailor.API.Service.Service
                         {
                             if (thumbnailImage != null)
                             {
-                                dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, draftTemplate == null ? dbTemplate.ThumbnailImage : draftTemplate.ThumbnailImage);
-                            }
-                            else
-                            {
-                                dbTemplate.ThumbnailImage = "";
-                            }
-                        }));
-                #endregion
-
-                #region RemoveDraftThumnailImage
-                tasks.Add(Task.Run(() =>
-                        {
-                            if (!string.IsNullOrEmpty(draftTemplate.ThumbnailImage))
-                            {
-                                Ultils.DeleteObject(draftTemplate.ThumbnailImage);
+                                dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, dbTemplate.ThumbnailImage);
                             }
                         }));
                 #endregion
@@ -425,27 +397,34 @@ namespace Etailor.API.Service.Service
                 {
                     if (images != null)
                     {
-                        dbTemplate.Image = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/Images", images));
-                    }
-                    else
-                    {
-                        dbTemplate.Image = "";
+                        var imageTasks = new List<Task>();
+                        if (!string.IsNullOrEmpty(dbTemplate.Image))
+                        {
+                            var listOldImages = JsonSerializer.Deserialize<List<string>>(dbTemplate.Image);
+                            if (listOldImages != null && listOldImages.Count > 0)
+                            {
+                                foreach (var oldImage in listOldImages)
+                                {
+                                    imageTasks.Add(Task.Run(() =>
+                                    {
+                                        Ultils.DeleteObject(oldImage);
+                                    }));
+                                }
+                            }
+                        }
+                        var listImageObject = new List<string>();
+                        foreach (var image in images)
+                        {
+                            imageTasks.Add(Task.Run(async () =>
+                            {
+                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/Images", image, null));
+                            }));
+                        }
+                        await Task.WhenAll(imageTasks);
+
+                        dbTemplate.Image = JsonSerializer.Serialize(listImageObject);
                     }
                 }));
-                #endregion
-
-                #region RemoveDraftImage
-                if (!string.IsNullOrEmpty(draftTemplate.Image))
-                {
-                    var draftImages = JsonSerializer.Deserialize<List<string>>(draftTemplate.Image);
-                    foreach (var draftImage in draftImages)
-                    {
-                        tasks.Add(Task.Run(() =>
-                        {
-                            Ultils.DeleteObject(draftImage);
-                        }));
-                    }
-                }
                 #endregion
 
                 #region SetCollectionImage
@@ -453,27 +432,34 @@ namespace Etailor.API.Service.Service
                 {
                     if (collectionImages != null)
                     {
-                        dbTemplate.CollectionImage = JsonSerializer.Serialize(await Ultils.UploadImages(wwwroot, "ProductTemplates/CollectionImages", collectionImages));
-                    }
-                    else
-                    {
-                        dbTemplate.CollectionImage = "";
+                        var imageTasks = new List<Task>();
+                        if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
+                        {
+                            var listOldImages = JsonSerializer.Deserialize<List<string>>(dbTemplate.CollectionImage);
+                            if (listOldImages != null && listOldImages.Count > 0)
+                            {
+                                foreach (var oldImage in listOldImages)
+                                {
+                                    imageTasks.Add(Task.Run(() =>
+                                    {
+                                        Ultils.DeleteObject(oldImage);
+                                    }));
+                                }
+                            }
+                        }
+                        var listImageObject = new List<string>();
+                        foreach (var image in collectionImages)
+                        {
+                            imageTasks.Add(Task.Run(async () =>
+                            {
+                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/CollectionImages", image, null));
+                            }));
+                        }
+                        await Task.WhenAll(imageTasks);
+
+                        dbTemplate.CollectionImage = JsonSerializer.Serialize(listImageObject);
                     }
                 }));
-                #endregion
-
-                #region RemoveDraftCollectionImage
-                if (!string.IsNullOrEmpty(draftTemplate.CollectionImage))
-                {
-                    var draftCollectionImages = JsonSerializer.Deserialize<List<string>>(draftTemplate.CollectionImage);
-                    foreach (var draftCollectionImage in draftCollectionImages)
-                    {
-                        tasks.Add(Task.Run(() =>
-                        {
-                            Ultils.DeleteObject(draftCollectionImage);
-                        }));
-                    }
-                }
                 #endregion
 
                 #region SetValue
@@ -487,120 +473,14 @@ namespace Etailor.API.Service.Service
 
                 await Task.WhenAll(tasks);
 
-                var options = new JsonSerializerOptions
-                {
-                    ReferenceHandler = ReferenceHandler.IgnoreCycles,
-                };
-
-                var saveDraftString = JsonSerializer.Serialize(dbTemplate, options);
-
-                File.WriteAllText(fileDraft, saveDraftString);
-
-                return dbTemplate.Id;
+                return productTemplateRepository.Update(dbTemplate.Id, dbTemplate) ? dbTemplate.Id : null;
             }
             else
             {
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
         }
-        public async Task<string> UpdateTemplate(string id, string wwwroot)
-        {
-            var dbTemplate = productTemplateRepository.Get(id);
 
-            if (dbTemplate != null)
-            {
-                var fileDraft = Path.Combine(wwwroot, "UpdateDraft", $"{dbTemplate.Id}.json");
-
-                var productTemplate = new ProductTemplate();
-
-                if (File.Exists(fileDraft))
-                {
-                    string jsonString = File.ReadAllText(fileDraft);
-
-                    productTemplate = JsonSerializer.Deserialize<ProductTemplate>(jsonString);
-                }
-
-                var tasks = new List<Task>();
-
-                var checkUpdateBodySize = await templateBodySizeService.UpdateTemplateBodySize(productTemplate.TemplateBodySizes.ToList(), dbTemplate.Id);
-
-                tasks.Add(Task.Run(() =>
-                {
-                    dbTemplate.CategoryId = productTemplate.CategoryId;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    dbTemplate.Name = productTemplate.Name;
-                    dbTemplate.UrlPath = productTemplate.UrlPath;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    dbTemplate.Description = productTemplate.Description;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    dbTemplate.Price = productTemplate.Price;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    if (!string.IsNullOrEmpty(dbTemplate.ThumbnailImage))
-                    {
-
-                    }
-                    dbTemplate.ThumbnailImage = productTemplate.ThumbnailImage;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    if (!string.IsNullOrEmpty(dbTemplate.ThumbnailImage))
-                    {
-
-                    }
-                    dbTemplate.Image = productTemplate.Image;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
-                    {
-
-                    }
-                    dbTemplate.CollectionImage = productTemplate.CollectionImage;
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    dbTemplate.LastestUpdatedTime = DateTime.Now;
-                    dbTemplate.InactiveTime = null;
-                    dbTemplate.IsActive = true;
-                    dbTemplate.TemplateBodySizes = null;
-                }));
-
-                //tasks.Add(Task.Run(() =>
-                //{
-                //    dbTemplate.TemplateStages = productTemplate.TemplateStages;
-                //}));
-
-                await Task.WhenAll(tasks);
-
-                if (checkUpdateBodySize)
-                {
-                    return productTemplateRepository.Update(dbTemplate.Id, dbTemplate) ? productTemplate.Id : null;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                throw new UserException("Mẫu sản phẩm không tìm thấy");
-            }
-        }
         public async Task<IEnumerable<ProductTemplate>> GetByCategory(string id)
         {
             var templates = productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true);
@@ -873,58 +753,55 @@ namespace Etailor.API.Service.Service
                 {
                     componentTypes = componentTypes.ToList();
                     var tasks = new List<Task>();
-                    foreach (var componentType in componentTypes)
+
+                    var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
+                    if (templateComponents != null && templateComponents.Any())
                     {
-                        componentType.Components = new List<Component>();
+                        templateComponents = templateComponents.ToList();
+
+                        foreach (var componentType in componentTypes)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                componentType.Components = new List<Component>();
+                                var components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id);
+                                if (components != null && components.Any())
+                                {
+                                    components = components.ToList();
+                                    var tasks1 = new List<Task>();
+                                    foreach (var component in components)
+                                    {
+                                        tasks1.Add(Task.Run(async () =>
+                                        {
+                                            if (!string.IsNullOrEmpty(component.Image))
+                                            {
+                                                component.Image = await Ultils.GetUrlImage(component.Image);
+                                            }
+                                            componentType.Components.Add(component);
+                                        }));
+                                    }
+                                    await Task.WhenAll(tasks1);
+                                }
+
+                                if (componentType.Components != null && componentType.Components.Any())
+                                {
+                                    componentType.Components = componentType.Components.OrderBy(x => x.Index).OrderBy(x => x.Name).ToList();
+                                }
+                            }));
+                        }
                     }
-
-                    //var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
-                    //if (templateComponents != null && templateComponents.Any())
-                    //{
-                    //    templateComponents = templateComponents.ToList();
-
-                    //    var templateComponentTypeIds = templateComponents.GroupBy(x => x.ComponentTypeId).Select(x => x.Key);
-                    //    if (templateComponentTypeIds != null && templateComponentTypeIds.Any())
-                    //    {
-                    //        templateComponentTypeIds = templateComponentTypeIds.ToList();
-
-
-                    //        await Task.WhenAll(tasks);
-                    //        foreach (var componentType in componentTypes)
-                    //        {
-                    //            tasks.Add(Task.Run(async () =>
-                    //            {
-                    //                componentType.Components = new List<Component>();
-                    //                var components = templateComponents.Where(x => x.ComponentTypeId == componentType.Id);
-                    //                if (components != null && components.Any())
-                    //                {
-                    //                    components = components.ToList();
-                    //                    var tasks1 = new List<Task>();
-                    //                    foreach (var component in components)
-                    //                    {
-                    //                        tasks1.Add(Task.Run(async () =>
-                    //                        {
-                    //                            if (!string.IsNullOrEmpty(component.Image))
-                    //                            {
-                    //                                component.Image = await Ultils.GetUrlImage(component.Image);
-                    //                            }
-                    //                            componentType.Components.Add(component);
-                    //                        }));
-                    //                    }
-                    //                    await Task.WhenAll(tasks1);
-                    //                }
-
-                    //                if (componentType.Components != null && componentType.Components.Any())
-                    //                {
-                    //                    componentType.Components = componentType.Components.OrderBy(x => x.Index).OrderBy(x => x.Name).ToList();
-                    //                }
-                    //            }));
-                    //        }
-                    //        await Task.WhenAll(tasks);
-                    //    }
-                    //}
-
+                    else
+                    {
+                        foreach (var componentType in componentTypes)
+                        {
+                            tasks.Add(Task.Run(() =>
+                            {
+                                componentType.Components = new List<Component>();
+                            }));
+                        }
+                    }
                     await Task.WhenAll(tasks);
+
                     return componentTypes;
                 }
                 return null;
