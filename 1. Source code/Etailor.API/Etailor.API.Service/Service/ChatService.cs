@@ -120,7 +120,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (chatDetail.FromCus.Value)
                         {
-                            await signalRService.CheckMessage(staffId);
+                            await signalRService.CheckMessage(null);
                         }
                         else
                         {
