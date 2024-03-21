@@ -88,7 +88,7 @@ namespace Etailor.API.Service.Service
                     IpAddress = ip,
                     ClientToken = token,
                     CustomerId = id,
-                    LastLogin = DateTime.Now,
+                    LastLogin = DateTime.UtcNow.AddHours(7),
                 });
             }
             else
@@ -96,11 +96,11 @@ namespace Etailor.API.Service.Service
                 if (client.ClientToken != token)
                 {
                     client.ClientToken = token;
-                    client.LastLogin = DateTime.Now;
+                    client.LastLogin = DateTime.UtcNow.AddHours(7);
                 }
                 else
                 {
-                    client.LastLogin = DateTime.Now;
+                    client.LastLogin = DateTime.UtcNow.AddHours(7);
                 }
                 customerClientRepository.Update(client.Id, client);
             }
@@ -217,7 +217,7 @@ namespace Etailor.API.Service.Service
                 customer.PhoneVerified = false;
                 customer.IsActive = true;
 
-                customer.LastestUpdatedTime = DateTime.Now;
+                customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 customer.CreatedTime = null;
 
                 return customerRepository.Create(customer);
@@ -303,7 +303,7 @@ namespace Etailor.API.Service.Service
 
                 var setUpdateTime = Task.Run(() =>
                 {
-                    dbCustomer.LastestUpdatedTime = DateTime.Now;
+                    dbCustomer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 });
 
                 await Task.WhenAll(checkAddress, checkEmail, checkFullname, checkUsername, setUpdateTime, addAvatar);
@@ -328,7 +328,7 @@ namespace Etailor.API.Service.Service
                 dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
-                dbCustomer.LastestUpdatedTime = DateTime.Now;
+                dbCustomer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
@@ -350,7 +350,7 @@ namespace Etailor.API.Service.Service
                 dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
-                dbCustomer.LastestUpdatedTime = DateTime.Now;
+                dbCustomer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
@@ -377,9 +377,9 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                if (customer.Otpused == false && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.Now)
+                if (customer.Otpused == false && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.UtcNow.AddHours(7))
                 {
-                    throw new UserException($"Mã xác thực có thể gửi lại sau {customer.OtptimeLimit.Value.AddMinutes(-3).Minute - DateTime.Now.Minute} phút");
+                    throw new UserException($"Mã xác thực có thể gửi lại sau {customer.OtptimeLimit.Value.AddMinutes(-3).Minute - DateTime.UtcNow.AddHours(7).Minute} phút");
                 }
                 else if (customer.Otpused == false)
                 {
@@ -536,8 +536,8 @@ namespace Etailor.API.Service.Service
                                 var setValue = Task.Run(() =>
                                 {
                                     existCus.IsActive = true;
-                                    existCus.CreatedTime = DateTime.Now;
-                                    existCus.LastestUpdatedTime = DateTime.Now;
+                                    existCus.CreatedTime = DateTime.UtcNow.AddHours(7);
+                                    existCus.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                 });
 
                                 await Task.WhenAll(hashPass, uploadAvatar, setAddress, checkUsername, setValue);
@@ -579,8 +579,8 @@ namespace Etailor.API.Service.Service
                         customer.Phone = null;
                         customer.PhoneVerified = false;
                         customer.IsActive = true;
-                        customer.CreatedTime = DateTime.Now;
-                        customer.LastestUpdatedTime = DateTime.Now;
+                        customer.CreatedTime = DateTime.UtcNow.AddHours(7);
+                        customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     });
 
                     return customerRepository.Create(customer);

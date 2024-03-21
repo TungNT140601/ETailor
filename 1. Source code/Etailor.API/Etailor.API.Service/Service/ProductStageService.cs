@@ -129,7 +129,7 @@ namespace Etailor.API.Service.Service
                                                                     var productComponent = productComponents.FirstOrDefault(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
                                                                     if (productComponent != null)
                                                                     {
-                                                                        productComponent.LastestUpdatedTime = DateTime.Now;
+                                                                        productComponent.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                                                         productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
                                                                         productComponent.ProductStageId = productStage.Id;
                                                                         productComponent.ProductComponentMaterials = null;
@@ -171,7 +171,7 @@ namespace Etailor.API.Service.Service
                 //string fromMail = "tudase151149@gmail.com";
                 //string frompassword = "abrxaexoqqpkrjiz"; //"tudase151149@gmail.com"
 
-                var timeNow = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+                var timeNow = DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss");
                 var timeUTC = DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss");
 
                 MailMessage message = new MailMessage();

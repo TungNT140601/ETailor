@@ -39,7 +39,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var categories = mapper.Map<IEnumerable<CategoryAllTemplateVM>>(categoryService.GetCategorys(null));
+                var categories = mapper.Map<IEnumerable<CategoryAllTemplateVM>>(await categoryService.GetCategorys(null));
                 var returnData = new List<CategoryAllTemplateVM>();
                 if (categories != null && categories.Any())
                 {

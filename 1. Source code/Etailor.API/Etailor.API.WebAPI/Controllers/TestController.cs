@@ -43,10 +43,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly string _wwwrootPath;
         private readonly IProductStageService productStageService;
         private readonly IProductService productService;
+        private readonly ITaskService taskService;
         private readonly ISignalRService signalRService;
         private readonly IBackgroundService backgroundService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService, IProductService productService, IBackgroundService backgroundService)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost
+            , IProductStageService productStageService, ISignalRService signalRService
+            , IProductService productService, IBackgroundService backgroundService
+            , ITaskService taskService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -57,6 +61,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.productService = productService;
             this.signalRService = signalRService;
             this.backgroundService = backgroundService;
+            this.taskService = taskService;
         }
 
         #region SendMail
@@ -759,54 +764,15 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("/demo-signalR-new")]
-        public async Task<IActionResult> DemoSignalR(string id, string role, string message)
+        public async Task<IActionResult> DemoSignalR(string id, string message)
         {
             try
             {
-                await signalRService.SendNotificationToUser(id, message, role);
+                await signalRService.SendNotificationToUser(id, message);
 
                 return Ok(new
                 {
                     UserId = id,
-                    Role = role,
-                    Message = message
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        [HttpPost("/demo-signalR-new/all")]
-        public async Task<IActionResult> DemoSignalRManager(string role, string message)
-        {
-            try
-            {
-                if (role == RoleName.CUSTOMER)
-                {
-                    await signalRService.SendNotificationToCustomer(message);
-                }
-                else if (role == RoleName.MANAGER)
-                {
-                    await signalRService.SendNotificationToManager(message);
-                }
-                else if (role == RoleName.STAFF)
-                {
-                    await signalRService.SendNotificationToStaff(message);
-                }
-                else if (role == RoleName.ADMIN)
-                {
-                    await signalRService.SendNotificationToAdmin(message);
-                }
-                else
-                {
-                    await signalRService.SendNotificationToAllStaff(message);
-                }
-
-                return Ok(new
-                {
-                    Role = role,
                     Message = message
                 });
             }
@@ -882,7 +848,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                productService.AutoCreateEmptyTaskProduct();
+                taskService.AutoCreateEmptyTaskProduct();
                 return Ok("Run successfully");
             }
             catch (Exception ex)
@@ -956,7 +922,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await productService.SwapTaskIndex(productId, staffId, index);
+                await taskService.SwapTaskIndex(productId, staffId, index);
                 return Ok();
             }
             catch (Exception ex)
@@ -970,7 +936,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await productService.AssignTaskToStaff(productId, staffId);
+                await taskService.AssignTaskToStaff(productId, staffId);
                 return Ok();
             }
             catch (Exception ex)
@@ -984,7 +950,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await productService.UnAssignStaffTask(productId, staffId);
+                await taskService.UnAssignStaffTask(productId, staffId);
                 return Ok();
             }
             catch (Exception ex)
@@ -998,7 +964,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                productService.ResetIndex(staffId);
+                taskService.ResetIndex(staffId);
 
                 return Ok();
             }
@@ -1013,7 +979,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                productService.ResetBlankIndex(staffId);
+                taskService.ResetBlankIndex(staffId);
 
                 return Ok();
             }

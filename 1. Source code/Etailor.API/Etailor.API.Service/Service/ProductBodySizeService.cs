@@ -108,10 +108,10 @@ namespace Etailor.API.Service.Service
                                 Id = Ultils.GenGuidString(),
                                 BodySizeId = templateBodySize.BodySizeId,
                                 Value = cusBodySize.Value,
-                                CreatedTime = DateTime.Now,
+                                CreatedTime = DateTime.UtcNow.AddHours(7),
                                 InactiveTime = null,
                                 IsActive = true,
-                                LastestUpdatedTime = DateTime.Now,
+                                LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
                                 ProductId = productId
                             });
                         }
@@ -207,7 +207,7 @@ namespace Etailor.API.Service.Service
                                 if (oldProductBodySize.Value != cusBodySize.Value)
                                 {
                                     oldProductBodySize.Value = cusBodySize.Value;
-                                    oldProductBodySize.LastestUpdatedTime = DateTime.Now;
+                                    oldProductBodySize.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                                     updateProductBodySizes.Add(oldProductBodySize);
                                 }
@@ -227,10 +227,10 @@ namespace Etailor.API.Service.Service
                                     Id = Ultils.GenGuidString(),
                                     BodySizeId = templateBodySize.BodySizeId,
                                     Value = cusBodySize.Value,
-                                    CreatedTime = DateTime.Now,
+                                    CreatedTime = DateTime.UtcNow.AddHours(7),
                                     InactiveTime = null,
                                     IsActive = true,
-                                    LastestUpdatedTime = DateTime.Now,
+                                    LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
                                     ProductId = productId
                                 });
                             }
@@ -246,7 +246,7 @@ namespace Etailor.API.Service.Service
                         foreach (var disableProductBodySize in disableProductBodySizes)
                         {
                             disableProductBodySize.IsActive = false;
-                            disableProductBodySize.InactiveTime = DateTime.Now;
+                            disableProductBodySize.InactiveTime = DateTime.UtcNow.AddHours(7);
                         }
 
                         updateProductBodySizes.AddRange(disableProductBodySizes);
@@ -301,7 +301,7 @@ namespace Etailor.API.Service.Service
             else
             {
                 productbsDd.Value = productBodySize.Value.Value;
-                productbsDd.LastestUpdatedTime = DateTime.Now;
+                productbsDd.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                 return productBodySizeRepository.Update(productbsDd.Id, productbsDd);
             }

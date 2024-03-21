@@ -61,8 +61,8 @@ namespace Etailor.API.Service.Service
                 tasks.Add(Task.Run(() =>
                 {
                     order.Id = Ultils.GenGuidString();
-                    order.CreatedTime = DateTime.Now;
-                    order.LastestUpdatedTime = DateTime.Now;
+                    order.CreatedTime = DateTime.UtcNow.AddHours(7);
+                    order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     order.InactiveTime = null;
                     order.IsActive = false;
                 }));
@@ -109,7 +109,7 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                         dbOrder.InactiveTime = null;
                         dbOrder.IsActive = false;
                     }));
@@ -149,7 +149,7 @@ namespace Etailor.API.Service.Service
                         tasks.Add(Task.Run(() =>
                         {
                             product.IsActive = false;
-                            product.InactiveTime = DateTime.Now;
+                            product.InactiveTime = DateTime.UtcNow.AddHours(7);
                         }));
                     }
                     await Task.WhenAll(tasks);
@@ -212,7 +212,7 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.Now || discount.EndDate <= DateTime.Now)
+                        if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.UtcNow.AddHours(7) || discount.EndDate <= DateTime.UtcNow.AddHours(7))
                         {
                             dbOrder.DiscountCode = "";
                             dbOrder.DiscountId = null;
@@ -242,7 +242,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbOrder.CancelTime = null;
                     dbOrder.InactiveTime = null;
                     dbOrder.IsActive = true;
@@ -301,7 +301,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (!string.IsNullOrWhiteSpace(order.DiscountCode))
                         {
-                            if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.Now || discount.EndDate <= DateTime.Now)
+                            if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.UtcNow.AddHours(7) || discount.EndDate <= DateTime.UtcNow.AddHours(7))
                             {
                                 throw new UserException("Mã giảm giá không đúng hoặc hết hạn");
                             }
@@ -314,7 +314,7 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                         dbOrder.CancelTime = null;
                         dbOrder.InactiveTime = null;
                         dbOrder.IsActive = true;
@@ -592,7 +592,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbOrder.Status = 2;
                     if (orderRepository.Update(dbOrder.Id, dbOrder))
                     {
@@ -621,7 +621,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbOrder.Status = 0;
                     dbOrder.IsActive = false;
 

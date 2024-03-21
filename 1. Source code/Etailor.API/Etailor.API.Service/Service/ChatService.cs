@@ -72,7 +72,7 @@ namespace Etailor.API.Service.Service
                     {
                         orderChat = new Chat()
                         {
-                            CreatedTime = DateTime.UtcNow,
+                            CreatedTime = DateTime.UtcNow.AddHours(7),
                             Id = Ultils.GenGuidString(),
                             IsActive = true,
                             OrderId = orderId,
@@ -97,7 +97,7 @@ namespace Etailor.API.Service.Service
                         Message = message,
                         ReadTime = null,
                         ReplierId = !string.IsNullOrEmpty(staffId) ? staffId : null,
-                        SendTime = DateTime.UtcNow
+                        SendTime = DateTime.UtcNow.AddHours(7)
                     };
 
                     if (images != null && images.Count > 0)
@@ -108,7 +108,7 @@ namespace Etailor.API.Service.Service
                         {
                             uploadImageTasks.Add(Task.Run(async () =>
                             {
-                                listImages.Add(await Ultils.UploadImage(wwwrootPath, "OrderChatImages", image, null));
+                                listImages.Add(await Ultils.UploadImage(wwwrootPath, $"ChatImages/{order.Id}", image, null));
                             }));
                         }
                         await Task.WhenAll(uploadImageTasks);

@@ -75,8 +75,8 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                material.CreatedTime = DateTime.Now;
-                material.LastestUpdatedTime = DateTime.Now;
+                material.CreatedTime = DateTime.UtcNow.AddHours(7);
+                material.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 material.InactiveTime = null;
                 material.IsActive = true;
             }));
@@ -127,7 +127,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    dbMaterial.LastestUpdatedTime = DateTime.Now;
+                    dbMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbMaterial.InactiveTime = null;
                     dbMaterial.IsActive = true;
                 }));
@@ -149,9 +149,9 @@ namespace Etailor.API.Service.Service
             {
                 var setValue = Task.Run(() =>
                 {
-                    dbMaterial.LastestUpdatedTime = DateTime.Now;
+                    dbMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbMaterial.IsActive = false;
-                    dbMaterial.InactiveTime = DateTime.Now;
+                    dbMaterial.InactiveTime = DateTime.UtcNow.AddHours(7);
                 });
 
                 await Task.WhenAll(setValue);

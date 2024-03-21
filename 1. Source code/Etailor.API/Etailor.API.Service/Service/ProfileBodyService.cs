@@ -56,8 +56,8 @@ namespace Etailor.API.Service.Service
                 profileBody.CustomerId = customerId;
                 profileBody.Name = name;
                 profileBody.IsLocked = true;
-                profileBody.CreatedTime = DateTime.Now;
-                profileBody.LastestUpdatedTime = DateTime.Now;
+                profileBody.CreatedTime = DateTime.UtcNow.AddHours(7);
+                profileBody.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 profileBody.InactiveTime = null;
                 profileBody.IsActive = true;
             });
@@ -90,7 +90,7 @@ namespace Etailor.API.Service.Service
                                     BodySizeId = id.id,
                                     ProfileBodyId = profileBody.Id,
                                     Value = id.value,
-                                    CreatedTime = DateTime.Now,
+                                    CreatedTime = DateTime.UtcNow.AddHours(7),
                                     LastestUpdatedTime = null,
                                     InactiveTime = null,
                                     IsActive = true
@@ -140,8 +140,8 @@ namespace Etailor.API.Service.Service
                 profileBody.CustomerId = customerId;
                 profileBody.Name = name;
                 profileBody.IsLocked = false;
-                profileBody.CreatedTime = DateTime.Now;
-                profileBody.LastestUpdatedTime = DateTime.Now;
+                profileBody.CreatedTime = DateTime.UtcNow.AddHours(7);
+                profileBody.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 profileBody.InactiveTime = null;
                 profileBody.IsActive = true;
             });
@@ -173,7 +173,7 @@ namespace Etailor.API.Service.Service
                                     BodySizeId = id.id,
                                     ProfileBodyId = profileBody.Id,
                                     Value = id.value,
-                                    CreatedTime = DateTime.Now,
+                                    CreatedTime = DateTime.UtcNow.AddHours(7),
                                     LastestUpdatedTime = null,
                                     InactiveTime = null,
                                     IsActive = true
@@ -215,7 +215,7 @@ namespace Etailor.API.Service.Service
         //            dbProfileBody.CustomerId = ProfileBody.CustomerId;
 
         //            dbProfileBody.CreatedTime = null;
-        //            dbProfileBody.LastestUpdatedTime = DateTime.Now;
+        //            dbProfileBody.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
         //            dbProfileBody.InactiveTime = null;
         //            dbProfileBody.IsActive = true;
         //        });
@@ -246,7 +246,7 @@ namespace Etailor.API.Service.Service
                             dbProfileBody.CustomerId = customerId;
                             dbProfileBody.IsLocked = true;
 
-                            dbProfileBody.LastestUpdatedTime = DateTime.Now;
+                            dbProfileBody.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                             dbProfileBody.InactiveTime = null;
                             dbProfileBody.IsActive = true;
                         });
@@ -284,7 +284,7 @@ namespace Etailor.API.Service.Service
                                 if (existBodySizeList.Any(x => x.Id == id.id))
                                 {
                                     bodyAttribute.Value = id.value;
-                                    bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                                    bodyAttribute.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                 }
                                 else
                                 {
@@ -329,7 +329,7 @@ namespace Etailor.API.Service.Service
                                 dbProfileBody.CustomerId = customerId;
                                 dbProfileBody.IsLocked = false;
 
-                                dbProfileBody.LastestUpdatedTime = DateTime.Now;
+                                dbProfileBody.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                 dbProfileBody.InactiveTime = null;
                                 dbProfileBody.IsActive = true;
                             });
@@ -372,7 +372,7 @@ namespace Etailor.API.Service.Service
                                 if (existBodySizeList.Any(x => x.Id == id.id))
                                 {
                                     bodyAttribute.Value = id.value;
-                                    bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                                    bodyAttribute.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                 }
                                 else
                                 {
@@ -413,9 +413,9 @@ namespace Etailor.API.Service.Service
                 var setValue = Task.Run(() =>
                 {
                     dbProfileBody.CreatedTime = null;
-                    dbProfileBody.LastestUpdatedTime = DateTime.Now;
+                    dbProfileBody.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbProfileBody.IsActive = false;
-                    dbProfileBody.InactiveTime = DateTime.Now;
+                    dbProfileBody.InactiveTime = DateTime.UtcNow.AddHours(7);
                 });
 
                 await Task.WhenAll(checkChild, setValue);

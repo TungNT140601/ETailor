@@ -37,8 +37,8 @@ namespace Etailor.API.Service.Service
             var setValue = Task.Run(() =>
             {
                 bodyAttribute.Id = Ultils.GenGuidString();
-                bodyAttribute.CreatedTime = DateTime.Now;
-                bodyAttribute.LastestUpdatedTime = DateTime.Now;
+                bodyAttribute.CreatedTime = DateTime.UtcNow.AddHours(7);
+                bodyAttribute.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 bodyAttribute.InactiveTime = null;
                 bodyAttribute.IsActive = true;
             });
@@ -58,7 +58,7 @@ namespace Etailor.API.Service.Service
                     dbBodyAttribute.Value = bodyAttribute.Value;
 
                     dbBodyAttribute.CreatedTime = null;
-                    dbBodyAttribute.LastestUpdatedTime = DateTime.Now;
+                    dbBodyAttribute.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbBodyAttribute.InactiveTime = null;
                     dbBodyAttribute.IsActive = true;
                 });
@@ -87,10 +87,9 @@ namespace Etailor.API.Service.Service
                 });
                 var setValue = Task.Run(() =>
                 {
-                    dbBodyAttribute.CreatedTime = null;
-                    dbBodyAttribute.LastestUpdatedTime = DateTime.Now;
+                    dbBodyAttribute.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbBodyAttribute.IsActive = false;
-                    dbBodyAttribute.InactiveTime = DateTime.Now;
+                    dbBodyAttribute.InactiveTime = DateTime.UtcNow.AddHours(7);
                 });
 
                 await Task.WhenAll(checkChild, setValue);

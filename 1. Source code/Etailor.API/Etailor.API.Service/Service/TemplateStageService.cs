@@ -111,11 +111,11 @@ namespace Etailor.API.Service.Service
                                 }));
                                 insideTasks.Add(Task.Run(() =>
                                 {
-                                    templateStage.CreatedTime = DateTime.Now;
+                                    templateStage.CreatedTime = DateTime.UtcNow.AddHours(7);
                                 }));
                                 insideTasks.Add(Task.Run(() =>
                                 {
-                                    templateStage.LastestUpdatedTime = DateTime.Now;
+                                    templateStage.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                 }));
                                 insideTasks.Add(Task.Run(() =>
                                 {
@@ -173,12 +173,12 @@ namespace Etailor.API.Service.Service
 
                                 insideTasks.Add(Task.Run(() =>
                                 {
-                                    templateStage.CreatedTime = DateTime.Now;
+                                    templateStage.CreatedTime = DateTime.UtcNow.AddHours(7);
                                 }));
 
                                 insideTasks.Add(Task.Run(() =>
                                 {
-                                    templateStage.LastestUpdatedTime = DateTime.Now;
+                                    templateStage.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                 }));
 
                                 insideTasks.Add(Task.Run(() =>
@@ -222,7 +222,7 @@ namespace Etailor.API.Service.Service
                             if (existStage != null)
                             {
                                 existStage.IsActive = false;
-                                existStage.InactiveTime = DateTime.Now;
+                                existStage.InactiveTime = DateTime.UtcNow.AddHours(7);
 
                                 templateStateRepository.Update(id, existStage);
                             }
@@ -430,8 +430,8 @@ namespace Etailor.API.Service.Service
                                 ProductTemplateId = inputStage.ProductTemplateId,
                                 TemplateStageId = inputStage.TemplateStageId,
                                 StageNum = inputStage.StageNum,
-                                LastestUpdatedTime = DateTime.Now,
-                                CreatedTime = DateTime.Now,
+                                LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                CreatedTime = DateTime.UtcNow.AddHours(7),
                                 InactiveTime = null,
                                 IsActive = true,
                                 ComponentStages = null,
@@ -442,7 +442,7 @@ namespace Etailor.API.Service.Service
                         }
                         if (currentStage != null)
                         {
-                            currentStage.InactiveTime = DateTime.Now;
+                            currentStage.InactiveTime = DateTime.UtcNow.AddHours(7);
                             currentStage.IsActive = false;
 
                             inactiveStages.Add(currentStage);

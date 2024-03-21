@@ -97,7 +97,7 @@ namespace Etailor.API.Service.Service
                                     tasks.Add(Task.Run(() =>
                                     {
                                         current.IsActive = false;
-                                        current.InactiveTime = DateTime.Now;
+                                        current.InactiveTime = DateTime.UtcNow.AddHours(7);
                                         listUpdateBodySizeTemplates.Add(current);
                                     }));
                                 }
@@ -231,7 +231,7 @@ namespace Etailor.API.Service.Service
                                     var currentTemplateBodySize = currentTemplateBodySizes.Single(x => x.BodySizeId == id);
                                     if (currentTemplateBodySize.IsActive == true)
                                     {
-                                        currentTemplateBodySize.InactiveTime = DateTime.Now;
+                                        currentTemplateBodySize.InactiveTime = DateTime.UtcNow.AddHours(7);
                                         currentTemplateBodySize.IsActive = false;
                                         updateOldBodySizes.Add(currentTemplateBodySize);
                                     }

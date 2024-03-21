@@ -120,8 +120,8 @@ namespace Etailor.API.Service.Service
             tasks.Add(Task.Run(() =>
             {
                 customer.Id = Ultils.GenGuidString();
-                customer.CreatedTime = DateTime.UtcNow;
-                customer.LastestUpdatedTime = DateTime.UtcNow;
+                customer.CreatedTime = DateTime.UtcNow.AddHours(7);
+                customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 customer.InactiveTime = null;
                 customer.IsActive = true;
             }));

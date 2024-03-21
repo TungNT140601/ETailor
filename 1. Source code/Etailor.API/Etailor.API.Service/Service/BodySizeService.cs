@@ -47,8 +47,8 @@ namespace Etailor.API.Service.Service
             await Task.WhenAll(setThumbnail);
 
             
-            bodySize.LastestUpdatedTime = DateTime.Now;
-            bodySize.CreatedTime = DateTime.Now;
+            bodySize.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+            bodySize.CreatedTime = DateTime.UtcNow.AddHours(7);
             bodySize.InactiveTime = null;
             bodySize.IsActive = true;
             return bodySizeRepository.Create(bodySize);
@@ -68,7 +68,7 @@ namespace Etailor.API.Service.Service
                 existBodySize.MinValidValue = bodySize.MinValidValue;
                 existBodySize.MaxValidValue = bodySize.MaxValidValue;
 
-                existBodySize.LastestUpdatedTime = DateTime.Now;
+                existBodySize.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 existBodySize.InactiveTime = null;
                 existBodySize.IsActive = true;
 
@@ -85,8 +85,8 @@ namespace Etailor.API.Service.Service
             var existBodySize = bodySizeRepository.Get(id);
             if (existBodySize != null)
             {
-                existBodySize.LastestUpdatedTime = DateTime.Now;
-                existBodySize.InactiveTime = DateTime.Now;
+                existBodySize.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                existBodySize.InactiveTime = DateTime.UtcNow.AddHours(7);
                 existBodySize.IsActive = false;
                 return bodySizeRepository.Update(existBodySize.Id, existBodySize);
             }

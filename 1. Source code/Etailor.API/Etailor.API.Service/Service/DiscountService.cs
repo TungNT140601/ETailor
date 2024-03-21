@@ -27,8 +27,8 @@ namespace Etailor.API.Service.Service
             tasks.Add(Task.Run(() =>
             {
                 discount.Id = Ultils.GenGuidString();
-                discount.LastestUpdatedTime = DateTime.Now;
-                discount.CreatedTime = DateTime.Now;
+                discount.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                discount.CreatedTime = DateTime.UtcNow.AddHours(7);
                 discount.InactiveTime = null;
                 discount.IsActive = true;
             }));
@@ -144,7 +144,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    existDiscount.LastestUpdatedTime = DateTime.Now;
+                    existDiscount.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     existDiscount.InactiveTime = null;
                     existDiscount.IsActive = true;
                 }));
@@ -274,8 +274,8 @@ namespace Etailor.API.Service.Service
             var existDiscount = discountRepository.Get(id);
             if (existDiscount != null && existDiscount.IsActive == true)
             {
-                existDiscount.LastestUpdatedTime = DateTime.Now;
-                existDiscount.InactiveTime = DateTime.Now;
+                existDiscount.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                existDiscount.InactiveTime = DateTime.UtcNow.AddHours(7);
                 existDiscount.IsActive = false;
                 return discountRepository.Update(existDiscount.Id, existDiscount);
             }

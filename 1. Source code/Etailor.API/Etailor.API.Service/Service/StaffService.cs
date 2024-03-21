@@ -97,7 +97,7 @@ namespace Etailor.API.Service.Service
             });
             var setCreateTime = Task.Run(() =>
             {
-                staff.CreatedTime = DateTime.Now;
+                staff.CreatedTime = DateTime.UtcNow.AddHours(7);
             });
             var setIsActive = Task.Run(() =>
             {
@@ -218,7 +218,7 @@ namespace Etailor.API.Service.Service
 
                 var updateUpdateTimeTask = Task.Run(() =>
                 {
-                    dbStaff.LastestUpdatedTime = DateTime.Now;
+                    dbStaff.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 });
 
                 await Task.WhenAll(setBkStaff, checkPhoneTask, checkAvatarTask, updateFullnameTask, updateAddressTask, updateUpdateTimeTask);
@@ -333,7 +333,7 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Mật khẩu không chính xác");
                         }
                     }
-                    dbStaff.LastestUpdatedTime = DateTime.Now;
+                    dbStaff.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                     return staffRepository.Update(dbStaff.Id, dbStaff);
                 }

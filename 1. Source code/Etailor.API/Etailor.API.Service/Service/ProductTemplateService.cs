@@ -152,7 +152,7 @@ namespace Etailor.API.Service.Service
                 }));
                 tasks.Add(Task.Run(() =>
                 {
-                    productTemplate.LastestUpdatedTime = DateTime.Now;
+                    productTemplate.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     productTemplate.InactiveTime = null;
                     productTemplate.IsActive = false;
                 }));
@@ -288,7 +288,7 @@ namespace Etailor.API.Service.Service
                     }));
                     tasks.Add(Task.Run(() =>
                     {
-                        dbTemplate.LastestUpdatedTime = DateTime.Now;
+                        dbTemplate.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                         dbTemplate.InactiveTime = null;
                         dbTemplate.IsActive = false;
                     }));
@@ -305,8 +305,8 @@ namespace Etailor.API.Service.Service
             var dbTemplate = productTemplateRepository.Get(id);
             if (dbTemplate != null)
             {
-                dbTemplate.CreatedTime = DateTime.Now;
-                dbTemplate.LastestUpdatedTime = DateTime.Now;
+                dbTemplate.CreatedTime = DateTime.UtcNow.AddHours(7);
+                dbTemplate.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 dbTemplate.IsActive = true;
 
                 return productTemplateRepository.Update(dbTemplate.Id, dbTemplate);
@@ -465,7 +465,7 @@ namespace Etailor.API.Service.Service
                 #region SetValue
                 tasks.Add(Task.Run(() =>
                         {
-                            dbTemplate.LastestUpdatedTime = DateTime.Now;
+                            dbTemplate.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                             dbTemplate.InactiveTime = null;
                             dbTemplate.IsActive = true;
                         }));
@@ -727,7 +727,7 @@ namespace Etailor.API.Service.Service
             if (dbTemplate != null && dbTemplate.IsActive == true)
             {
 
-                dbTemplate.InactiveTime = DateTime.Now;
+                dbTemplate.InactiveTime = DateTime.UtcNow.AddHours(7);
 
                 dbTemplate.IsActive = false;
 

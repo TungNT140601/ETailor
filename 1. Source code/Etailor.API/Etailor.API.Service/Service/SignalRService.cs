@@ -18,45 +18,9 @@ namespace Etailor.API.Service.Service
             this.hubContext = hubContext;
         }
 
-        public async Task SendNotificationToUser(string userId, string Notification, string role)
+        public async Task SendNotificationToUser(string userId, string Notification)
         {
-            if (role == RoleName.CUSTOMER)
-            {
-                //_customerConnections.TryGetValue(userId, out string customerConnectionId);
-                //await hubContext.Clients.Client(customerConnectionId).SendAsync("CustomerReceiveNotification", Notification);
-                await hubContext.Clients.Group(userId).SendAsync("CustomerReceiveNotification", Notification);
-            }
-            else
-            {
-                SignalRHub.StaffConnections.TryGetValue(userId, out string staffConnectionId);
-                //await hubContext.Clients.Client(staffConnectionId).SendAsync("ReceiveNotification", Notification);
-                await hubContext.Clients.Group(userId).SendAsync("StaffReceiveNotification", Notification);
-            }
-        }
-
-        public async Task SendNotificationToAllStaff(string Notification)
-        {
-            await hubContext.Clients.Group("AllStaff").SendAsync("AllStaffReceiveNotification", Notification);
-        }
-
-        public async Task SendNotificationToManager(string Notification)
-        {
-            await hubContext.Clients.Group(RoleName.MANAGER).SendAsync("ManagersfReceiveNotification", Notification);
-        }
-
-        public async Task SendNotificationToStaff(string Notification)
-        {
-            await hubContext.Clients.Group(RoleName.STAFF).SendAsync("StaffsReceiveNotification", Notification);
-        }
-
-        public async Task SendNotificationToAdmin(string Notification)
-        {
-            await hubContext.Clients.Group(RoleName.ADMIN).SendAsync("AdminsReceiveNotification", Notification);
-        }
-
-        public async Task SendNotificationToCustomer(string Notification)
-        {
-            await hubContext.Clients.Group(RoleName.CUSTOMER).SendAsync("CustomersReceiveNotification", Notification);
+            await hubContext.Clients.Group(userId).SendAsync("Notification", Notification);
         }
 
         public async Task SendVNPayResult(string Notification)

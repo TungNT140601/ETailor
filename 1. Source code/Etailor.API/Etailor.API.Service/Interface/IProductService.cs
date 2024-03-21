@@ -19,12 +19,5 @@ namespace Etailor.API.Service.Interface
         Task<IEnumerable<Product>> GetProductsByOrderId(string orderId);
         Task<IEnumerable<Product>> GetProductsByOrderIds(List<string> orderIds);
         Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId);
-        void AutoCreateEmptyTaskProduct();
-        Product GetProduct(string id);
-        Task SwapTaskIndex(string productId, string? staffId, int? index);
-        void ResetIndex(string? staffId);
-        void ResetBlankIndex(string? staffId);
-        Task<bool> AssignTaskToStaff(string productId, string staffId);
-        Task<bool> UnAssignStaffTask(string productId, string staffId);
     }
 }

@@ -190,6 +190,9 @@ builder.Services.AddScoped<IChatService, ChatService>();
 
 builder.Services.AddScoped<IChatListRepository, ChatListRepository>();
 
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
 
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
