@@ -69,17 +69,7 @@ namespace Etailor.API.Service.Service
                     categoryComponentTypes = categoryComponentTypes.ToList();
 
                     var tasks = new List<Task>();
-                    tasks.Add(Task.Run(() =>
-                    {
-                        if (componentType.CategoryId == null || categoryRepository.Get(componentType.CategoryId) == null)
-                        {
-                            throw new UserException("Loại danh mục không tìm thấy");
-                        }
-                        else if (dbComponentType.CategoryId != componentType.CategoryId)
-                        {
-                            throw new UserException("Không thể thay đổi loại danh mục của loại bộ phận");
-                        }
-                    }));
+
                     tasks.Add(Task.Run(() =>
                     {
                         if (string.IsNullOrWhiteSpace(componentType.Name))

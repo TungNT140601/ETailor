@@ -93,6 +93,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
+                        category.Id = id;
                         return (await categoryService.UpdateCategory(mapper.Map<Category>(category))) ? Ok("Cập nhật loại danh mục thành công") : BadRequest("Cập nhật loại danh mục thất bại");
                     }
                 }

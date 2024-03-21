@@ -59,12 +59,17 @@ namespace Etailor.API.Service.Service
 
             await Task.WhenAll(tasks);
 
+            if (category.ComponentTypes != null && category.ComponentTypes.Any())
+            {
+                category.ComponentTypes = await componentTypeService.AddComponentTypes(category.Id, category.ComponentTypes.ToList());
+            }
+            else
+            {
+                throw new UserException("Cần phải có ít nhất một bộ phận của danh mục");
+            }
+
             if (categoryRepository.Create(category))
             {
-                if (category.ComponentTypes.Any())
-                {
-                    category.ComponentTypes = await componentTypeService.AddComponentTypes(category.Id, category.ComponentTypes.ToList());
-                }
                 return componentTypeRepository.CreateRange(componentTypes);
             }
             else
@@ -126,7 +131,7 @@ namespace Etailor.API.Service.Service
             {
                 var checkChild = Task.Run(() =>
                 {
-                    if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
+                    if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
                     {
                         throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
                     }

@@ -46,11 +46,12 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ITaskService taskService;
         private readonly ISignalRService signalRService;
         private readonly IBackgroundService backgroundService;
+        private readonly INotificationService notificationService;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
-            , ITaskService taskService)
+            , ITaskService taskService, INotificationService notificationService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -62,6 +63,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.signalRService = signalRService;
             this.backgroundService = backgroundService;
             this.taskService = taskService;
+            this.notificationService = notificationService;
         }
 
         #region SendMail
@@ -997,6 +999,21 @@ namespace Etailor.API.WebAPI.Controllers
                 await signalRService.CheckMessage(id);
 
                 return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("notification/{id}")]
+        public async Task<IActionResult> SendNotification(string id, string title, string message)
+        {
+            try
+            {
+                var check = await notificationService.AddNotification(title, message, id, RoleName.CUSTOMER);
+
+                return check ? Ok() : BadRequest();
             }
             catch (Exception ex)
             {
