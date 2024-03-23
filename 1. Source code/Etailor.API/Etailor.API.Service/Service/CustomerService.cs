@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.WebRequestMethods;
@@ -212,7 +213,10 @@ namespace Etailor.API.Service.Service
             try
             {
                 customer.Id = Ultils.GenGuidString();
-                customer.Password = Ultils.HashPassword(customer.Password);
+                if (!string.IsNullOrEmpty(customer.Password))
+                {
+                    customer.Password = Ultils.HashPassword(customer.Password);
+                }
                 customer.Phone = null;
                 customer.PhoneVerified = false;
                 customer.IsActive = true;
