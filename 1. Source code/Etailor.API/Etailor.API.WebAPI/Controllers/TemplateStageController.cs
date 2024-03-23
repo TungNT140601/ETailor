@@ -78,41 +78,31 @@ namespace Etailor.API.WebAPI.Controllers
                 var stages = new List<TemplateStage>();
                 if (stageCreateVMs != null && stageCreateVMs.Count > 0)
                 {
-                    var tasks = new List<Task>();
                     for (int i = 0; i < stageCreateVMs.Count; i++)
                     {
-                        tasks.Add(Task.Run(async () =>
+                        var stage = mapper.Map<TemplateStage>(stageCreateVMs[i]);
+                        if (string.IsNullOrWhiteSpace(stage.Name))
                         {
-                            var stage = mapper.Map<TemplateStage>(stageCreateVMs[i]);
-                            if (string.IsNullOrWhiteSpace(stage.Name))
+                            throw new UserException("Tên giai đoạn không được để trống");
+                        }
+                        else
+                        {
+                            stage.ProductTemplateId = templateId;
+                            stage.StageNum = i + 1;
+                            stage.ComponentStages = new List<ComponentStage>();
+                            if (stageCreateVMs[i].ComponentTypeIds != null && stageCreateVMs[i].ComponentTypeIds.Count > 0)
                             {
-                                throw new UserException("Tên giai đoạn không được để trống");
-                            }
-                            else
-                            {
-                                stage.ProductTemplateId = templateId;
-                                stage.StageNum = i + 1;
-                                stage.ComponentStages = new List<ComponentStage>();
-                                if (stageCreateVMs[i].ComponentTypeIds != null && stageCreateVMs[i].ComponentTypeIds.Count > 0)
+                                for (int j = 0; j < stageCreateVMs[i].ComponentTypeIds.Count; j++)
                                 {
-                                    var insideTasks = new List<Task>();
-                                    for (int j = 0; j < stageCreateVMs[i].ComponentTypeIds.Count; j++)
+                                    stage.ComponentStages.Add(new ComponentStage
                                     {
-                                        insideTasks.Add(Task.Run(async () =>
-                                        {
-                                            stage.ComponentStages.Add(new ComponentStage
-                                            {
-                                                ComponentTypeId = stageCreateVMs[i].ComponentTypeIds[j]
-                                            });
-                                        }));
-                                    }
-                                    await Task.WhenAll(insideTasks);
+                                        ComponentTypeId = stageCreateVMs[i].ComponentTypeIds[j]
+                                    });
                                 }
-                                stages.Add(stage);
                             }
-                        }));
+                            stages.Add(stage);
+                        }
                     }
-                    await Task.WhenAll(tasks);
 
                     if (await templateStageService.CreateTemplateStages(templateId, stages))
                     {
