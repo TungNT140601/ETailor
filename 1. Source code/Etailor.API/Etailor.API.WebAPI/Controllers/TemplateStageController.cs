@@ -2,10 +2,12 @@
 using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
+using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Etailor.API.WebAPI.Controllers
@@ -56,79 +58,69 @@ namespace Etailor.API.WebAPI.Controllers
 
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(id, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var stages = new List<TemplateStage>();
-                if (stageCreateVMs != null && stageCreateVMs.Count > 0)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    var tasks = new List<Task>();
-                    for (int i = 0; i < stageCreateVMs.Count; i++)
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
                     {
-                        tasks.Add(Task.Run(async () =>
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var stages = new List<TemplateStage>();
+                        if (stageCreateVMs != null && stageCreateVMs.Count > 0)
                         {
-                            var stage = mapper.Map<TemplateStage>(stageCreateVMs[i]);
-                            if (string.IsNullOrWhiteSpace(stage.Name))
+                            for (int i = 0; i < stageCreateVMs.Count; i++)
                             {
-                                throw new UserException("Tên giai đoạn không được để trống");
-                            }
-                            else
-                            {
-                                stage.ProductTemplateId = templateId;
-                                stage.StageNum = i + 1;
-                                stage.ComponentStages = new List<ComponentStage>();
-                                if (stageCreateVMs[i].ComponentTypeIds != null && stageCreateVMs[i].ComponentTypeIds.Count > 0)
+                                var stage = mapper.Map<TemplateStage>(stageCreateVMs[i]);
+                                if (string.IsNullOrWhiteSpace(stage.Name))
                                 {
-                                    var insideTasks = new List<Task>();
-                                    for (int j = 0; j < stageCreateVMs[i].ComponentTypeIds.Count; j++)
+                                    throw new UserException("Tên giai đoạn không được để trống");
+                                }
+                                else
+                                {
+                                    stage.ProductTemplateId = templateId;
+                                    stage.StageNum = i + 1;
+                                    stage.ComponentStages = new List<ComponentStage>();
+                                    if (stageCreateVMs[i].ComponentTypeIds != null && stageCreateVMs[i].ComponentTypeIds.Count > 0)
                                     {
-                                        insideTasks.Add(Task.Run(async () =>
+                                        for (int j = 0; j < stageCreateVMs[i].ComponentTypeIds.Count; j++)
                                         {
                                             stage.ComponentStages.Add(new ComponentStage
                                             {
                                                 ComponentTypeId = stageCreateVMs[i].ComponentTypeIds[j]
                                             });
-                                        }));
+                                        }
                                     }
-                                    await Task.WhenAll(insideTasks);
+                                    stages.Add(stage);
                                 }
-                                stages.Add(stage);
                             }
-                        }));
-                    }
-                    await Task.WhenAll(tasks);
 
-                    if (await templateStageService.CreateTemplateStages(templateId, stages))
-                    {
-                        return productTemplateService.CreateSaveActiveTemplate(templateId) ? Ok("Tạo bản mẫu thành công") : BadRequest("Tạo bản mẫu thất bại");
-                    }
-                    else
-                    {
-                        return BadRequest();
+                            if (await templateStageService.CreateTemplateStages(templateId, stages))
+                            {
+                                return productTemplateService.CreateSaveActiveTemplate(templateId) ? Ok("Tạo bản mẫu thành công") : BadRequest("Tạo bản mẫu thất bại");
+                            }
+                            else
+                            {
+                                return BadRequest();
+                            }
+                        }
+                        else
+                        {
+                            throw new UserException("Không có giai đoạn nào được tạo");
+                        }
                     }
                 }
-                else
-                {
-                    throw new UserException("Không có giai đoạn nào được tạo");
-                }
-                //    }
-                //}
             }
             catch (UserException ex)
             {
