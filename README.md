@@ -30,18 +30,11 @@ Tuệ Tailor is a tailor shop in Bình Thạnh district, Ho Chi Minh City, prefe
 
 ## Existing Systems
 
-### Escapade
+### E-Tailor
 
-- **Link:** [Meshcape](https://me.meshcapade.com/vault)
-- **Description:** Meshcape is a website that creates customized avatars and realistic body representations using user measurements.
-- **Advantages:** User-friendly interface, automatic adjustment of measurements.
-- **Disadvantages:** Limited to customized measurements.
-
-### Itailor
-
-- **Link:** [ITailor](https://www.e-tailor.vercel.app)
-- **Description:** ITailor allows users to design and order custom shirts, suits, and menswear.
-- **Advantages:** Diverse 3D product options, customizable designs.
+- **Link:** [E-Tailor](https://www.e-tailor.vercel.app)
+- **Description:** E-Tailor allows users to design and order custom shirts, suits, and menswear.
+- **Advantages:** Customers can track their orders.
 - **Disadvantages:** Poor interface design.
 
 ## Business Opportunity
@@ -55,4 +48,3 @@ Tuệ Tailor - Order Management and Tracking System aims to provide a user-frien
 ## Project Scope & Limitations
 
 The system encompasses major features for guests, customers, managers, staff, and administrators. However, there are certain limitations and exclusions outlined in the document regarding mobile platform support, product quality responsibility, payment methods, supported products, and customization levels.
-
