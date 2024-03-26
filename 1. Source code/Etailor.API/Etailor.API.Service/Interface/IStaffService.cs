@@ -19,5 +19,7 @@ namespace Etailor.API.Service.Interface
         Task<bool> UpdateInfo(Staff staff, string wwwroot, IFormFile? avatar, List<string>? masterySkills, string role);
         Task<bool> ChangePass(string id, string? oldPassword, string newPassword, string role);
         IEnumerable<Staff> GetAll(string? search);
+        IEnumerable<Staff> GetAllWithPagination(string? search, int? pageIndex, int? itemPerPage);
+        bool RemoveStaff(string staffId);
     }
 }

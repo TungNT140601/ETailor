@@ -527,7 +527,13 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.CreaterId).HasMaxLength(30);
 
-                entity.Property(e => e.CustomerId).HasMaxLength(30);
+                entity.Property(e => e.CusName).HasMaxLength(100);
+
+                entity.Property(e => e.CusPhone).HasMaxLength(10);
+
+                entity.Property(e => e.CusAddress).HasMaxLength(255);
+
+                entity.Property(e => e.CusEmail).HasMaxLength(255);
 
                 entity.Property(e => e.Deposit).HasColumnType("decimal(18, 0)");
 
