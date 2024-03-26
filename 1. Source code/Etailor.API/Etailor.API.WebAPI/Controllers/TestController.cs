@@ -504,6 +504,11 @@ namespace Etailor.API.WebAPI.Controllers
                     string filePath = file.FileName.Split(".").Last();
 
                     // Return the file in the response
+                    return Ok(new
+                    {
+                        fileName = file.FileName,
+                        base64String = binaryString
+                    });
                     return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
                 }
             }
@@ -515,14 +520,27 @@ namespace Etailor.API.WebAPI.Controllers
 
         }
 
-        [HttpPost("upload-base64")]
-        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 imageBase64)
+        [HttpPost("change-image-base64")]
+        public async Task<IActionResult> ChangeImageBase64(IFormFile file)
         {
             try
             {
-                var file = Ultils.ConvertBase64ToIFormFile(imageBase64.Base64String, imageBase64.FileName);
-                var objectName = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
-                return Ok(Ultils.GetUrlImage(objectName));
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+
+                // Read the content of the file into a byte array
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    byte[] fileBytes1 = ms.ToArray();
+
+                    // Convert the byte array to a base64-encoded string
+                    string binaryString = Convert.ToBase64String(fileBytes1);
+
+                    return Ok(binaryString);
+                }
             }
             catch (Exception ex)
             {
@@ -530,6 +548,30 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
 
+        }
+
+        [HttpPost("upload-base64")]
+        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 base64)
+        {
+            try
+            {
+                // Read the content of the file into a byte array
+                using (MemoryStream ms = new MemoryStream())
+                {
+
+                    // Convert the base64-encoded string to a byte array
+                    byte[] fileBytes2 = Convert.FromBase64String(base64.Base64String);
+
+                    string filePath = base64.FileName.Split(".").Last();
+                    // Return the file in the response
+                    return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("get-object-name")]
@@ -1019,6 +1061,12 @@ namespace Etailor.API.WebAPI.Controllers
             {
                 return StatusCode(500, ex.Message);
             }
+        }
+
+        [HttpPost("recieve-form-data")]
+        public async Task<IActionResult> RecieveData([FromForm] List<ProductComponentOrderVM> componentOrderVMs)
+        {
+            return Ok();
         }
     }
     public class Notify

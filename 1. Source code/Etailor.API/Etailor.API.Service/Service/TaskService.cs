@@ -207,6 +207,31 @@ namespace Etailor.API.Service.Service
                                                                 component.Component.Image = string.Empty;
                                                             }
 
+                                                            if (!string.IsNullOrWhiteSpace(component.NoteImage))
+                                                            {
+                                                                var noteImage = JsonConvert.DeserializeObject<List<string>>(component.NoteImage);
+                                                                if (noteImage != null && noteImage.Any())
+                                                                {
+                                                                    var noteImages = new List<string>();
+                                                                    var insideTasks3 = new List<Task>();
+                                                                    foreach (var image in noteImage)
+                                                                    {
+                                                                        insideTasks3.Add(Task.Run(async () =>
+                                                                        {
+                                                                            if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                                            {
+                                                                                noteImages.Add(await Ultils.GetUrlImage(image));
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                noteImages.Add(image);
+                                                                            }
+                                                                        }));
+                                                                    }
+                                                                    await Task.WhenAll(insideTasks3);
+                                                                    component.NoteImage = JsonConvert.SerializeObject(noteImages);
+                                                                }
+                                                            }
                                                         }));
                                                     }
                                                     await Task.WhenAll(insideTasks2);
@@ -267,43 +292,54 @@ namespace Etailor.API.Service.Service
         //For manager to get all
         public async Task<IEnumerable<Product>> GetTasks()
         {
-            var tasksList = productRepository.GetAll(x => x.IsActive == true);
-            if (tasksList != null && tasksList.Any())
+            var inProcessOrders = orderRepository.GetAll(x => x.Status >= 2 && x.IsActive == true);
+            if (inProcessOrders != null && inProcessOrders.Any())
             {
-                tasksList = tasksList.OrderBy(x => x.Index).ToList();
+                inProcessOrders = inProcessOrders.ToList();
 
-                var staffs = staffRepository.GetAll(x => true);
-                if (staffs != null && staffs.Any())
+                var tasksList = productRepository.GetAll(x => inProcessOrders.Select(c => c.Id).Contains(x.OrderId) && x.IsActive == true);
+
+                if (tasksList != null && tasksList.Any())
                 {
-                    staffs = staffs.ToList();
+                    tasksList = tasksList.OrderBy(x => x.Index).ToList();
 
-                    var tasks = new List<Task>();
-                    foreach (var task in tasksList)
+                    var staffs = staffRepository.GetAll(x => true);
+                    if (staffs != null && staffs.Any())
                     {
-                        tasks.Add(Task.Run(async () =>
+                        staffs = staffs.ToList();
+
+                        var tasks = new List<Task>();
+                        foreach (var task in tasksList)
                         {
-                            if (task.StaffMakerId != null)
+                            tasks.Add(Task.Run(async () =>
                             {
-                                if (task.StaffMaker == null)
+                                if (task.StaffMakerId != null)
                                 {
-                                    task.StaffMaker = staffs.FirstOrDefault(x => x.Id == task.StaffMakerId);
-                                }
-                                if (task.StaffMaker != null)
-                                {
-                                    if (!string.IsNullOrEmpty(task.StaffMaker.Avatar))
+                                    if (task.StaffMaker == null)
                                     {
-                                        task.StaffMaker.Avatar = await Ultils.GetUrlImage(task.StaffMaker.Avatar);
+                                        task.StaffMaker = staffs.FirstOrDefault(x => x.Id == task.StaffMakerId);
+                                    }
+                                    if (task.StaffMaker != null)
+                                    {
+                                        if (!string.IsNullOrEmpty(task.StaffMaker.Avatar))
+                                        {
+                                            task.StaffMaker.Avatar = await Ultils.GetUrlImage(task.StaffMaker.Avatar);
+                                        }
                                     }
                                 }
-                            }
-                        }));
-                    }
+                            }));
+                        }
 
-                    await Task.WhenAll(tasks);
+                        await Task.WhenAll(tasks);
+                    }
                 }
+
+                return tasksList;
             }
-            return tasksList;
+
+            return null;
         }
+
         public async Task<IEnumerable<Product>> GetTasksByStaffId(string? search)
         {
             IEnumerable<Product> ListOfTask = productRepository.GetAll(x => (search == null || (search != null && x.StaffMakerId == search)) && x.IsActive == true);
@@ -324,7 +360,6 @@ namespace Etailor.API.Service.Service
             //};
             return ListOfTask;
         }
-
 
         public void AutoCreateEmptyTaskProduct()
         {
@@ -1155,6 +1190,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không tìm thấy sản phẩm");
             }
         }
+
         public async Task<bool> FinishTask(string wwwroot, string productId, string productStageId, string staffId, List<IFormFile>? images)
         {
             var product = productRepository.Get(productId);
@@ -1287,6 +1323,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không tìm thấy sản phẩm");
             }
         }
+
         public bool PendingTask(string productId, string productStageId, string staffId)
         {
             var product = productRepository.Get(productId);

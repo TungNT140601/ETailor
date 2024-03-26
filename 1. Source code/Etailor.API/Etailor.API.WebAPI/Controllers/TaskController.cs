@@ -459,8 +459,8 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-        [HttpPut("staff/{staffId}/unassign/{productId}")]
-        public async Task<IActionResult> SwapTaskIndex(string productId, string? staffId, int? index)
+        [HttpPut("swap-task/{taskId}")]
+        public async Task<IActionResult> SwapTaskIndex(string taskId, string? staffId, int? index)
         {
             try
             {
@@ -483,7 +483,11 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        await taskService.SwapTaskIndex(productId, staffId, index);
+                        if (!string.IsNullOrWhiteSpace(staffId) && staffId == "unAssignedTasks")
+                        {
+                            staffId = null;
+                        }
+                        await taskService.SwapTaskIndex(taskId, staffId, index);
                         return Ok("Đổi thành công");
                     }
                 }
