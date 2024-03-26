@@ -267,23 +267,42 @@ namespace Etailor.API.Service.Service
         //For manager to get all
         public async Task<IEnumerable<Product>> GetTasks()
         {
-            IEnumerable<Product> ListOfTask = productRepository.GetAll(x => x.IsActive == true);
-            //foreach (Blog blog in ListOfBlog)
-            //{
-            //    var setThumbnail = Task.Run(async () =>
-            //    {
-            //        if (string.IsNullOrEmpty(blog.Thumbnail))
-            //        {
-            //            blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
-            //        }
-            //        else
-            //        {
-            //            blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
-            //        }
-            //    });
-            //    await Task.WhenAll(setThumbnail);
-            //};
-            return ListOfTask;
+            var tasksList = productRepository.GetAll(x => x.IsActive == true);
+            if (tasksList != null && tasksList.Any())
+            {
+                tasksList = tasksList.OrderBy(x => x.Index).ToList();
+
+                var staffs = staffRepository.GetAll(x => true);
+                if (staffs != null && staffs.Any())
+                {
+                    staffs = staffs.ToList();
+
+                    var tasks = new List<Task>();
+                    foreach (var task in tasksList)
+                    {
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            if (task.StaffMakerId != null)
+                            {
+                                if (task.StaffMaker == null)
+                                {
+                                    task.StaffMaker = staffs.FirstOrDefault(x => x.Id == task.StaffMakerId);
+                                }
+                                if (task.StaffMaker != null)
+                                {
+                                    if (!string.IsNullOrEmpty(task.StaffMaker.Avatar))
+                                    {
+                                        task.StaffMaker.Avatar = await Ultils.GetUrlImage(task.StaffMaker.Avatar);
+                                    }
+                                }
+                            }
+                        }));
+                    }
+
+                    await Task.WhenAll(tasks);
+                }
+            }
+            return tasksList;
         }
         public async Task<IEnumerable<Product>> GetTasksByStaffId(string? search)
         {

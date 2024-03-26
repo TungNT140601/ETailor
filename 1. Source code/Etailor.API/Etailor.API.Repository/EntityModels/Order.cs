@@ -15,6 +15,10 @@ namespace Etailor.API.Repository.EntityModels
 
         public string Id { get; set; } = null!;
         public string? CustomerId { get; set; }
+        public string? CusName { get; set; }
+        public string? CusPhone { get; set; }
+        public string? CusEmail { get; set; }
+        public string? CusAddress { get; set; }
         public string? CreaterId { get; set; }
         public string? DiscountId { get; set; }
         public int? TotalProduct { get; set; }

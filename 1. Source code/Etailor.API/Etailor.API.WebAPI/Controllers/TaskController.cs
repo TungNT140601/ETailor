@@ -88,13 +88,13 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             var task = await taskService.GetTask(id);
 
-                            if (task == null || task.StaffMakerId != staffId)
+                            if (role == RoleName.MANAGER || task.StaffMakerId == staffId)
                             {
-                                return NotFound();
+                                return Ok(mapper.Map<TaskDetailByStaffVM>(task));
                             }
                             else
                             {
-                                return Ok(mapper.Map<TaskDetailByStaffVM>(task));
+                                return NotFound();
                             }
                         }
                     }

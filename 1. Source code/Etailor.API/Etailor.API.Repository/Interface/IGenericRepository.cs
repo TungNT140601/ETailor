@@ -9,6 +9,8 @@ namespace Etailor.API.Repository.Interface
     public interface IGenericRepository<T> where T : class
     {
         IEnumerable<T> GetAll(Func<T, bool> where);
+        IEnumerable<T> GetAllPagination(Func<T, bool> where, int? pageIndex, int? itemPerPage);
+        int Count(Func<T, bool> where);
         T FirstOrDefault(Func<T, bool> where);
         T Get(string id);
         Task<T> GetAsync(string id);

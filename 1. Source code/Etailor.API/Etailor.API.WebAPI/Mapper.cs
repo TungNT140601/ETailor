@@ -12,10 +12,12 @@ namespace Etailor.API.WebAPI
             CreateMap<Staff, StaffUpdateVM>().ReverseMap();
             CreateMap<Staff, StaffListVM>().ReverseMap();
             CreateMap<Staff, StaffVM>().ReverseMap();
+            CreateMap<Staff, StaffTaskVM>().ReverseMap();
 
             CreateMap<Customer, CusRegis>().ReverseMap();
             CreateMap<Customer, CustomerVM>().ReverseMap();
             CreateMap<Customer, CustomerAllVM>().ReverseMap();
+            CreateMap<Customer, CustomerCreateVM>().ReverseMap();
 
             CreateMap<MaterialType, MaterialTypeVM>().ReverseMap();
             CreateMap<MaterialType, MaterialTypeAllVM>().ReverseMap();
@@ -92,6 +94,7 @@ namespace Etailor.API.WebAPI
             CreateMap<Material, MaterialVM>().ReverseMap();
             CreateMap<Material, MaterialFormVM>().ReverseMap();
             CreateMap<Material, FabricMaterialVM>().ReverseMap();
+            CreateMap<Material, FabricMaterialTaskVM>().ReverseMap();
 
             CreateMap<MaterialCategory, MaterialCategoryVM>().ReverseMap();
             CreateMap<MaterialCategory, CreateMaterialCategoryVM>().ReverseMap();

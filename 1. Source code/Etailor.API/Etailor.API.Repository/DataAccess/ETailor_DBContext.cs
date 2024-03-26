@@ -29,7 +29,6 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<ComponentStage> ComponentStages { get; set; } = null!;
         public virtual DbSet<ComponentType> ComponentTypes { get; set; } = null!;
         public virtual DbSet<Customer> Customers { get; set; } = null!;
-        public virtual DbSet<CustomerClient> CustomerClients { get; set; } = null!;
         public virtual DbSet<Discount> Discounts { get; set; } = null!;
         public virtual DbSet<Mastery> Masteries { get; set; } = null!;
         public virtual DbSet<Material> Materials { get; set; } = null!;
@@ -354,26 +353,6 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.SecrectKeyLogin).HasMaxLength(20);
 
                 entity.Property(e => e.Username).HasMaxLength(255);
-            });
-
-            modelBuilder.Entity<CustomerClient>(entity =>
-            {
-                entity.ToTable("CustomerClient");
-
-                entity.Property(e => e.Id).HasMaxLength(30);
-
-                entity.Property(e => e.ClientToken).HasMaxLength(255);
-
-                entity.Property(e => e.CustomerId).HasMaxLength(30);
-
-                entity.Property(e => e.IpAddress).HasMaxLength(30);
-
-                entity.Property(e => e.LastLogin).HasColumnType("datetime");
-
-                entity.HasOne(d => d.Customer)
-                    .WithMany(p => p.CustomerClients)
-                    .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__CustomerC__Custo__2B2A60FE");
             });
 
             modelBuilder.Entity<Discount>(entity =>
@@ -781,6 +760,10 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.ComponentId).HasMaxLength(30);
 
                 entity.Property(e => e.Image).HasColumnType("text");
+
+                entity.Property(e => e.Note).HasColumnType("nvarchar(2550)");
+
+                entity.Property(e => e.NoteImage).HasColumnType("text");
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 

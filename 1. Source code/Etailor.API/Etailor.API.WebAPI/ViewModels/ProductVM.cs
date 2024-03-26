@@ -66,7 +66,9 @@ namespace Etailor.API.WebAPI.ViewModels
         public int? Status { get; set; }
         public string? ReferenceProfileBodyId { get; set; }
         public string? FabricMaterialId { get; set; }
+        public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public string? StaffMakerId { get; set; }
+        public StaffTaskVM? StaffMaker { get; set; }
         public int? Index { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
@@ -80,6 +82,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Name { get; set; }
         public int? Status { get; set; }
         public string? FabricMaterialId { get; set; }
+        public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public DateTime? Deadline { get; set; }
         public int? Index { get; set; }
     }

@@ -72,6 +72,10 @@ namespace Etailor.API.Service.Service
             var order = orderRepository.Get(orderId);
             if (order != null)
             {
+                if (order.Status > 2)
+                {
+                    throw new UserException("Đơn hàng đã vào giai đoạn thực hiện. Không thể thêm sản phẩm");
+                }
                 var tasks = new List<Task>();
 
                 product.Id = Ultils.GenGuidString();
@@ -98,6 +102,11 @@ namespace Etailor.API.Service.Service
 
                 var materialCategory = new MaterialCategory();
 
+                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == orderId && x.MaterialId == materialId && x.IsActive == true);
+
+                var addOrderMaterial = new OrderMaterial();
+                var updateOrderMaterial = new OrderMaterial();
+
                 if (material != null)
                 {
                     materialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
@@ -105,7 +114,7 @@ namespace Etailor.API.Service.Service
 
                 #region InitProduct
 
-                tasks.Add(Task.Run(() =>
+                tasks.Add(Task.Run(async () =>
                 {
                     if (material == null || material.IsActive == false)
                     {
@@ -114,6 +123,95 @@ namespace Etailor.API.Service.Service
                     else
                     {
                         product.FabricMaterialId = materialId;
+                        var insideTasks = new List<Task>();
+
+                        if (orderMaterials != null && orderMaterials.Any())
+                        {
+                            orderMaterials = orderMaterials.ToList();
+                            if (orderMaterials.Any(x => x.MaterialId == materialId))
+                            {
+                                var orderMaterial = orderMaterials.FirstOrDefault(x => x.MaterialId == materialId);
+                                if (orderMaterial.IsCusMaterial.Value)
+                                {
+                                    insideTasks.Add(Task.Run(() =>
+                                    {
+                                        addOrderMaterial = new OrderMaterial()
+                                        {
+                                            Id = Ultils.GenGuidString(),
+                                            MaterialId = materialId,
+                                            OrderId = orderId,
+                                            Value = (decimal)materialQuantity,
+                                            IsActive = true,
+                                            CreatedTime = DateTime.UtcNow.AddHours(7),
+                                            LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                            IsCusMaterial = false,
+                                            Image = null,
+                                            InactiveTime = null
+                                        };
+                                        updateOrderMaterial = null;
+                                    }));
+                                }
+                                else
+                                {
+                                    insideTasks.Add(Task.Run(() =>
+                                    {
+                                        if (orderMaterial.Value != null)
+                                        {
+                                            orderMaterial.Value += (decimal)materialQuantity;
+                                        }
+                                        else
+                                        {
+                                            orderMaterial.Value = (decimal)materialQuantity;
+                                        }
+
+                                        updateOrderMaterial = orderMaterial;
+                                        addOrderMaterial = null;
+                                    }));
+                                }
+                            }
+                            else
+                            {
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    addOrderMaterial = new OrderMaterial()
+                                    {
+                                        Id = Ultils.GenGuidString(),
+                                        MaterialId = materialId,
+                                        OrderId = orderId,
+                                        Value = (decimal)materialQuantity,
+                                        IsActive = true,
+                                        CreatedTime = DateTime.UtcNow.AddHours(7),
+                                        LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                        IsCusMaterial = false,
+                                        Image = null,
+                                        InactiveTime = null
+                                    };
+                                    updateOrderMaterial = null;
+                                }));
+                            }
+                        }
+                        else
+                        {
+                            insideTasks.Add(Task.Run(() =>
+                            {
+                                addOrderMaterial = new OrderMaterial()
+                                {
+                                    Id = Ultils.GenGuidString(),
+                                    MaterialId = materialId,
+                                    OrderId = orderId,
+                                    Value = (decimal)materialQuantity,
+                                    IsActive = true,
+                                    CreatedTime = DateTime.UtcNow.AddHours(7),
+                                    LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                    IsCusMaterial = false,
+                                    Image = null,
+                                    InactiveTime = null
+                                };
+                                updateOrderMaterial = null;
+                            }));
+                        }
+
+                        await Task.WhenAll(insideTasks);
                     }
                 }));
 
@@ -223,15 +321,7 @@ namespace Etailor.API.Service.Service
                                         LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
                                         Name = component.Name,
                                         Image = "",
-                                        ProductStageId = null,
-                                        //   ProductComponentMaterials = new List<ProductComponentMaterial>() //cái này chờ kéo materialId vào product
-                                        //   {
-                                        //new ProductComponentMaterial()
-                                        //{
-                                        //    Id = Ultils.GenGuidString(),
-                                        //    MaterialId = materialId,
-                                        //}
-                                        //   }
+                                        ProductStageId = null
                                     });
                                 }
                             }));
@@ -254,15 +344,7 @@ namespace Etailor.API.Service.Service
                                         LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
                                         Name = component.Name,
                                         Image = "",
-                                        ProductStageId = null,
-                                        //   ProductComponentMaterials = new List<ProductComponentMaterial>()
-                                        //   {
-                                        //new ProductComponentMaterial()
-                                        //{
-                                        //    Id = Ultils.GenGuidString(),
-                                        //    MaterialId = materialId
-                                        //}
-                                        //   }
+                                        ProductStageId = null
                                     });
                                 }
                             }));
@@ -287,7 +369,21 @@ namespace Etailor.API.Service.Service
                             {
                                 product.ReferenceProfileBodyId = profileId;
 
-                                return productRepository.Update(product.Id, product) ? product.Id : null;
+                                if (productRepository.Update(product.Id, product))
+                                {
+                                    if (addOrderMaterial != null)
+                                    {
+                                        return orderMaterialRepository.Create(addOrderMaterial) ? product.Id : null;
+                                    }
+                                    else if (updateOrderMaterial != null)
+                                    {
+                                        return orderMaterialRepository.Update(updateOrderMaterial.Id, updateOrderMaterial) ? product.Id : null;
+                                    }
+                                }
+                                else
+                                {
+                                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo sản phẩm", nameof(ProductService));
+                                }
                             }
                             else
                             {
