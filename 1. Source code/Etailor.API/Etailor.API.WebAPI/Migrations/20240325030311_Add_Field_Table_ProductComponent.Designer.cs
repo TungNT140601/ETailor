@@ -4,6 +4,7 @@ using Etailor.API.Repository.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Etailor.API.WebAPI.Migrations
 {
     [DbContext(typeof(ETailor_DBContext))]
-    partial class ETailor_DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240325030311_Add_Field_Table_ProductComponent")]
+    partial class Add_Field_Table_ProductComponent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -722,23 +724,8 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("CusAddress")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("CusEmail")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("CusName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CusPhone")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
                     b.Property<string>("CustomerId")
+                        .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("Deposit")

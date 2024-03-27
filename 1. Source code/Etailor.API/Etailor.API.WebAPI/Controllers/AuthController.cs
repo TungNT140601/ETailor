@@ -79,7 +79,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
         [HttpGet("customer/verify-email")]
-        public IActionResult VerifyEmail(string email)
+        public async Task<IActionResult> VerifyEmail(string email)
         {
             try
             {
@@ -89,7 +89,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var otp = Ultils.GenerateRandomOTP();
                     if (customer == null)
                     {
-                        var check = customerService.CreateCustomer(new Customer()
+                        var check = await customerService.CreateCustomer(new Customer()
                         {
                             Email = email,
                             EmailVerified = false,

@@ -59,12 +59,17 @@ namespace Etailor.API.Service.Service
 
             await Task.WhenAll(tasks);
 
+            if (category.ComponentTypes != null && category.ComponentTypes.Any())
+            {
+                category.ComponentTypes = await componentTypeService.AddComponentTypes(category.Id, category.ComponentTypes.ToList());
+            }
+            else
+            {
+                throw new UserException("Cần phải có ít nhất một bộ phận của danh mục");
+            }
+
             if (categoryRepository.Create(category))
             {
-                if (category.ComponentTypes.Any())
-                {
-                    category.ComponentTypes = await componentTypeService.AddComponentTypes(category.Id, category.ComponentTypes.ToList());
-                }
                 return componentTypeRepository.CreateRange(componentTypes);
             }
             else
@@ -79,38 +84,72 @@ namespace Etailor.API.Service.Service
 
             if (dbCategory != null && dbCategory.IsActive == true)
             {
-                var tasks = new List<Task>();
-
-                var duplicateName = categoryRepository.GetAll(x => dbCategory.Id != x.Id && x.Name == category.Name && x.IsActive == true);
-
-                tasks.Add(Task.Run(() =>
+                var dbCategoryComponentTypes = componentTypeRepository.GetAll(x => x.CategoryId == dbCategory.Id && x.IsActive == true);
+                if (dbCategoryComponentTypes != null && dbCategoryComponentTypes.Any())
                 {
-                    if (duplicateName.Any())
+                    dbCategoryComponentTypes = dbCategoryComponentTypes.ToList();
+                    var tasks = new List<Task>();
+
+                    var duplicateName = categoryRepository.GetAll(x => dbCategory.Id != x.Id && x.Name == category.Name && x.IsActive == true);
+
+                    tasks.Add(Task.Run(() =>
                     {
-                        throw new UserException("Tên danh mục sản phầm đã được sử dụng");
+                        if (duplicateName.Any())
+                        {
+                            throw new UserException("Tên danh mục sản phầm đã được sử dụng");
+                        }
+                        else
+                        {
+                            dbCategory.Name = category.Name;
+                        }
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        dbCategory.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                        dbCategory.IsActive = true;
+                        dbCategory.InactiveTime = null;
+                    }));
+
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        if (dbCategory.ComponentTypes == null || dbCategory.ComponentTypes == new List<ComponentType>())
+                        {
+                            dbCategory.ComponentTypes = dbCategoryComponentTypes.ToList();
+                        }
+                        var insideTasks = new List<Task>();
+                        foreach (var dbComponentType in dbCategory.ComponentTypes)
+                        {
+                            insideTasks.Add(Task.Run(() =>
+                            {
+                                var componentType = category.ComponentTypes.FirstOrDefault(x => x.Id == dbComponentType.Id);
+                                if (componentType != null)
+                                {
+                                    if (!dbComponentType.Name.Equals(componentType.Name))
+                                    {
+                                        dbComponentType.Name = componentType.Name;
+                                        dbComponentType.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                    }
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(insideTasks);
+                    }));
+
+                    await Task.WhenAll(tasks);
+
+                    if (categoryRepository.Update(dbCategory.Id, dbCategory))
+                    {
+                        return true;
                     }
                     else
                     {
-                        dbCategory.Name = category.Name;
+                        throw new SystemsException("Lỗi trong quá trình cập nhật", nameof(CategoryService));
                     }
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    dbCategory.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                    dbCategory.IsActive = true;
-                    dbCategory.InactiveTime = null;
-                }));
-
-                await Task.WhenAll(tasks);
-
-                if (categoryRepository.Update(dbCategory.Id, dbCategory))
-                {
-                    return true;
                 }
                 else
                 {
-                    throw new SystemsException("Lỗi trong quá trình cập nhật", nameof(CategoryService));
+                    throw new UserException("Không tìm thấy các loại bộ phận của danh mục");
                 }
             }
             else
@@ -126,7 +165,7 @@ namespace Etailor.API.Service.Service
             {
                 var checkChild = Task.Run(() =>
                 {
-                    if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
+                    if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
                     {
                         throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
                     }

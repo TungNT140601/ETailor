@@ -13,6 +13,21 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? EvidenceImage { get; set; }
         public DateTime? FinishTime { get; set; }
     }
+    public class ProductAllTaskVM
+    {
+        public string? Id { get; set; }
+        public string? OrderId { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? Name { get; set; }
+        public string? Note { get; set; }
+        public decimal? Price { get; set; }
+        public int? CurrentStage { get; set; }
+        public int? Status { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? CreatedTime { get; set; }
+        public virtual StaffTaskVM? StaffMaker { get; set; }
+        public virtual ICollection<ProductStagesNeedForTask>? ProductStages { get; set; }
+    }
     public class ProductOrderVM
     {
         public string? Id { get; set; }
@@ -66,7 +81,9 @@ namespace Etailor.API.WebAPI.ViewModels
         public int? Status { get; set; }
         public string? ReferenceProfileBodyId { get; set; }
         public string? FabricMaterialId { get; set; }
+        public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public string? StaffMakerId { get; set; }
+        public StaffTaskVM? StaffMaker { get; set; }
         public int? Index { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
@@ -80,6 +97,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Name { get; set; }
         public int? Status { get; set; }
         public string? FabricMaterialId { get; set; }
+        public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public DateTime? Deadline { get; set; }
         public int? Index { get; set; }
     }

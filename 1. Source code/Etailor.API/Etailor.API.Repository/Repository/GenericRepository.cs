@@ -197,6 +197,41 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
+        public IEnumerable<T> GetAllPagination(Func<T, bool> where, int? pageIndex, int? itemPerPage)
+        {
+            try
+            {
+                if (pageIndex == null || pageIndex < 1)
+                {
+                    pageIndex = 1;
+                }
+                if (itemPerPage == null || itemPerPage < 1)
+                {
+                    itemPerPage = 10;
+                }
+                // Calculate the number of items to skip based on pageIndex and itemPerPage
+                int skipCount = (pageIndex.Value - 1) * itemPerPage.Value;
+
+                // Use Skip and Take correctly to implement pagination
+                return dbSet.Where(where).Skip(skipCount).Take(itemPerPage.Value);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+        public int Count(Func<T, bool> where)
+        {
+            try
+            {
+                return dbSet.Where(where).Count();
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
         public async Task<IEnumerable<T>> GetAllAsync(Func<T, bool> where)
         {
             try
@@ -353,6 +388,22 @@ namespace Etailor.API.Repository.Repository
             try
             {
                 await dBContext.SaveChangesAsync();
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public IEnumerable<T> GetStoreProcedure(string storeProcedure)
+        {
+            try
+            {
+                return dbSet.FromSqlRaw(storeProcedure);
             }
             catch (UserException ex)
             {

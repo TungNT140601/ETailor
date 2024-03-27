@@ -21,8 +21,7 @@ namespace Etailor.API.Service.Interface
 
         Task<ProfileBody> GetProfileBody(string id);
 
-        IEnumerable<ProfileBody> GetProfileBodysOfCustomerId(string? search);
-        IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string? search);
+        IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string customerId);
 
         IEnumerable<ProfileBody> GetProfileBodysByStaffId(string? search);
     }

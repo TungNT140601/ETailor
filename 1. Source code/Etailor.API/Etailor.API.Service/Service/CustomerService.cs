@@ -17,11 +17,9 @@ namespace Etailor.API.Service.Service
     public class CustomerService : ICustomerService
     {
         private readonly ICustomerRepository customerRepository;
-        private readonly ICustomerClientRepository customerClientRepository;
-        public CustomerService(ICustomerRepository customerRepository, ICustomerClientRepository customerClientRepository)
+        public CustomerService(ICustomerRepository customerRepository)
         {
             this.customerRepository = customerRepository;
-            this.customerClientRepository = customerClientRepository;
         }
 
         public async Task<Customer> Login(string emailOrUsername, string password, string ip, string clientToken)
@@ -56,9 +54,7 @@ namespace Etailor.API.Service.Service
                         }
                     });
 
-                    var addCustomerClientTask = Task.Run(() => AddCustomerClient(customer.Id, clientToken, ip));
-
-                    await Task.WhenAll(updateSecretKeyTask, addCustomerClientTask);
+                    await Task.WhenAll(updateSecretKeyTask);
 
                     return customer;
                 }
@@ -77,41 +73,11 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        private void AddCustomerClient(string id, string token, string ip)
-        {
-            var clients = customerClientRepository.GetAll(x => x.Id == id).ToList();
-            var client = clients.FirstOrDefault(c => c.IpAddress == ip);
-            if (client == null)
-            {
-                customerClientRepository.Create(new CustomerClient()
-                {
-                    Id = Ultils.GenGuidString(),
-                    IpAddress = ip,
-                    ClientToken = token,
-                    CustomerId = id,
-                    LastLogin = DateTime.UtcNow.AddHours(7),
-                });
-            }
-            else
-            {
-                if (client.ClientToken != token)
-                {
-                    client.ClientToken = token;
-                    client.LastLogin = DateTime.UtcNow.AddHours(7);
-                }
-                else
-                {
-                    client.LastLogin = DateTime.UtcNow.AddHours(7);
-                }
-                customerClientRepository.Update(client.Id, client);
-            }
-        }
-
         public Customer FindEmail(string email)
         {
             try
             {
-                var cuss = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.IsActive != null && x.IsActive == true)).FirstOrDefault();
+                var cuss = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.IsActive != null && x.IsActive == true))?.FirstOrDefault();
                 return cuss;
             }
             catch (UserException ex)
@@ -132,7 +98,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                return customerRepository.GetAll(x => x.Phone != null && x.Phone == phone && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+                return customerRepository.GetAll(x => x.Phone != null && x.Phone == phone && x.IsActive != null && x.IsActive == true)?.FirstOrDefault();
             }
             catch (UserException ex)
             {
@@ -208,21 +174,71 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool CreateCustomer(Customer customer)
+        public async Task<bool> CreateCustomer(Customer customer)
         {
             try
             {
-                customer.Id = Ultils.GenGuidString();
-                if (!string.IsNullOrEmpty(customer.Password))
-                {
-                    customer.Password = Ultils.HashPassword(customer.Password);
-                }
-                customer.Phone = null;
-                customer.PhoneVerified = false;
-                customer.IsActive = true;
+                var tasks = new List<Task>();
 
-                customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                customer.CreatedTime = null;
+                tasks.Add(Task.Run(() =>
+                {
+                    customer.Id = Ultils.GenGuidString();
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(customer.Email) && string.IsNullOrWhiteSpace(customer.Phone))
+                    {
+                        throw new UserException("Vui lòng nhập email hoặc số điện thoại!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!string.IsNullOrEmpty(customer.Password))
+                    {
+                        customer.Password = Ultils.HashPassword(customer.Password);
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(customer.Phone) && !Ultils.IsValidVietnamesePhoneNumber(customer.Phone))
+                    {
+                        throw new UserException("Số điện thoại không đúng định dạng!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(customer.Email) && !Ultils.IsValidEmail(customer.Email))
+                    {
+                        throw new UserException("Email không đúng định dạng!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (CheckEmailAndPhoneExist(null, customer.Email, customer.Phone))
+                    {
+                        throw new UserException("Email hoặc số điện thoại đã được sử dụng!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    customer.PhoneVerified = true;
+                    customer.EmailVerified = true;
+                    customer.IsActive = true;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                    customer.CreatedTime = DateTime.UtcNow.AddHours(7);
+                }));
+
+                await Task.WhenAll(tasks);
 
                 return customerRepository.Create(customer);
             }
@@ -592,17 +608,17 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        private bool CheckEmailAndPhoneExist(string? id, string email, string phone)
+        private bool CheckEmailAndPhoneExist(string? id, string? email, string? phone)
         {
             try
             {
                 if (id == null)
                 {
-                    return customerRepository.GetAll(x => ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive != null && x.IsActive == true).Any();
+                    return customerRepository.GetAll(x => (x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.IsActive == true).Any();
                 }
                 else
                 {
-                    return customerRepository.GetAll(x => x.Id != id && ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive != null && x.IsActive == true).Any();
+                    return customerRepository.GetAll(x => x.Id != id && ((x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.IsActive == true)).Any();
                 }
             }
             catch (UserException ex)

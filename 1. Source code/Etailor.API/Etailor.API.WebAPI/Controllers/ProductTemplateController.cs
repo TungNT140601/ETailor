@@ -130,12 +130,13 @@ namespace Etailor.API.WebAPI.Controllers
                     var category = mapper.Map<CategoryAllTemplateVM>(categoryService.GetCategory(id));
 
                     var templates = await productTemplateService.GetByCategory(category.Id);
-
-                    foreach (var template in templates)
+                    if (templates != null && templates.Any())
                     {
-                        var templateVM = mapper.Map<ProductTemplateALLVM>(template);
-
-                        category.ProductTemplates.Add(templateVM);
+                        templates = templates.ToList();
+                        foreach (var template in templates)
+                        {
+                            category.ProductTemplates.Add(mapper.Map<ProductTemplateALLVM>(template));
+                        }
                     }
 
                     return Ok(category);

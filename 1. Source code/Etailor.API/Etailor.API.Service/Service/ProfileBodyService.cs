@@ -493,15 +493,9 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public IEnumerable<ProfileBody> GetProfileBodysOfCustomerId(string? search)
+        public IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string customerId)
         {
-
-            return profileBodyRepository.GetAll(x => ((search != null && x.CustomerId != null && x.CustomerId.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
-        }
-
-        public IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string? search)
-        {
-            return profileBodyRepository.GetAll(x => ((search != null && x.CustomerId != null && x.CustomerId.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
+            return profileBodyRepository.GetAll(x => x.CustomerId == customerId && x.IsActive == true);
         }
 
         public IEnumerable<ProfileBody> GetProfileBodysByStaffId(string? search)

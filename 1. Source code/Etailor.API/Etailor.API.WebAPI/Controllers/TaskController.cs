@@ -9,6 +9,7 @@ using Etailor.API.Repository.EntityModels;
 using Etailor.API.Ultity.CommonValue;
 using System.Security.Claims;
 using Etailor.API.Repository.Repository;
+using Newtonsoft.Json;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -88,13 +89,13 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             var task = await taskService.GetTask(id);
 
-                            if (task == null || task.StaffMakerId != staffId)
+                            if (role == RoleName.MANAGER || task.StaffMakerId == staffId)
                             {
-                                return NotFound();
+                                return Ok(mapper.Map<TaskDetailByStaffVM>(task));
                             }
                             else
                             {
-                                return Ok(mapper.Map<TaskDetailByStaffVM>(task));
+                                return NotFound();
                             }
                         }
                     }
@@ -315,7 +316,7 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var check = await taskService.FinishTask(_wwwroot, taskId, stageId, staffId, images);
-                        return check ? Ok() : BadRequest("Kết thúc công việc thất bại");
+                        return check ? Ok("Kết thúc công việc thành công") : BadRequest("Kết thúc công việc thất bại");
                     }
                 }
             }
@@ -359,6 +360,218 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         var check = taskService.PendingTask(taskId, stageId, staffId);
                         return check ? Ok() : BadRequest("Tạm dừng công việc thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpPut("staff/{staffId}/assign/{productId}")]
+        public async Task<IActionResult> AssignTaskToStaff(string productId, string staffId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var check = await taskService.AssignTaskToStaff(productId, staffId);
+                        return check ? Ok("Giao việc thành công") : BadRequest("Giao việc thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpPut("staff/{staffId}/unassign/{productId}")]
+        public async Task<IActionResult> UnAssignTaskToStaff(string productId, string staffId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var check = await taskService.UnAssignStaffTask(productId, staffId);
+                        return check ? Ok("Hủy thành công") : BadRequest("Hủy thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpPut("swap-task/{taskId}")]
+        public async Task<IActionResult> SwapTaskIndex(string taskId, string? staffId, int? index)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrWhiteSpace(staffId) && staffId == "unAssignedTasks")
+                        {
+                            staffId = null;
+                        }
+                        await taskService.SwapTaskIndex(taskId, staffId, index);
+                        return Ok("Đổi thành công");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> TaskDashboard()
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var categorieVMs = mapper.Map<IEnumerable<CategoryAllTaskVM>>((await taskService.GetTaskByCategories())?.OrderBy(x => x.Name));
+                        if (categorieVMs != null && categorieVMs.Any())
+                        {
+                            var categoryTasks = new List<Task>();
+                            foreach (var category in categorieVMs)
+                            {
+                                categoryTasks.Add(Task.Run(async () =>
+                                {
+                                    if (category.ProductTemplates != null && category.ProductTemplates.Any())
+                                    {
+                                        var templateTasks = new List<Task>();
+                                        foreach (var template in category.ProductTemplates)
+                                        {
+                                            templateTasks.Add(Task.Run(() =>
+                                            {
+                                                if (template.Products != null && template.Products.Any())
+                                                {
+                                                    template.TotalTask = template.Products.Count;
+                                                }
+                                                else
+                                                {
+                                                    template.TotalTask = 0;
+                                                }
+                                            }));
+                                        }
+                                        await Task.WhenAll(templateTasks);
+
+                                        category.ProductTemplates = category.ProductTemplates?.OrderByDescending(x => x.TotalTask).ToList();
+
+                                        category.TotalTask = category.ProductTemplates.Sum(x => x.TotalTask);
+                                    }
+                                    else
+                                    {
+                                        category.TotalTask = 0;
+                                    }
+                                }));
+                            }
+                            await Task.WhenAll(categoryTasks);
+
+                            categorieVMs = categorieVMs?.OrderByDescending(x => x.TotalTask).ToList();
+                        }
+                        return Ok(categorieVMs);
                     }
                 }
             }

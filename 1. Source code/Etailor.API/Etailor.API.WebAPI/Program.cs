@@ -25,7 +25,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var time = DateTime.UtcNow.AddHours(7);
 builder.Services.AddCors();
 // Add services to the container.
 
@@ -43,7 +43,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
                 c =>
                 {
-                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1.00.002.0.1" });
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = $"v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}" });
 
                     // Configure Swagger to use JWT authentication
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -152,9 +152,6 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 
-builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
-
-
 builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 
@@ -220,7 +217,7 @@ app.UseAuthentication();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1.00.002.0.1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}");
 });
 
 var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();

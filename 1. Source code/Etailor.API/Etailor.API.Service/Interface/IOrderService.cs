@@ -12,7 +12,7 @@ namespace Etailor.API.Service.Interface
         Task<string> CreateOrder(Order order, string? role);
         Task<string> UpdateOrder(Order order, string? role);
         Task<bool> ApplyDiscount(string orderId, string code);
-        bool DeleteOrder(string id);
+        Task<bool> DeleteOrder(string id);
         Order GetOrder(string id);
         IEnumerable<Order> GetOrders();
         Order GetOrderByCustomer(string cusId, string orderId);
@@ -21,5 +21,6 @@ namespace Etailor.API.Service.Interface
         Task<bool> CheckOrderPaid(string id);
         Task<bool> FinishOrder(string orderId, string role);
         Task<bool> ApproveOrder(string id);
+        Task<bool> UpdateOrderPrice(string id, int price);
     }
 }

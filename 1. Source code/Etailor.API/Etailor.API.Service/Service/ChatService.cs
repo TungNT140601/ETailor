@@ -36,6 +36,11 @@ namespace Etailor.API.Service.Service
 
         public async Task SendChat(string wwwrootPath, string orderId, string? staffId, string? customerId, string? message, List<IFormFile>? images)
         {
+            if (string.IsNullOrWhiteSpace(message) && (images == null || images.Count == 0))
+            {
+                return;
+            }
+
             var order = orderRepository.Get(orderId);
             if (order != null && order.IsActive == true)
             {
@@ -86,20 +91,6 @@ namespace Etailor.API.Service.Service
                         orderChat = orderChats.First();
                     }
 
-                    var chatDetail = new ChatList()
-                    {
-                        ChatId = orderChat.Id,
-                        FromCus = !string.IsNullOrEmpty(customerId),
-                        Id = Ultils.GenGuidString(),
-                        InactiveTime = null,
-                        IsActive = true,
-                        IsRead = false,
-                        Message = message,
-                        ReadTime = null,
-                        ReplierId = !string.IsNullOrEmpty(staffId) ? staffId : null,
-                        SendTime = DateTime.UtcNow.AddHours(7)
-                    };
-
                     if (images != null && images.Count > 0)
                     {
                         var uploadImageTasks = new List<Task>();
@@ -113,23 +104,70 @@ namespace Etailor.API.Service.Service
                         }
                         await Task.WhenAll(uploadImageTasks);
 
-                        chatDetail.Images = JsonConvert.SerializeObject(listImages);
-                    }
-
-                    if (chatListRepository.Create(chatDetail))
-                    {
-                        if (chatDetail.FromCus.Value)
+                        var chatDetailImages = new ChatList()
                         {
-                            await signalRService.CheckMessage(null);
+                            ChatId = orderChat.Id,
+                            FromCus = !string.IsNullOrEmpty(customerId),
+                            Id = Ultils.GenGuidString(),
+                            InactiveTime = null,
+                            IsActive = true,
+                            IsRead = false,
+                            Message = null,
+                            Images = JsonConvert.SerializeObject(listImages),
+                            ReadTime = null,
+                            ReplierId = !string.IsNullOrEmpty(staffId) ? staffId : null,
+                            SendTime = DateTime.UtcNow.AddHours(7)
+                        };
+
+                        if (chatListRepository.Create(chatDetailImages))
+                        {
+                            if (chatDetailImages.FromCus.Value)
+                            {
+                                await signalRService.CheckMessage(null);
+                            }
+                            else
+                            {
+                                await signalRService.CheckMessage(order.CustomerId);
+                            }
                         }
                         else
                         {
-                            await signalRService.CheckMessage(order.CustomerId);
+                            throw new SystemsException("Error When Create Chat List", nameof(ChatService));
                         }
                     }
-                    else
+
+                    if (!string.IsNullOrWhiteSpace(message))
                     {
-                        throw new SystemsException("Error When Create Chat List", nameof(ChatService));
+                        var chatDetail = new ChatList()
+                        {
+                            ChatId = orderChat.Id,
+                            FromCus = !string.IsNullOrEmpty(customerId),
+                            Id = Ultils.GenGuidString(),
+                            InactiveTime = null,
+                            IsActive = true,
+                            IsRead = false,
+                            Message = message,
+                            ReadTime = null,
+                            ReplierId = !string.IsNullOrEmpty(staffId) ? staffId : null,
+                            SendTime = DateTime.UtcNow.AddHours(7)
+                        };
+
+                        if (chatListRepository.Create(chatDetail))
+                        {
+                            if (chatDetail.FromCus.Value)
+                            {
+                                await signalRService.CheckMessage(null);
+                            }
+                            else
+                            {
+                                await signalRService.CheckMessage(order.CustomerId);
+                            }
+                        }
+                        else
+                        {
+                            throw new SystemsException("Error When Create Chat List", nameof(ChatService));
+                        }
+
                     }
                 }
                 else
@@ -164,7 +202,7 @@ namespace Etailor.API.Service.Service
 
                         if (chatLists != null && chatLists.Any())
                         {
-                            chat.ChatLists = chatLists.OrderByDescending(x => x.SendTime).ToList();
+                            chat.ChatLists = chatLists.OrderBy(x => x.SendTime).ToList();
 
                             if (role == RoleName.CUSTOMER)
                             {
