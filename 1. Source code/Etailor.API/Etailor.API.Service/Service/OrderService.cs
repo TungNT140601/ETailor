@@ -759,6 +759,7 @@ namespace Etailor.API.Service.Service
         public IEnumerable<Order> GetOrders()
         {
             var orders = orderRepository.GetAll(x => x.Status >= 1 && x.IsActive == true);
+            //var orders = orderRepository.GetStoreProcedure("GetActiveOrders");
             if (orders != null && orders.Any())
             {
                 return orders.OrderByDescending(x => x.CreatedTime);

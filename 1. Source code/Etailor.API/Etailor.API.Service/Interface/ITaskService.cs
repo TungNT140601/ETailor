@@ -28,5 +28,6 @@ namespace Etailor.API.Service.Interface
         void ResetBlankIndex(string? staffId);
         Task<bool> AssignTaskToStaff(string productId, string staffId);
         Task<bool> UnAssignStaffTask(string productId, string staffId);
+        Task<IEnumerable<Category>> GetTaskByCategories();
     }
 }

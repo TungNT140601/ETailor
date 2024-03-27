@@ -24,7 +24,6 @@ namespace Etailor.API.Service.Service
         private readonly IOrderRepository orderRepository;
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly IComponentRepository componentRepository;
-        private readonly IProductBodySizeService productBodySizeService;
         private readonly IBodySizeRepository bodySizeRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IMaterialRepository materialRepository;
@@ -37,6 +36,7 @@ namespace Etailor.API.Service.Service
         private readonly IStaffRepository staffRepository;
         private readonly IMasteryRepository masteryRepository;
         private readonly IProductBodySizeRepository productBodySizeRepository;
+        private readonly ICategoryRepository categoryRepository;
 
         public TaskService(IProductRepository productRepository, IProductStageRepository productStageRepository
             , IProductComponentRepository productComponentRepository, IOrderRepository orderRepository
@@ -46,7 +46,7 @@ namespace Etailor.API.Service.Service
             , IMaterialTypeRepository materialTypeRepository, ITemplateStateRepository templateStateRepository
             , IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository
             , IProfileBodyRepository profileBodyRepository, IOrderMaterialRepository orderMaterialRepository
-            , IStaffRepository staffRepository, IMasteryRepository masteryRepository)
+            , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository)
         {
             this.productRepository = productRepository;
             this.productStageRepository = productStageRepository;
@@ -66,6 +66,7 @@ namespace Etailor.API.Service.Service
             this.orderMaterialRepository = orderMaterialRepository;
             this.staffRepository = staffRepository;
             this.masteryRepository = masteryRepository;
+            this.categoryRepository = categoryRepository;
         }
 
         public async Task<Product> GetTask(string productId)
@@ -1390,6 +1391,110 @@ namespace Etailor.API.Service.Service
             {
                 throw new UserException("Không tìm thấy sản phẩm");
             }
+        }
+
+        public async Task<IEnumerable<Category>> GetTaskByCategories()
+        {
+            var activeOrders = orderRepository.GetAll(x => x.Status >= 3 && x.Status <= 6 && x.IsActive == true);
+            if (activeOrders != null && activeOrders.Any())
+            {
+                activeOrders = activeOrders.ToList();
+
+                var orderProducts = productRepository.GetAll(x => activeOrders.Select(c => c.Id).Contains(x.OrderId) && x.Status >= 1 && x.Status <= 4 && x.IsActive == true);
+                if (orderProducts != null && orderProducts.Any())
+                {
+                    orderProducts = orderProducts.ToList();
+
+                    var templates = productTemplateRepository.GetAll(x => orderProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
+                    if (templates != null && templates.Any())
+                    {
+                        templates = templates.ToList();
+
+                        var categories = categoryRepository.GetAll(x => templates.Select(c => c.CategoryId).Contains(x.Id) || x.IsActive == true);
+                        if (categories != null && categories.Any())
+                        {
+                            categories = categories.ToList();
+
+                            var templateStages = templateStateRepository.GetAll(x => templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
+                            if (templateStages != null && templateStages.Any())
+                            {
+                                templateStages = templateStages.ToList();
+
+                                var productStages = productStageRepository.GetAll(x => x.IsActive == true && orderProducts.Select(c => c.Id).Contains(x.ProductId) && x.Status >= 1 && x.Status < 4);
+                                if (productStages != null && productStages.Any())
+                                {
+                                    productStages = productStages.ToList();
+
+                                    var staffs = staffRepository.GetAll(x => orderProducts.Select(x => x.StaffMakerId).Contains(x.Id) && x.IsActive == true);
+
+                                    if (staffs != null && staffs.Any())
+                                    {
+                                        staffs = staffs.ToList();
+                                    }
+
+                                    var tasks = new List<Task>();
+                                    foreach (var category in categories)
+                                    {
+                                        tasks.Add(Task.Run(async () =>
+                                        {
+                                            category.ProductTemplates = templates.Where(x => x.CategoryId == category.Id)?.ToList();
+
+                                            if (category.ProductTemplates != null && category.ProductTemplates.Any())
+                                            {
+                                                var categoryTasks = new List<Task>();
+                                                foreach (var template in category.ProductTemplates)
+                                                {
+                                                    categoryTasks.Add(Task.Run(async () =>
+                                                    {
+                                                        template.Products.Clear();
+                                                        template.Products = orderProducts.Where(x => x.ProductTemplateId == template.Id)?.ToList();
+
+                                                        if (template.Products != null && template.Products.Any())
+                                                        {
+                                                            var templateTasks = new List<Task>();
+                                                            foreach (var product in template.Products)
+                                                            {
+                                                                templateTasks.Add(Task.Run(async () =>
+                                                                {
+                                                                    if (product.StaffMakerId != null && staffs != null && staffs.Any())
+                                                                    {
+                                                                        product.StaffMaker = staffs.SingleOrDefault(x => x.Id == product.StaffMakerId);
+
+                                                                        if (product.StaffMaker?.Avatar != null)
+                                                                        {
+                                                                            product.StaffMaker.Avatar = await Ultils.GetUrlImage(product.StaffMaker.Avatar);
+                                                                        }
+                                                                    }
+                                                                    product.ProductStages.Clear();
+                                                                    product.ProductStages.Add(productStages.Where(x => x.ProductId == product.Id)?.OrderBy(x => x.StageNum)?.FirstOrDefault());
+                                                                }));
+                                                            }
+                                                            await Task.WhenAll(templateTasks);
+
+                                                            template.Products = template.Products?.OrderBy(x => x.CreatedTime)?.ToList();
+                                                        }
+
+                                                        template.TemplateStages.Clear();
+                                                        template.TemplateStages = templateStages.Where(x => x.ProductTemplateId == template.Id)?.OrderBy(x => x.StageNum)?.ToList();
+                                                    }));
+                                                }
+                                                await Task.WhenAll(categoryTasks);
+
+                                                category.ProductTemplates = category.ProductTemplates?.OrderBy(x => x.Name)?.ToList();
+                                            }
+                                        }));
+                                    }
+                                    await Task.WhenAll(tasks);
+                                }
+                            }
+
+                            return categories;
+                        }
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

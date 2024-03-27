@@ -20,7 +20,7 @@ namespace Etailor.API.WebAPI.ViewModels
 
     public class ProductStagesNeedForTask
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public string? StaffId { get; set; }
         public string? TemplateStageId { get; set; }
         public string? ProductId { get; set; }

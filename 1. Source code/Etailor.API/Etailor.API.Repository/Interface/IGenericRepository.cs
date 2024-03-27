@@ -27,5 +27,6 @@ namespace Etailor.API.Repository.Interface
         void Detach(string id);
         void SaveChange();
         Task SaveChangeAsync();
+        IEnumerable<T> GetStoreProcedure(string storeProcedure);
     }
 }

@@ -166,7 +166,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var accountId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
 
-                    if ((!staffService.CheckSecrectKey(accountId, secrectKey) && (role == RoleName.STAFF || role == RoleName.MANAGER)) || (!customerService.CheckSecerctKey(accountId, secrectKey) && role == RoleName.CUSTOMER))
+                    if ((role == RoleName.STAFF || role == RoleName.MANAGER) && (!staffService.CheckSecrectKey(accountId, secrectKey)) || (role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(accountId, secrectKey)))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
@@ -273,7 +273,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (!(role == RoleName.CUSTOMER))
+                else if (role == RoleName.ADMIN)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -281,7 +281,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!customerService.CheckSecerctKey(customerId, secrectKey))
+                    if ((role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(customerId, secrectKey)) || (role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(customerId, secrectKey)))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
@@ -295,7 +295,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             var pB = await profileBodyService.GetProfileBody(id);
 
-                            if (pB != null && pB.CustomerId == customerId)
+                            if (pB != null && ((role == RoleName.CUSTOMER && pB.CustomerId == customerId) || role != RoleName.CUSTOMER))
                             {
                                 var profileBody = mapper.Map<GetDetailProfileBodyVM>(pB);
 
@@ -432,7 +432,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
+                        return Ok(mapper.Map<IEnumerable<GetAllProfileBodyOfCustomerVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
                     }
                 }
             }

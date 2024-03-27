@@ -16,4 +16,12 @@ namespace Etailor.API.WebAPI.ViewModels
         public int? StageNum { get; set; }
         public virtual List<ComponentStageVM>? ComponentStages { get; set; }
     }
+    public class TemplateStageAllTaskVM
+    {
+        public string? Id { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? TemplateStageId { get; set; }
+        public string? Name { get; set; }
+        public int? StageNum { get; set; }
+    }
 }

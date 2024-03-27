@@ -111,7 +111,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
+                    if (string.IsNullOrEmpty(customerId) || !staffService.CheckSecrectKey(customerId, secrectKey))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
@@ -165,7 +165,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //{
                 //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
+                //    if (string.IsNullOrEmpty(customerId) || !staffService.CheckSecerctKey(customerId, secrectKey))
                 //    {
                 //        return Unauthorized("Chưa đăng nhập");
                 //    }

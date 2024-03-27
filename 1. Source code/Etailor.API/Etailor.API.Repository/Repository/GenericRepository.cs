@@ -398,5 +398,21 @@ namespace Etailor.API.Repository.Repository
                 throw new SystemsException(ex.Message, nameof(T));
             }
         }
+
+        public IEnumerable<T> GetStoreProcedure(string storeProcedure)
+        {
+            try
+            {
+                return dbSet.FromSqlRaw(storeProcedure);
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
     }
 }
