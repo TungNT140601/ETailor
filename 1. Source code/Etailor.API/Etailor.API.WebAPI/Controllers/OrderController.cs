@@ -157,7 +157,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return orderService.DeleteOrder(id) ? Ok("Hủy hóa đơn thành công") : BadRequest("Hủy hóa đơn thất bại");
+                        return await orderService.DeleteOrder(id) ? Ok("Hủy hóa đơn thành công") : BadRequest("Hủy hóa đơn thất bại");
                     }
                 }
             }
@@ -301,23 +301,34 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (orders != null && orders.Any() && orders.Count() > 0)
                         {
-                            foreach (var order in orders.ToList())
+                            orders = orders.ToList();
+
+                            var listProducts = await productService.GetProductsByOrderIds(orders.Select(x => x.Id).ToList());
+                            if (listProducts != null && listProducts.Any())
                             {
-                                var realOrder = mapper.Map<GetOrderVM>(order);
-                                var listProducts = await productService.GetProductsByOrderId(order.Id);
-                                if (listProducts != null && listProducts.Any() && listProducts.Count() > 0)
+                                listProducts = listProducts.ToList();
+                                var tasks = new List<Task>();
+                                foreach (var order in orders.ToList())
                                 {
-                                    var productTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
-
-                                    if (!string.IsNullOrEmpty(productTemplate.ThumbnailImage))
+                                    tasks.Add(Task.Run(async () =>
                                     {
-                                        productTemplate.ThumbnailImage = await Ultils.GetUrlImage(productTemplate.ThumbnailImage);
-                                    }
+                                        var realOrder = mapper.Map<GetOrderVM>(order);
+                                        var firstProductOrder = listProducts.FirstOrDefault(x => x.OrderId == order.Id);
+                                        if (firstProductOrder != null)
+                                        {
+                                            if (firstProductOrder.ProductTemplate == null)
+                                            {
+                                                firstProductOrder.ProductTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
+                                            }
 
-                                    realOrder.CreatedTime = order.CreatedTime;
-                                    realOrder.ThumbnailImage = productTemplate.ThumbnailImage;
+                                            realOrder.ThumbnailImage = firstProductOrder.ProductTemplate.ThumbnailImage;
+                                        }
+                                        realOrder.CreatedTime = order.CreatedTime;
+
+                                        getOrderVMs.Add(realOrder);
+                                    }));
                                 }
-                                getOrderVMs.Add(realOrder);
+                                await Task.WhenAll(tasks);
                             }
                         }
                         return Ok(getOrderVMs);
@@ -407,6 +418,61 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         return await orderService.ApproveOrder(orderId) ? Ok("Tạo hóa đơn thành công") : BadRequest("Tạo hóa đơn thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPatch("{orderId}/price")]
+        public async Task<IActionResult> ChangeOrderPrice(string orderId, double? price)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (price is null || price == 0)
+                        {
+                            return BadRequest("Giá không được để trống");
+                        }
+                        else if (price < 0)
+                        {
+                            return BadRequest("Giá không được nhỏ hơn 0");
+                        }
+                        else
+                        {
+                            int.TryParse(price.ToString(), out int priceInt);
+
+                            return await orderService.UpdateOrderPrice(orderId, priceInt) ? Ok("Cập nhật giá hóa đơn thành công") : BadRequest("Cập nhật giá hóa đơn thất bại");
+                        }
                     }
                 }
             }

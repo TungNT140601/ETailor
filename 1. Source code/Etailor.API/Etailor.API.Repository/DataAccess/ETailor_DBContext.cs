@@ -24,12 +24,11 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<BodySize> BodySizes { get; set; } = null!;
         public virtual DbSet<Category> Categories { get; set; } = null!;
         public virtual DbSet<Chat> Chats { get; set; } = null!;
-        public virtual DbSet<ChatHistory> ChatHistories { get; set; } = null!;
+        public virtual DbSet<ChatList> ChatLists { get; set; } = null!;
         public virtual DbSet<Component> Components { get; set; } = null!;
         public virtual DbSet<ComponentStage> ComponentStages { get; set; } = null!;
         public virtual DbSet<ComponentType> ComponentTypes { get; set; } = null!;
         public virtual DbSet<Customer> Customers { get; set; } = null!;
-        public virtual DbSet<CustomerClient> CustomerClients { get; set; } = null!;
         public virtual DbSet<Discount> Discounts { get; set; } = null!;
         public virtual DbSet<Mastery> Masteries { get; set; } = null!;
         public virtual DbSet<Material> Materials { get; set; } = null!;
@@ -178,21 +177,21 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.CustomerId).HasMaxLength(30);
+                entity.Property(e => e.OrderId).HasMaxLength(30);
 
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
                 entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
-                entity.HasOne(d => d.Customer)
+                entity.HasOne(d => d.Order)
                     .WithMany(p => p.Chats)
-                    .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__Chat__CustomerId__125EB334");
+                    .HasForeignKey(d => d.OrderId)
+                    .HasConstraintName("FK__Chat__OrderId__125EB334");
             });
 
-            modelBuilder.Entity<ChatHistory>(entity =>
+            modelBuilder.Entity<ChatList>(entity =>
             {
-                entity.ToTable("ChatHistory");
+                entity.ToTable("ChatList");
 
                 entity.Property(e => e.Id).HasMaxLength(30);
 
@@ -208,6 +207,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Message).HasMaxLength(500);
 
+                entity.Property(e => e.Images).HasColumnType("text");
+
                 entity.Property(e => e.ReadTime).HasColumnType("datetime");
 
                 entity.Property(e => e.ReplierId).HasMaxLength(30);
@@ -215,12 +216,12 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.SendTime).HasColumnType("datetime");
 
                 entity.HasOne(d => d.Chat)
-                    .WithMany(p => p.ChatHistories)
+                    .WithMany(p => p.ChatLists)
                     .HasForeignKey(d => d.ChatId)
                     .HasConstraintName("FK__ChatHisto__ChatI__162F4418");
 
                 entity.HasOne(d => d.Replier)
-                    .WithMany(p => p.ChatHistories)
+                    .WithMany(p => p.ChatLists)
                     .HasForeignKey(d => d.ReplierId)
                     .HasConstraintName("FK__ChatHisto__Repli__17236851");
             });
@@ -352,26 +353,6 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.SecrectKeyLogin).HasMaxLength(20);
 
                 entity.Property(e => e.Username).HasMaxLength(255);
-            });
-
-            modelBuilder.Entity<CustomerClient>(entity =>
-            {
-                entity.ToTable("CustomerClient");
-
-                entity.Property(e => e.Id).HasMaxLength(30);
-
-                entity.Property(e => e.ClientToken).HasMaxLength(255);
-
-                entity.Property(e => e.CustomerId).HasMaxLength(30);
-
-                entity.Property(e => e.IpAddress).HasMaxLength(30);
-
-                entity.Property(e => e.LastLogin).HasColumnType("datetime");
-
-                entity.HasOne(d => d.Customer)
-                    .WithMany(p => p.CustomerClients)
-                    .HasForeignKey(d => d.CustomerId)
-                    .HasConstraintName("FK__CustomerC__Custo__2B2A60FE");
             });
 
             modelBuilder.Entity<Discount>(entity =>
@@ -546,7 +527,13 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.CreaterId).HasMaxLength(30);
 
-                entity.Property(e => e.CustomerId).HasMaxLength(30);
+                entity.Property(e => e.CusName).HasMaxLength(100);
+
+                entity.Property(e => e.CusPhone).HasMaxLength(10);
+
+                entity.Property(e => e.CusAddress).HasMaxLength(255);
+
+                entity.Property(e => e.CusEmail).HasMaxLength(255);
 
                 entity.Property(e => e.Deposit).HasColumnType("decimal(18, 0)");
 
@@ -643,6 +630,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.OrderId).HasMaxLength(30);
 
+                entity.Property(e => e.StaffCreateId).HasMaxLength(30);
+
                 entity.Property(e => e.PaymentRefundId).HasMaxLength(30);
 
                 entity.Property(e => e.PayTime).HasColumnType("datetime");
@@ -662,6 +651,11 @@ namespace Etailor.API.Repository.DataAccess
                     .WithMany(d => d.RefundOfPayments)
                     .HasForeignKey(d => d.PaymentRefundId)
                     .HasConstraintName("FK__Payment__PaymentRefund__1A25A48");
+
+                entity.HasOne(d => d.StaffCreate)
+                    .WithMany(d => d.Payments)
+                    .HasForeignKey(d => d.StaffCreateId)
+                    .HasConstraintName("FK__Payment__Staff_Create__1A25A48");
             });
 
             modelBuilder.Entity<Product>(entity =>
@@ -690,6 +684,10 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.OrderId).HasMaxLength(30);
 
+                entity.Property(e => e.StaffMakerId).HasMaxLength(30);
+
+                entity.Property(e => e.Index).HasColumnType("int");
+
                 entity.Property(e => e.FabricMaterialId).HasMaxLength(30);
 
                 entity.Property(e => e.ReferenceProfileBodyId).HasMaxLength(30);
@@ -706,6 +704,11 @@ namespace Etailor.API.Repository.DataAccess
                     .WithMany(p => p.Products)
                     .HasForeignKey(d => d.OrderId)
                     .HasConstraintName("FK__Product__OrderId__6B44E613");
+
+                entity.HasOne(d => d.StaffMaker)
+                    .WithMany(p => p.Products)
+                    .HasForeignKey(d => d.StaffMakerId)
+                    .HasConstraintName("FK__Product__Staff_Maker__6B44E613");
 
                 entity.HasOne(d => d.ReferenceProfileBody)
                     .WithMany(p => p.Products)
@@ -763,6 +766,10 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.ComponentId).HasMaxLength(30);
 
                 entity.Property(e => e.Image).HasColumnType("text");
+
+                entity.Property(e => e.Note).HasColumnType("nvarchar(2550)");
+
+                entity.Property(e => e.NoteImage).HasColumnType("text");
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
@@ -831,6 +838,8 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.TaskIndex).HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.TemplateStageId).HasMaxLength(30);
+
+                entity.Property(e => e.EvidenceImage).HasColumnType("text");
 
                 entity.HasOne(d => d.Product)
                     .WithMany(p => p.ProductStages)

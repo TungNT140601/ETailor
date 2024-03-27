@@ -24,8 +24,17 @@ namespace Etailor.API.WebAPI.ViewModels
         public DateTime? CreatedTime { get; set; }
     }
 
-    public class CreateProfileBodyVM 
+    public class CreateProfileBodyVM
     {
+        public string? Name { get; set; }
+        public string CustomerId { get; set; }
+
+        public List<ValueBodyAttribute> valueBodyAttribute { get; set; }
+    }
+
+    public class UpdateProfileBodyByStaffVM
+    {
+        public string? Id { get; set; }
         public string? Name { get; set; }
         public string CustomerId { get; set; }
 
@@ -35,7 +44,7 @@ namespace Etailor.API.WebAPI.ViewModels
     public class ValueBodyAttribute
     {
         public string Id { get; set; }
-        public decimal Value { get; set; }
+        public decimal? Value { get; set; }
     }
 
     //public class CreateProfileBodyByCustomerVM
@@ -54,19 +63,19 @@ namespace Etailor.API.WebAPI.ViewModels
 
     public class DetailProfileBody
     {
-        public string Id { get; set; }
-        public string? Name { get; set; }
-        public decimal Value { get; set; }
-        public string? Image { get; set; }
+        public string? Id { get; set; }
+        public decimal? Value { get; set; }
 
+        public BodySizeVM? BodySize { get; set; }
     }
 
     public class GetDetailProfileBodyVM
     {
+        public string? Id { get; set; }
         public string? CustomerId { get; set; }
         public string? StaffId { get; set; }
         public string? Name { get; set; }
         public bool? IsLocked { get; set; }
-        public List<DetailProfileBody> valueBodyAttribute { get; set; }
+        public List<DetailProfileBody> BodyAttributes { get; set; }
     }
 }

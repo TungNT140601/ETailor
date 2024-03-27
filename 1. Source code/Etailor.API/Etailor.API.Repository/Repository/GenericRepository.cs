@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -34,7 +35,21 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public async Task<bool> CreateAsync(T entity)
+        {
+            try
+            {
+                dbSet.Add(entity);
+                await dBContext.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -48,7 +63,21 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public async Task<bool> CreateRangeAsync(List<T> entities)
+        {
+            try
+            {
+                dbSet.AddRange(entities);
+                await dBContext.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -56,16 +85,23 @@ namespace Etailor.API.Repository.Repository
         {
             try
             {
-                var data = dbSet.Find(id);
-                if (data == null)
+                if (string.IsNullOrEmpty(id))
                 {
-                    throw new UserException("Not found item: " + id);
+                    return false;
                 }
                 else
                 {
-                    dbSet.Remove(data);
-                    dBContext.SaveChanges();
-                    return true;
+                    var data = dbSet.Find(id);
+                    if (data == null)
+                    {
+                        throw new UserException("Not found item: " + id);
+                    }
+                    else
+                    {
+                        dbSet.Remove(data);
+                        dBContext.SaveChanges();
+                        return true;
+                    }
                 }
             }
             catch (UserException ex)
@@ -74,11 +110,44 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
-        public T Get(string id)
+        public async Task<bool> DeleteAsync(string? id)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    return false;
+                }
+                else
+                {
+                    var data = dbSet.Find(id);
+                    if (data == null)
+                    {
+                        throw new UserException("Not found item: " + id);
+                    }
+                    else
+                    {
+                        dbSet.Remove(data);
+                        await dBContext.SaveChangesAsync();
+                        return true;
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public T Get(string? id)
         {
             try
             {
@@ -93,19 +162,26 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
-        public async Task<T> GetAsync(string id)
+        public async Task<T> GetAsync(string? id)
         {
             try
             {
-                return await dbSet.FindAsync(id);
+                if (string.IsNullOrEmpty(id))
+                {
+                    return null;
+                }
+                else
+                {
+                    return await dbSet.FindAsync(id);
+                }
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -117,21 +193,69 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
-        //public Task<IEnumerable<T>> GetAll(Func<T, bool> where)
-        //{
-        //    try
-        //    {
-        //        return dbSet.Where(where);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        throw new SystemsException(ex.Message);
-        //    }
-        //}
+        public IEnumerable<T> GetAllPagination(Func<T, bool> where, int? pageIndex, int? itemPerPage)
+        {
+            try
+            {
+                if (pageIndex == null || pageIndex < 1)
+                {
+                    pageIndex = 1;
+                }
+                if (itemPerPage == null || itemPerPage < 1)
+                {
+                    itemPerPage = 10;
+                }
+                // Calculate the number of items to skip based on pageIndex and itemPerPage
+                int skipCount = (pageIndex.Value - 1) * itemPerPage.Value;
+
+                // Use Skip and Take correctly to implement pagination
+                return dbSet.Where(where).Skip(skipCount).Take(itemPerPage.Value);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+        public int Count(Func<T, bool> where)
+        {
+            try
+            {
+                return dbSet.Where(where).Count();
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public async Task<IEnumerable<T>> GetAllAsync(Func<T, bool> where)
+        {
+            try
+            {
+                Expression<Func<T, bool>> predicate = x => where(x);
+                return await dbSet.Where(predicate).ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public T FirstOrDefault(Func<T, bool> where)
+        {
+            try
+            {
+                return dbSet.FirstOrDefault(where);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
 
         public bool Update(string id, T entity)
         {
@@ -156,9 +280,73 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
+
+        public async Task<bool> UpdateAsync(string id, T entity)
+        {
+            try
+            {
+                var data = dbSet.Find(id);
+                if (data == null)
+                {
+                    throw new UserException("Not found item: " + id);
+                }
+                else
+                {
+                    dBContext.Entry(data).State = EntityState.Detached;
+                    dbSet.Update(entity);
+                    await dBContext.SaveChangesAsync();
+                    return true;
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public bool UpdateRange(List<T> entities)
+        {
+            try
+            {
+                dbSet.UpdateRange(entities);
+                dBContext.SaveChanges();
+                return true;
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public async Task<bool> UpdateRangeAsync(List<T> entities)
+        {
+            try
+            {
+                dbSet.UpdateRange(entities);
+                await dBContext.SaveChangesAsync();
+                return true;
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
         public void Detach(string id)
         {
             try
@@ -175,7 +363,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
 
@@ -191,7 +379,39 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public async Task SaveChangeAsync()
+        {
+            try
+            {
+                await dBContext.SaveChangesAsync();
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public IEnumerable<T> GetStoreProcedure(string storeProcedure)
+        {
+            try
+            {
+                return dbSet.FromSqlRaw(storeProcedure);
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
             }
         }
     }

@@ -18,9 +18,14 @@ using Etailor.API.Repository;
 using Etailor.API.WebAPI;
 using Hangfire;
 using Hangfire.MemoryStorage;
+using Etailor.API.Ultity.MiddleWare;
+using SixLabors.ImageSharp;
+using Serilog;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var time = DateTime.UtcNow.AddHours(7);
 builder.Services.AddCors();
 // Add services to the container.
 
@@ -38,7 +43,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
                 c =>
                 {
-                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = "v1" });
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = $"v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}" });
 
                     // Configure Swagger to use JWT authentication
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -65,7 +70,15 @@ builder.Services.AddSwaggerGen(
                         });
                 }
 );
-builder.Services.AddHangfire(config => config.UseMemoryStorage());
+
+builder.Services.AddSignalR();
+
+builder.Services.AddSerilog();
+
+builder.Services.AddHangfire(config =>
+{
+    config.UseMemoryStorage();
+});
 
 builder.Services.AddHangfireServer();
 
@@ -113,6 +126,7 @@ builder.Services.AddScoped<IProductStageRepository, ProductStageRepository>();
 builder.Services.AddScoped<IProductStageService, ProductStageService>();
 
 builder.Services.AddScoped<IProductComponentRepository, ProductComponentRepository>();
+builder.Services.AddScoped<IProductComponentService, ProductComponentService>();
 
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderService, OrderService>();
@@ -138,9 +152,6 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IStaffRepository, StaffRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 
-builder.Services.AddScoped<ICustomerClientRepository, CustomerClientRepository>();
-
-
 builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 
@@ -148,7 +159,7 @@ builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
 builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
-//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
+builder.Services.AddScoped<IMaterialCategoryService, MaterialCategoryService>();
 
 builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
@@ -167,6 +178,25 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
 
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+builder.Services.AddScoped<ITaskService, TaskService>();
+
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IChatService, ChatService>();
+
+builder.Services.AddScoped<IChatListRepository, ChatListRepository>();
+
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
+
+builder.Services.AddSingleton<ISignalRService, SignalRService>();
+
+
+builder.Services.AddHostedService<Etailor.API.Service.Service.HostedService>();
+
 
 var credentials = GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY));
 
@@ -174,43 +204,47 @@ FirebaseApp.Create(new AppOptions { Credential = credentials });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
+// Configure Serilog logger
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("./wwwroot/Log/Check/log.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+app.UseAuthorization();
+app.UseAuthentication();
+
+
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ETailor API v1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}");
 });
-//}
 
 var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();
 
 app.UseCors(option =>
 {
-    option.AllowAnyHeader()
+    option
     .WithOrigins(MyAllowSpecificOrigins)
-    .AllowAnyMethod();
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials();
 });
 
 app.UseHangfireDashboard();
 
-RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod1", x => x.SendDemoSchedule(Cron.Daily(0)), Cron.Daily(0));
-RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod2", x => x.SendDemoSchedule(Cron.Hourly(0)), Cron.Hourly(0));
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod3", x => x.SendDemoSchedule(Cron.Hourly(15)), Cron.Hourly(15));
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod4", x => x.SendDemoSchedule(Cron.Hourly(45)), Cron.Hourly(45));
-//RecurringJob.AddOrUpdate<IProductStageService>("DemoRunMethod5", x => x.SendDemoSchedule(Cron.Minutely()), Cron.Minutely());
-
-app.UseHangfireServer();
+app.UseSerilogRequestLogging(); // Optionally add request logging
 
 app.UseStaticFiles();
 
-
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseRouting();
 
-app.MapControllers();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapHub<SignalRHub>("/chatHub");
+    endpoints.MapControllers();
+});
 
 app.Run();

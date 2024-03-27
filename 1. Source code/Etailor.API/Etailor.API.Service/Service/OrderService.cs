@@ -25,10 +25,11 @@ namespace Etailor.API.Service.Service
         private readonly IPaymentRepository paymentRepository;
         private readonly IProductTemplateRepository productTemplaTeRepository;
         private readonly IProductTemplateService productTemplateService;
+        private readonly IProductStageRepository productStageRepository;
 
         public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository,
             IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository,
-            IProductTemplateRepository productTemplaTeRepository, IProductTemplateService productTemplateService)
+            IProductTemplateRepository productTemplaTeRepository, IProductTemplateService productTemplateService, IProductStageRepository productStageRepository)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
@@ -38,6 +39,7 @@ namespace Etailor.API.Service.Service
             this.paymentRepository = paymentRepository;
             this.productTemplaTeRepository = productTemplaTeRepository;
             this.productTemplateService = productTemplateService;
+            this.productStageRepository = productStageRepository;
         }
 
         public async Task<string> CreateOrder(Order order, string? role)
@@ -61,8 +63,8 @@ namespace Etailor.API.Service.Service
                 tasks.Add(Task.Run(() =>
                 {
                     order.Id = Ultils.GenGuidString();
-                    order.CreatedTime = DateTime.Now;
-                    order.LastestUpdatedTime = DateTime.Now;
+                    order.CreatedTime = DateTime.UtcNow.AddHours(7);
+                    order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     order.InactiveTime = null;
                     order.IsActive = false;
                 }));
@@ -109,7 +111,7 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                         dbOrder.InactiveTime = null;
                         dbOrder.IsActive = false;
                     }));
@@ -143,19 +145,21 @@ namespace Etailor.API.Service.Service
                 var orderProducts = productRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
                 if (orderProducts != null && orderProducts.Any())
                 {
+                    orderProducts = orderProducts.ToList();
+
                     var tasks = new List<Task>();
-                    foreach (var product in orderProducts.ToList())
+                    foreach (var product in orderProducts)
                     {
                         tasks.Add(Task.Run(() =>
                         {
                             product.IsActive = false;
-                            product.InactiveTime = DateTime.Now;
+                            product.InactiveTime = DateTime.UtcNow.AddHours(7);
                         }));
                     }
                     await Task.WhenAll(tasks);
 
                     var checks = new List<bool>();
-                    foreach (var product in orderProducts.ToList())
+                    foreach (var product in orderProducts)
                     {
                         checks.Add(productRepository.Update(product.Id, product));
                     }
@@ -174,6 +178,10 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Đơn hàng đã duyệt. Không thể chỉnh sửa");
                 }
+                else if (dbOrder.Status == 0)
+                {
+                    throw new UserException("Hóa đơn đã bị hủy. Không thể cập nhật giá");
+                }
                 else
                 {
                     dbOrder.Status = role == RoleName.STAFF ? 1 : role == RoleName.MANAGER ? 2 : 0;
@@ -186,7 +194,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                     }
                 }
             }
@@ -212,7 +220,7 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.Now || discount.EndDate <= DateTime.Now)
+                        if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.UtcNow.AddHours(7) || discount.EndDate <= DateTime.UtcNow.AddHours(7))
                         {
                             dbOrder.DiscountCode = "";
                             dbOrder.DiscountId = null;
@@ -242,7 +250,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbOrder.CancelTime = null;
                     dbOrder.InactiveTime = null;
                     dbOrder.IsActive = true;
@@ -256,7 +264,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                    throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                 }
             }
             else
@@ -270,7 +278,7 @@ namespace Etailor.API.Service.Service
             var dbOrder = orderRepository.Get(order.Id);
             if (dbOrder != null)
             {
-                if (dbOrder.Status < 2)
+                if (dbOrder.Status < 2 && dbOrder.Status > 0)
                 {
                     var tasks = new List<Task>();
 
@@ -301,7 +309,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (!string.IsNullOrWhiteSpace(order.DiscountCode))
                         {
-                            if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.Now || discount.EndDate <= DateTime.Now)
+                            if (discount == null || discount.IsActive == false || discount.StartDate >= DateTime.UtcNow.AddHours(7) || discount.EndDate <= DateTime.UtcNow.AddHours(7))
                             {
                                 throw new UserException("Mã giảm giá không đúng hoặc hết hạn");
                             }
@@ -314,7 +322,7 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
-                        dbOrder.LastestUpdatedTime = DateTime.Now;
+                        dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                         dbOrder.CancelTime = null;
                         dbOrder.InactiveTime = null;
                         dbOrder.IsActive = true;
@@ -328,7 +336,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                     }
                 }
                 else
@@ -590,9 +598,13 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Hóa đơn đã được duyệt. Không thể duyệt lại hóa đơn");
                 }
+                else if (dbOrder.Status == 0)
+                {
+                    throw new UserException("Hóa đơn đã bị hủy. Không thể cập nhật giá");
+                }
                 else
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbOrder.Status = 2;
                     if (orderRepository.Update(dbOrder.Id, dbOrder))
                     {
@@ -600,7 +612,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn");
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                     }
                 }
             }
@@ -610,7 +622,40 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool DeleteOrder(string id)
+        public async Task<bool> UpdateOrderPrice(string id, int price)
+        {
+            var dbOrder = orderRepository.Get(id);
+            if (dbOrder != null && dbOrder.IsActive == true)
+            {
+                if (dbOrder.Status >= 2)
+                {
+                    throw new UserException("Hóa đơn đã được duyệt. Không thể cập nhật giá");
+                }
+                else if (dbOrder.Status == 0)
+                {
+                    throw new UserException("Hóa đơn đã bị hủy. Không thể cập nhật giá");
+                }
+                else
+                {
+                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                    dbOrder.TotalPrice = price;
+                    if (orderRepository.Update(dbOrder.Id, dbOrder))
+                    {
+                        return await CheckOrderPaid(dbOrder.Id);
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
+                    }
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public async Task<bool> DeleteOrder(string id)
         {
             var dbOrder = orderRepository.Get(id);
             if (dbOrder != null && dbOrder.IsActive == true)
@@ -621,11 +666,73 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.Now;
+                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbOrder.Status = 0;
                     dbOrder.IsActive = false;
 
-                    return orderRepository.Update(dbOrder.Id, dbOrder);
+                    if (orderRepository.Update(dbOrder.Id, dbOrder))
+                    {
+                        var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true);
+                        if (orderProducts != null && orderProducts.Any())
+                        {
+                            orderProducts = orderProducts.ToList();
+
+                            var tasks = new List<Task>();
+
+                            foreach (var product in orderProducts)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    product.IsActive = false;
+                                    product.InactiveTime = DateTime.UtcNow.AddHours(7);
+                                    product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                    product.Status = 0;
+                                }));
+                            }
+
+                            var orderProductsStages = productStageRepository.GetAll(x => orderProducts.Select(x => x.Id).Contains(x.ProductId) && x.IsActive == true);
+                            if (orderProductsStages != null && orderProductsStages.Any())
+                            {
+                                orderProductsStages = orderProductsStages.ToList();
+
+                                foreach (var productStage in orderProductsStages)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        productStage.IsActive = false;
+                                        productStage.InactiveTime = DateTime.UtcNow.AddHours(7);
+                                        productStage.Status = 0;
+                                    }));
+                                }
+                            }
+
+                            await Task.WhenAll(tasks);
+
+                            var checks = new List<bool>();
+
+                            foreach (var product in orderProducts)
+                            {
+                                checks.Add(productRepository.Update(product.Id, product));
+                            }
+                            if (orderProductsStages != null && orderProductsStages.Any())
+                            {
+                                foreach (var productStage in orderProductsStages)
+                                {
+                                    checks.Add(productStageRepository.Update(productStage.Id, productStage));
+                                }
+                            }
+
+                            return !checks.Any(x => x == false);
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình hủy hóa đơn", nameof(OrderService));
+                    }
                 }
             }
             else
@@ -646,12 +753,13 @@ namespace Etailor.API.Service.Service
         }
         public Order GetOrderByCustomer(string cusId, string orderId)
         {
-            return orderRepository.GetAll(x => x.Id == orderId && x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true).FirstOrDefault();
+            var order = orderRepository.Get(orderId);
+            return order == null ? null : order.CustomerId == cusId && order.Status > 1 && order.IsActive == true ? order : null;
         }
-
         public IEnumerable<Order> GetOrders()
         {
-            var orders = orderRepository.GetAll(x => x.Status >= 1);
+            var orders = orderRepository.GetAll(x => x.Status >= 1 && x.IsActive == true);
+            //var orders = orderRepository.GetStoreProcedure("GetActiveOrders");
             if (orders != null && orders.Any())
             {
                 return orders.OrderByDescending(x => x.CreatedTime);

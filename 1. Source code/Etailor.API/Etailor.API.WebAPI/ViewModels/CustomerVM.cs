@@ -10,6 +10,13 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Username { get; set; }
         public string? Email { get; set; }
     }
+    public class CustomerCreateVM
+    {
+        public string? Fullname { get; set; }
+        public string? Address { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
+    }
     public class CustomerAllVM
     {
         public string? Id { get; set; }
@@ -24,6 +31,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public IFormFile? AvatarImage { get; set; }
         public string? Fullname { get; set; }
         public string? Address { get; set; }
+        public string? Phone { get; set; }
         public string? Username { get; set; }
         public string? Email { get; set; }
         public string? Password { get; set; }

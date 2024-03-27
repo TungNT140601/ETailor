@@ -16,6 +16,7 @@ using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Http.Internal;
 using Etailor.API.Ultity.CustomException;
 using System.Globalization;
+using Microsoft.AspNetCore.Hosting;
 
 namespace Etailor.API.Ultity
 {
@@ -157,6 +158,77 @@ namespace Etailor.API.Ultity
                 message.Body += newPass;
                 message.Body += "</b>.</p>\r\n      <p>Để đảm bảo an toàn cho tài khoản của quý khách, vui lòng không chia sẻ <b>Mật Khẩu</b> này với bất kì ai.</p>\r\n    </div>\r\n  </div>\r\n</body>\r\n</html>";
                 message.IsBodyHtml = true;
+
+                var smtpClient = new SmtpClient("smtp.gmail.com")
+                {
+                    Port = 587,
+                    Credentials = new NetworkCredential(fromMail, fromPassword),
+                    EnableSsl = true,
+                };
+
+                smtpClient.Send(message);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+
+        public static void SendErrorToDev(string error)
+        {
+            try
+            {
+                //string fromMail = "tungnt14062001@gmail.com";
+                //string fromPassword = "gblfgbilbwaehjkw"; //"tungnt14062001@gmail.com"
+
+                string fromMail = "tuetailor@gmail.com";
+                string fromPassword = "idpqyvuzktpgstlb"; //"tuetailor@gmail.com"
+
+                //string fromMail = "tudase151149@gmail.com";
+                //string frompassword = "abrxaexoqqpkrjiz"; //"tudase151149@gmail.com"
+
+                MailMessage message = new MailMessage();
+                message.From = new MailAddress(fromMail);
+                message.Subject = "Error Notification Mail From TueTailor";
+                message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
+                message.Body = $"Error at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
+                message.Body += error;
+                message.IsBodyHtml = false;
+
+                var smtpClient = new SmtpClient("smtp.gmail.com")
+                {
+                    Port = 587,
+                    Credentials = new NetworkCredential(fromMail, fromPassword),
+                    EnableSsl = true,
+                };
+
+                smtpClient.Send(message);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+        }
+        public static void SendMessageToDev(string error)
+        {
+            try
+            {
+                //string fromMail = "tungnt14062001@gmail.com";
+                //string fromPassword = "gblfgbilbwaehjkw"; //"tungnt14062001@gmail.com"
+
+                string fromMail = "tuetailor@gmail.com";
+                string fromPassword = "idpqyvuzktpgstlb"; //"tuetailor@gmail.com"
+
+                //string fromMail = "tudase151149@gmail.com";
+                //string frompassword = "abrxaexoqqpkrjiz"; //"tudase151149@gmail.com"
+
+                MailMessage message = new MailMessage();
+                message.From = new MailAddress(fromMail);
+                message.Subject = "Notification Mail From TueTailor";
+                message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
+                message.Body = $"Notification at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
+                message.Body += error;
+                message.IsBodyHtml = false;
 
                 var smtpClient = new SmtpClient("smtp.gmail.com")
                 {
@@ -389,6 +461,28 @@ namespace Etailor.API.Ultity
             var returnString = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
 
             return returnString.Replace(" ", "-");
+        }
+
+        public static void KeepServerAlive(string wwwrootPath)
+        {
+            // Path to your text file
+            string filePath = Path.Combine(wwwrootPath, "Log", "Check", $"Check Log {DateTime.UtcNow.AddHours(7).ToString("yyyy-MM-dd")}.txt");
+
+            try
+            {
+                if (!File.Exists(filePath))
+                {
+                    var file = File.Create(filePath);
+                    file.Close();
+                }
+            }
+            catch (Exception e) { }
+
+            // Open the file in append mode so that it appends new lines
+            using (StreamWriter writer = new StreamWriter(filePath, true))
+            {
+                writer.WriteLine($"Auto Run Function at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}");
+            }
         }
     }
 }

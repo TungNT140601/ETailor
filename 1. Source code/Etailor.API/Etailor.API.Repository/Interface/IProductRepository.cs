@@ -11,5 +11,6 @@ namespace Etailor.API.Repository.Interface
 {
     public interface IProductRepository : IGenericRepository<Product>
     {
+        Task UpdateRangeProduct(List<Product> products);
     }
 }

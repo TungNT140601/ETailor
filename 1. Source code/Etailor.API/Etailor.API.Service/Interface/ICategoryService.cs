@@ -13,6 +13,6 @@ namespace Etailor.API.Service.Interface
         Task<bool> UpdateCategory(Category category);
         Task<bool> DeleteCategory(string id);
         Category GetCategory(string id);
-        IEnumerable<Category> GetCategorys(string? search);
+        Task<IEnumerable<Category>> GetCategorys(string? search);
     }
 }

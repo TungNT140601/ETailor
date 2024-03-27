@@ -10,8 +10,8 @@ namespace Etailor.API.Service.Interface
     public interface ITemplateBodySizeService
     {
         Task<bool> CreateTemplateBodySize(List<string> ids, string templateId);
-        Task<bool> UpdateDraftTemplateBodySize(string wwwroot, List<string> ids, string templateId);
-        Task<bool> UpdateTemplateBodySize(List<TemplateBodySize> templateBodySizes, string templateId);
+        Task<bool> UpdateTemplateBodySize(List<string> ids, string templateId);
         bool DeleteTemplateBodySize(string id);
+        IEnumerable<BodySize> GetTemplateBodySize(string templateId);
     }
 }

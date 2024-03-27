@@ -1,4 +1,6 @@
-﻿namespace Etailor.API.WebAPI.ViewModels
+﻿using Etailor.API.Repository.EntityModels;
+
+namespace Etailor.API.WebAPI.ViewModels
 {
     public class ProductTemplateCreateVM
     {
@@ -22,6 +24,21 @@
         public string? Image { get; set; }
         public string? CollectionImage { get; set; }
         public string? UrlPath { get; set; }
+    }
+    public class ProductTemplateAllTaskVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public int? TotalTask { get; set; } = 0;
+
+        public List<ProductAllTaskVM>? Products { get; set; }
+        public List<TemplateStageAllTaskVM>? TemplateStages { get; set; }
+    }
+    public class ProductTemplateTaskDetailVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? ThumbnailImage { get; set; }
     }
 
 }

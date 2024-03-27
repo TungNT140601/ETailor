@@ -47,8 +47,8 @@ namespace Etailor.API.Service.Service
             await Task.WhenAll(setThumbnail);
 
             
-            bodySize.LastestUpdatedTime = DateTime.Now;
-            bodySize.CreatedTime = DateTime.Now;
+            bodySize.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+            bodySize.CreatedTime = DateTime.UtcNow.AddHours(7);
             bodySize.InactiveTime = null;
             bodySize.IsActive = true;
             return bodySizeRepository.Create(bodySize);
@@ -62,13 +62,13 @@ namespace Etailor.API.Service.Service
                 existBodySize.Name = bodySize.Name;
                 if (image != null)
                 {
-                    existBodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, bodySize.Image);
+                    existBodySize.Image = await Ultils.UploadImage(wwwroot, "BodySize", image, existBodySize.Image);
                 }
                 existBodySize.GuideVideoLink = bodySize.GuideVideoLink;
                 existBodySize.MinValidValue = bodySize.MinValidValue;
                 existBodySize.MaxValidValue = bodySize.MaxValidValue;
 
-                existBodySize.LastestUpdatedTime = DateTime.Now;
+                existBodySize.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 existBodySize.InactiveTime = null;
                 existBodySize.IsActive = true;
 
@@ -85,8 +85,8 @@ namespace Etailor.API.Service.Service
             var existBodySize = bodySizeRepository.Get(id);
             if (existBodySize != null)
             {
-                existBodySize.LastestUpdatedTime = DateTime.Now;
-                existBodySize.InactiveTime = DateTime.Now;
+                existBodySize.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                existBodySize.InactiveTime = DateTime.UtcNow.AddHours(7);
                 existBodySize.IsActive = false;
                 return bodySizeRepository.Update(existBodySize.Id, existBodySize);
             }
@@ -119,24 +119,30 @@ namespace Etailor.API.Service.Service
 
         public async Task<IEnumerable<BodySize>> GetBodySizes(string? search)
         {
-            IEnumerable<BodySize> ListOfBodySize = bodySizeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
-            foreach (BodySize bodySize in ListOfBodySize)
-            {
-                var setThumbnail = Task.Run(async () =>
-                {
-                    if (string.IsNullOrEmpty(bodySize.Image))
-                    {
-                        bodySize.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
-                    }
-                    else
-                    {
-                        bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+            var listOfBodySize = bodySizeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
 
-                    }
-                });
-                await Task.WhenAll(setThumbnail);
-            };
-            return ListOfBodySize;
+            if(listOfBodySize != null && listOfBodySize.Any())
+            {
+                var tasks = new List<Task>();
+                foreach (var bodySize in listOfBodySize)
+                {
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        if (string.IsNullOrEmpty(bodySize.Image))
+                        {
+                            bodySize.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                        }
+                        else
+                        {
+                            bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+
+                        }
+                    }));
+                };
+                await Task.WhenAll(tasks);
+            }
+
+            return listOfBodySize;
         }
     }
 }

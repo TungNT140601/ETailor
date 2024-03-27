@@ -2,6 +2,7 @@
 using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
+using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
@@ -22,8 +23,11 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IProductTemplateService productTemplateService;
         private readonly IOrderService orderService;
         private readonly IMapper mapper;
+        private readonly string wwwrootPath;
 
-        public ProductController(IProductService productService, IProductTemplateService productTemplateService, IOrderService orderService, IMapper mapper, IStaffService staffService, ICustomerService customerService)
+        public ProductController(IProductService productService, IProductTemplateService productTemplateService
+            , IOrderService orderService, IMapper mapper, IStaffService staffService, ICustomerService customerService
+            , IWebHostEnvironment webHost)
         {
             this.productService = productService;
             this.productTemplateService = productTemplateService;
@@ -31,41 +35,71 @@ namespace Etailor.API.WebAPI.Controllers
             this.mapper = mapper;
             this.customerService = customerService;
             this.staffService = staffService;
+            this.wwwrootPath = webHost.WebRootPath;
         }
 
         [HttpPost("{orderId}")]
-        public async Task<IActionResult> AddProduct(string orderId, [FromBody] ProductOrderVM productVM)
+        public async Task<IActionResult> AddProduct(string orderId, [FromForm] ProductOrderVM productVM)
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //if (!staffService.CheckSecrectKey(id, secrectKey))
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else
-                //{
-                //check quantity product
-                var product = mapper.Map<Product>(productVM);
-                var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                var check = await productService.AddProduct(orderId, product, productComponents,
-                    productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
-                    productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
-                return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
-                //}
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var product = mapper.Map<Product>(productVM);
+                        var productComponents = new List<ProductComponent>();
+
+                        if (productVM.ProductComponents != null && productVM.ProductComponents.Any())
+                        {
+                            var tasks = new List<Task>();
+                            foreach (var component in productVM.ProductComponents)
+                            {
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    var productComponent = mapper.Map<ProductComponent>(component);
+                                    if (component.NoteImageFiles != null && component.NoteImageFiles.Any())
+                                    {
+                                        var insideTasks = new List<Task>();
+                                        var images = new List<string>();
+                                        foreach (var image in component.NoteImageFiles)
+                                        {
+                                            insideTasks.Add(Task.Run(async () =>
+                                            {
+                                                var img = await Ultils.UploadImage(wwwrootPath, "Product/Note/Image", image, null);
+                                                images.Add(img);
+                                            }));
+                                        }
+                                        await Task.WhenAll(insideTasks);
+                                        productComponent.NoteImage = JsonConvert.SerializeObject(images);
+                                    }
+                                    productComponents.Add(productComponent);
+                                }));
+                            }
+                            await Task.WhenAll(tasks);
+                        }
+
+                        var check = await productService.AddProduct(orderId, product, productComponents,
+                            productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
+                            productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
+                        return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -82,7 +116,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{orderId}/{productId}")]
-        public async Task<IActionResult> UpdateProduct(string orderId,string productId, [FromBody] ProductOrderVM productVM)
+        public async Task<IActionResult> UpdateProduct(string orderId, string productId, [FromForm] ProductOrderVM productVM)
         {
             try
             {
@@ -218,7 +252,7 @@ namespace Etailor.API.WebAPI.Controllers
                                 {
                                     var componentIds = productComponents.Select(c => c.ComponentId).ToList();
 
-                                    productVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(product.ProductTemplateId).ToList());
+                                    productVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>((await productTemplateService.GetTemplateComponent(product.ProductTemplateId))?.ToList());
 
                                     tasks.Add(Task.Run(() =>
                                     {
@@ -255,7 +289,7 @@ namespace Etailor.API.WebAPI.Controllers
                                                 }
                                                 else if (component.Components != null && component.Components.Any())
                                                 {
-                                                    component.Selected_Component_Id = component.Components.Single(x => componentIds.Contains(x.Id)).Id;
+                                                    component.Selected_Component_Id = component.Components.SingleOrDefault(x => componentIds.Contains(x.Id))?.Id;
                                                 }
                                             }));
                                         }

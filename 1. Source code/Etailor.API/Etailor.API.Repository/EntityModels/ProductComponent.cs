@@ -15,6 +15,8 @@ namespace Etailor.API.Repository.EntityModels
         public string? ProductStageId { get; set; }
         public string? Name { get; set; }
         public string? Image { get; set; }
+        public string? Note { get; set; }
+        public string? NoteImage { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
 
         public virtual Component? Component { get; set; }

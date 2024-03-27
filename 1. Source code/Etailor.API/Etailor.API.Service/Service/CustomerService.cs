@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.WebRequestMethods;
@@ -16,11 +17,9 @@ namespace Etailor.API.Service.Service
     public class CustomerService : ICustomerService
     {
         private readonly ICustomerRepository customerRepository;
-        private readonly ICustomerClientRepository customerClientRepository;
-        public CustomerService(ICustomerRepository customerRepository, ICustomerClientRepository customerClientRepository)
+        public CustomerService(ICustomerRepository customerRepository)
         {
             this.customerRepository = customerRepository;
-            this.customerClientRepository = customerClientRepository;
         }
 
         public async Task<Customer> Login(string emailOrUsername, string password, string ip, string clientToken)
@@ -55,9 +54,7 @@ namespace Etailor.API.Service.Service
                         }
                     });
 
-                    var addCustomerClientTask = Task.Run(() => AddCustomerClient(customer.Id, clientToken, ip));
-
-                    await Task.WhenAll(updateSecretKeyTask, addCustomerClientTask);
+                    await Task.WhenAll(updateSecretKeyTask);
 
                     return customer;
                 }
@@ -68,41 +65,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
-            }
-        }
-
-        private void AddCustomerClient(string id, string token, string ip)
-        {
-            var clients = customerClientRepository.GetAll(x => x.Id == id).ToList();
-            var client = clients.FirstOrDefault(c => c.IpAddress == ip);
-            if (client == null)
-            {
-                customerClientRepository.Create(new CustomerClient()
-                {
-                    Id = Ultils.GenGuidString(),
-                    IpAddress = ip,
-                    ClientToken = token,
-                    CustomerId = id,
-                    LastLogin = DateTime.Now,
-                });
-            }
-            else
-            {
-                if (client.ClientToken != token)
-                {
-                    client.ClientToken = token;
-                    client.LastLogin = DateTime.Now;
-                }
-                else
-                {
-                    client.LastLogin = DateTime.Now;
-                }
-                customerClientRepository.Update(client.Id, client);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -110,7 +77,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var cuss = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.IsActive != null && x.IsActive == true)).FirstOrDefault();
+                var cuss = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.IsActive != null && x.IsActive == true))?.FirstOrDefault();
                 return cuss;
             }
             catch (UserException ex)
@@ -119,11 +86,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -131,7 +98,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                return customerRepository.GetAll(x => x.Phone != null && x.Phone == phone && x.IsActive != null && x.IsActive == true).FirstOrDefault();
+                return customerRepository.GetAll(x => x.Phone != null && x.Phone == phone && x.IsActive != null && x.IsActive == true)?.FirstOrDefault();
             }
             catch (UserException ex)
             {
@@ -139,11 +106,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -159,11 +126,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -179,11 +146,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -199,26 +166,79 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
-        public bool CreateCustomer(Customer customer)
+        public async Task<bool> CreateCustomer(Customer customer)
         {
             try
             {
-                customer.Id = Ultils.GenGuidString();
-                customer.Password = Ultils.HashPassword(customer.Password);
-                customer.Phone = null;
-                customer.PhoneVerified = false;
-                customer.IsActive = true;
+                var tasks = new List<Task>();
 
-                customer.LastestUpdatedTime = DateTime.Now;
-                customer.CreatedTime = null;
+                tasks.Add(Task.Run(() =>
+                {
+                    customer.Id = Ultils.GenGuidString();
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (string.IsNullOrWhiteSpace(customer.Email) && string.IsNullOrWhiteSpace(customer.Phone))
+                    {
+                        throw new UserException("Vui lòng nhập email hoặc số điện thoại!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!string.IsNullOrEmpty(customer.Password))
+                    {
+                        customer.Password = Ultils.HashPassword(customer.Password);
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(customer.Phone) && !Ultils.IsValidVietnamesePhoneNumber(customer.Phone))
+                    {
+                        throw new UserException("Số điện thoại không đúng định dạng!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(customer.Email) && !Ultils.IsValidEmail(customer.Email))
+                    {
+                        throw new UserException("Email không đúng định dạng!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (CheckEmailAndPhoneExist(null, customer.Email, customer.Phone))
+                    {
+                        throw new UserException("Email hoặc số điện thoại đã được sử dụng!!!");
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    customer.PhoneVerified = true;
+                    customer.EmailVerified = true;
+                    customer.IsActive = true;
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                    customer.CreatedTime = DateTime.UtcNow.AddHours(7);
+                }));
+
+                await Task.WhenAll(tasks);
 
                 return customerRepository.Create(customer);
             }
@@ -228,11 +248,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
 
@@ -303,7 +323,7 @@ namespace Etailor.API.Service.Service
 
                 var setUpdateTime = Task.Run(() =>
                 {
-                    dbCustomer.LastestUpdatedTime = DateTime.Now;
+                    dbCustomer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 });
 
                 await Task.WhenAll(checkAddress, checkEmail, checkFullname, checkUsername, setUpdateTime, addAvatar);
@@ -328,7 +348,7 @@ namespace Etailor.API.Service.Service
                 dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
-                dbCustomer.LastestUpdatedTime = DateTime.Now;
+                dbCustomer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
@@ -350,7 +370,7 @@ namespace Etailor.API.Service.Service
                 dbCustomer.OtptimeLimit = customer.OtptimeLimit;
                 dbCustomer.Otpused = customer.Otpused;
 
-                dbCustomer.LastestUpdatedTime = DateTime.Now;
+                dbCustomer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }
@@ -377,9 +397,9 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                if (customer.Otpused == false && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.Now)
+                if (customer.Otpused == false && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.UtcNow.AddHours(7))
                 {
-                    throw new UserException($"Mã xác thực có thể gửi lại sau {customer.OtptimeLimit.Value.AddMinutes(-3).Minute - DateTime.Now.Minute} phút");
+                    throw new UserException($"Mã xác thực có thể gửi lại sau {customer.OtptimeLimit.Value.AddMinutes(-3).Minute - DateTime.UtcNow.AddHours(7).Minute} phút");
                 }
                 else if (customer.Otpused == false)
                 {
@@ -469,7 +489,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        throw new SystemsException("Không thể gửi mail");
+                        throw new SystemsException("Không thể gửi mail", nameof(CustomerService));
                     }
                 }
                 else
@@ -536,8 +556,8 @@ namespace Etailor.API.Service.Service
                                 var setValue = Task.Run(() =>
                                 {
                                     existCus.IsActive = true;
-                                    existCus.CreatedTime = DateTime.Now;
-                                    existCus.LastestUpdatedTime = DateTime.Now;
+                                    existCus.CreatedTime = DateTime.UtcNow.AddHours(7);
+                                    existCus.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                 });
 
                                 await Task.WhenAll(hashPass, uploadAvatar, setAddress, checkUsername, setValue);
@@ -579,8 +599,8 @@ namespace Etailor.API.Service.Service
                         customer.Phone = null;
                         customer.PhoneVerified = false;
                         customer.IsActive = true;
-                        customer.CreatedTime = DateTime.Now;
-                        customer.LastestUpdatedTime = DateTime.Now;
+                        customer.CreatedTime = DateTime.UtcNow.AddHours(7);
+                        customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     });
 
                     return customerRepository.Create(customer);
@@ -588,17 +608,17 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        private bool CheckEmailAndPhoneExist(string? id, string email, string phone)
+        private bool CheckEmailAndPhoneExist(string? id, string? email, string? phone)
         {
             try
             {
                 if (id == null)
                 {
-                    return customerRepository.GetAll(x => ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive != null && x.IsActive == true).Any();
+                    return customerRepository.GetAll(x => (x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.IsActive == true).Any();
                 }
                 else
                 {
-                    return customerRepository.GetAll(x => x.Id != id && ((x.Email != null && x.Email == email) || (x.Phone != null && x.Phone == phone)) && x.IsActive != null && x.IsActive == true).Any();
+                    return customerRepository.GetAll(x => x.Id != id && ((x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.IsActive == true)).Any();
                 }
             }
             catch (UserException ex)
@@ -607,11 +627,11 @@ namespace Etailor.API.Service.Service
             }
             catch (SystemsException ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message);
+                throw new SystemsException(ex.Message, nameof(CustomerService));
             }
         }
     }

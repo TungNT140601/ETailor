@@ -22,6 +22,15 @@ using JsonSerializer = System.Text.Json.JsonSerializer;
 using Etailor.API.Repository.Repository;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.Service.Interface;
+using Microsoft.AspNetCore.SignalR;
+using Hangfire;
+using System.Collections.Concurrent;
+using System.Reflection;
+using Hangfire.MemoryStorage;
+using System.IO.Compression;
+using System.IO;
+using Serilog;
+using Etailor.API.WebAPI.ViewModels;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -33,8 +42,16 @@ namespace Etailor.API.WebAPI.Controllers
         private IConfiguration _configuration;
         private readonly string _wwwrootPath;
         private readonly IProductStageService productStageService;
+        private readonly IProductService productService;
+        private readonly ITaskService taskService;
+        private readonly ISignalRService signalRService;
+        private readonly IBackgroundService backgroundService;
+        private readonly INotificationService notificationService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost
+            , IProductStageService productStageService, ISignalRService signalRService
+            , IProductService productService, IBackgroundService backgroundService
+            , ITaskService taskService, INotificationService notificationService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -42,6 +59,11 @@ namespace Etailor.API.WebAPI.Controllers
 
             _wwwrootPath = webHost.WebRootPath;
             this.productStageService = productStageService;
+            this.productService = productService;
+            this.signalRService = signalRService;
+            this.backgroundService = backgroundService;
+            this.taskService = taskService;
+            this.notificationService = notificationService;
         }
 
         #region SendMail
@@ -482,6 +504,11 @@ namespace Etailor.API.WebAPI.Controllers
                     string filePath = file.FileName.Split(".").Last();
 
                     // Return the file in the response
+                    return Ok(new
+                    {
+                        fileName = file.FileName,
+                        base64String = binaryString
+                    });
                     return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
                 }
             }
@@ -493,14 +520,27 @@ namespace Etailor.API.WebAPI.Controllers
 
         }
 
-        [HttpPost("upload-base64")]
-        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 imageBase64)
+        [HttpPost("change-image-base64")]
+        public async Task<IActionResult> ChangeImageBase64(IFormFile file)
         {
             try
             {
-                var file = Ultils.ConvertBase64ToIFormFile(imageBase64.Base64String, imageBase64.FileName);
-                var objectName = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
-                return Ok(Ultils.GetUrlImage(objectName));
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+
+                // Read the content of the file into a byte array
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    byte[] fileBytes1 = ms.ToArray();
+
+                    // Convert the byte array to a base64-encoded string
+                    string binaryString = Convert.ToBase64String(fileBytes1);
+
+                    return Ok(binaryString);
+                }
             }
             catch (Exception ex)
             {
@@ -508,6 +548,30 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
 
+        }
+
+        [HttpPost("upload-base64")]
+        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 base64)
+        {
+            try
+            {
+                // Read the content of the file into a byte array
+                using (MemoryStream ms = new MemoryStream())
+                {
+
+                    // Convert the base64-encoded string to a byte array
+                    byte[] fileBytes2 = Convert.FromBase64String(base64.Base64String);
+
+                    string filePath = base64.FileName.Split(".").Last();
+                    // Return the file in the response
+                    return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("get-object-name")]
@@ -743,17 +807,266 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost("test-create-product-stage")]
-        public async Task<IActionResult> TestCreateProductStage()
+        [HttpPost("/demo-signalR-new")]
+        public async Task<IActionResult> DemoSignalR(string id, string message)
         {
             try
             {
-                return productStageService.CreateProductStage() ? Ok() : BadRequest();
+                await signalRService.SendNotificationToUser(id, message);
+
+                return Ok(new
+                {
+                    UserId = id,
+                    Message = message
+                });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+        [HttpPost("/demo-signalR-new/vnpay")]
+        public async Task<IActionResult> DemoSignalRvnpay(string message)
+        {
+            try
+            {
+                await signalRService.SendVNPayResult(message);
+                return Ok(new
+                {
+                    Message = message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpGet("/current-client-url")]
+        public IActionResult GetClientUrl()
+        {
+            try
+            {
+                var clientUrl = _configuration.GetValue<string>("Client_Url");
+
+                return Ok(clientUrl);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPut]
+        public IActionResult StopHangfire(string? id)
+        {
+            try
+            {
+                backgroundService.StartSchedule(id);
+
+                return Ok("Hangfire server stopped successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Failed to stop Hangfire server: {ex.Message}");
+            }
+        }
+        [HttpPut]
+        public IActionResult StartHangfire(string? id)
+        {
+            try
+            {
+                backgroundService.StopSchedule(id);
+
+                return Ok("Hangfire server start successfully");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Failed to start Hangfire server: {ex.Message}");
+            }
+        }
+
+        [HttpPut]
+        public IActionResult RunAutoAssignTask()
+        {
+            try
+            {
+                taskService.AutoCreateEmptyTaskProduct();
+                return Ok("Run successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpGet]
+        public IActionResult DemoLogging(string? log)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(log))
+                {
+                    throw new SystemsException(log, nameof(TestController));
+                }
+                else
+                {
+                    return Ok();
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpGet]
+        public async Task<IActionResult> DownloadFile(string? fileName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(fileName))
+                {
+                    fileName = $"log{DateTime.Now.ToString("yyyyMMdd")}.txt";
+                }
+
+                string filePath = Path.Combine(_wwwrootPath, "Log", "Check", fileName);
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("File not found");
+                }
+                else
+                {
+                    var fileNameNew = Path.GetFileNameWithoutExtension(fileName) + "_abc" + Path.GetExtension(fileName);
+                    string filePathNew = Path.Combine(_wwwrootPath, "Log", "Check", fileNameNew);
+
+                    System.IO.File.Copy(filePath, filePathNew, overwrite: true);
+                    if (!System.IO.File.Exists(filePathNew))
+                    {
+                        return NotFound("File not copy");
+                    }
+                    else
+                    {
+                        byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePathNew);
+
+                        System.IO.File.Delete(filePathNew);
+
+                        return File(fileBytes, "application/octet-stream", fileName);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("staff/swap/{staffId}/{productId}")]
+        public async Task<IActionResult> SwapTaskIndex(string staffId, string productId, int index)
+        {
+            try
+            {
+                await taskService.SwapTaskIndex(productId, staffId, index);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("staff/{staffId}/assign/{productId}")]
+        public async Task<IActionResult> AssignTask(string staffId, string productId)
+        {
+            try
+            {
+                await taskService.AssignTaskToStaff(productId, staffId);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("staff/{staffId}/unassign/{productId}")]
+        public async Task<IActionResult> UnAssignTask(string staffId, string productId)
+        {
+            try
+            {
+                await taskService.UnAssignStaffTask(productId, staffId);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("reset-task-index")]
+        public async Task<IActionResult> ResetTaskIndex(string? staffId)
+        {
+            try
+            {
+                taskService.ResetIndex(staffId);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("reset-blank-task-index")]
+        public async Task<IActionResult> ResetBlankTaskIndex(string? staffId)
+        {
+            try
+            {
+                taskService.ResetBlankIndex(staffId);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("chat")]
+        public async Task<IActionResult> SendChat(string? id)
+        {
+            try
+            {
+                await signalRService.CheckMessage(id);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("notification/{id}")]
+        public async Task<IActionResult> SendNotification(string id, string title, string message)
+        {
+            try
+            {
+                var check = await notificationService.AddNotification(title, message, id, RoleName.CUSTOMER);
+
+                return check ? Ok() : BadRequest();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("recieve-form-data")]
+        public async Task<IActionResult> RecieveData([FromForm] List<ProductComponentOrderVM> componentOrderVMs)
+        {
+            return Ok();
         }
     }
     public class Notify

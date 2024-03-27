@@ -1,5 +1,6 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
+using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
@@ -22,6 +23,47 @@ namespace Etailor.API.Service.Service
             this.productTemplateRepository = productTemplateRepository;
             this.componentRepository = componentRepository;
             this.componentTypeRepository = componentTypeRepository;
+        }
+
+        public async Task<Component> GetComponent(string id)
+        {
+            var component = componentRepository.Get(id);
+
+            var setImage = Task.Run(async () =>
+            {
+                if (string.IsNullOrEmpty(component.Image))
+                {
+                    component.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                }
+                else
+                {
+                    component.Image = await Ultils.GetUrlImage(component.Image);
+                }
+            });
+            await Task.WhenAll(setImage);
+
+            return component == null ? null : component.IsActive == true ? component : null;
+        }
+
+        public async Task<IEnumerable<Component>> GetComponents()
+        {
+            IEnumerable<Component> ListOfComponents = componentRepository.GetAll(x => x.IsActive == true);
+            foreach (var component in ListOfComponents)
+            {
+                var setImage = Task.Run(async () =>
+                {
+                    if (string.IsNullOrEmpty(component.Image))
+                    {
+                        component.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                    }
+                    else
+                    {
+                        component.Image = await Ultils.GetUrlImage(component.Image);
+                    }
+                });
+                await Task.WhenAll(setImage);
+            };
+            return ListOfComponents;
         }
 
         public async Task<string> AddComponent(Component component, IFormFile? image, string wwwroot)
@@ -123,7 +165,7 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                component.CreatedTime = DateTime.Now;
+                component.CreatedTime = DateTime.UtcNow.AddHours(7);
                 component.InactiveTime = null;
                 component.IsActive = true;
             }));
@@ -144,7 +186,7 @@ namespace Etailor.API.Service.Service
                 tasks.Add(Task.Run(() =>
                 {
                     dbComponent.IsActive = false;
-                    dbComponent.InactiveTime = DateTime.Now;
+                    dbComponent.InactiveTime = DateTime.UtcNow.AddHours(7);
                     componentRepository.Update(dbComponent.Id, dbComponent);
                 }));
 
@@ -184,7 +226,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    dbComponent.CreatedTime = DateTime.Now;
+                    dbComponent.CreatedTime = DateTime.UtcNow.AddHours(7);
                 }));
 
                 tasks.Add(Task.Run(() =>
@@ -213,7 +255,7 @@ namespace Etailor.API.Service.Service
 
             if (dbComponent != null)
             {
-                dbComponent.InactiveTime = DateTime.Now;
+                dbComponent.InactiveTime = DateTime.UtcNow.AddHours(7);
                 dbComponent.IsActive = false;
 
                 return componentRepository.Update(dbComponent.Id, dbComponent);
@@ -227,10 +269,10 @@ namespace Etailor.API.Service.Service
         public async Task<IEnumerable<Component>> GetAllByComponentType(string componentTypeId, string templateId)
         {
             var components = componentRepository.GetAll(x => x.ComponentTypeId == componentTypeId && x.ProductTemplateId == templateId && x.IsActive == true);
-            if (components.Any())
+            if (components != null && components.Any())
             {
                 var tasks = new List<Task>();
-                foreach (var component in components)
+                foreach (var component in components.ToList())
                 {
                     tasks.Add(Task.Run(async () =>
                     {

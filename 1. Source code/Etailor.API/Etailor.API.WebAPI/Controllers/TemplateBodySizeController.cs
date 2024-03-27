@@ -95,7 +95,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                return (await templateBodySizeService.UpdateDraftTemplateBodySize(_wwwroot, bodySizeIds, templateId)) ? Ok("Cập nhật số đo thành công") : BadRequest("Cập nhật số đo thất bại");
+                return (await templateBodySizeService.UpdateTemplateBodySize(bodySizeIds, templateId)) ? Ok("Cập nhật số đo thành công") : BadRequest("Cập nhật số đo thất bại");
                 //    }
                 //}
             }
@@ -139,6 +139,56 @@ namespace Etailor.API.WebAPI.Controllers
                 return templateBodySizeService.DeleteTemplateBodySize(id) ? Ok("Xóa số đo thành công") : BadRequest("Xóa số đo thất bại");
                 //    }
                 //}
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("template/{templateId}/manager")]
+        public async Task<IActionResult> GetTemplateBodySizes(string templateId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var bodySizes = templateBodySizeService.GetTemplateBodySize(templateId);
+                        if (bodySizes != null)
+                        {
+                            return Ok(mapper.Map<IEnumerable<BodySizeTaskDetailVM>>(bodySizes));
+                        }
+                        else
+                        {
+                            return Ok(new List<BodySizeTaskDetailVM>());
+                        }
+                    }
+                }
             }
             catch (UserException ex)
             {

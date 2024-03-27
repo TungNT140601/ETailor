@@ -2,7 +2,7 @@
 {
     public class BodySizeVM
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public string? BodyPart { get; set; }
         public int? BodyIndex { get; set; }
         public string? Name { get; set; }
@@ -14,7 +14,7 @@
 
     public class CreateUpdateBodySizeVM
     {
-        public string Id { get; set; }
+        public string? Id { get; set; }
         public string? BodyPart { get; set; }
         public int? BodyIndex { get; set; }
         public string? Name { get; set; }
@@ -33,5 +33,10 @@
         public string? GuideVideoLink { get; set; }
         public decimal? MinValidValue { get; set; }
         public decimal? MaxValidValue { get; set; }
+    }
+    public class BodySizeTaskDetailVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
     }
 }

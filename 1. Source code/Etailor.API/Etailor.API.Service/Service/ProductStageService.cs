@@ -43,32 +43,38 @@ namespace Etailor.API.Service.Service
 
         public bool CreateProductStage()
         {
+            // lấy các order ở trạng thái đã duyệt
             var approveOrders = orderRepository.GetAll(x => x.Status == 2 && x.IsActive == true).ToList();
             if (approveOrders != null && approveOrders.Any())
             {
+                // lấy các product của các order đã duyệt
                 var productOrders = productRepository.GetAll(x => approveOrders.Select(o => o.Id).Contains(x.OrderId) && x.Status > 0 && x.IsActive == true);
                 if (productOrders != null && productOrders.Any())
                 {
                     productOrders = productOrders.ToList();
 
+                    // lấy các bản mẫu của các sản product trên
                     var templates = productTemplateRepository.GetAll(x => productOrders.Select(c => c.ProductTemplateId).Contains(x.Id));
 
                     if (templates != null && templates.Any())
                     {
                         templates = templates.ToList();
 
+                        // lấy các bước mẫu của các bản mẫu trên
                         var templateStages = templateStateRepository.GetAll(x => templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
 
                         if (templateStages != null && templateStages.Any())
                         {
                             templateStages = templateStages.ToList();
 
+                            // lấy các bộ phận được xử lý ở trong các bước trên
                             var stageComponents = componentStageRepository.GetAll(x => templateStages.Select(c => c.Id).Contains(x.TemplateStageId));
 
                             if (stageComponents != null && stageComponents.Any())
                             {
                                 stageComponents = stageComponents.ToList();
 
+                                // lấy các kiểu bộ phận của các bộ phận
                                 var components = componentRepository.GetAll(x => templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
                                 if (components != null && components.Any())
                                 {
@@ -80,12 +86,14 @@ namespace Etailor.API.Service.Service
                                     {
                                         if (!string.IsNullOrWhiteSpace(product.SaveOrderComponents))
                                         {
-                                            var productTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+                                            var productTemplate = templates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
                                             if (productTemplate != null)
                                             {
                                                 var productTemplateStagees = templateStages.Where(x => x.ProductTemplateId == product.ProductTemplateId);
                                                 if (productTemplateStagees != null && productTemplateStagees.Any())
                                                 {
+                                                    productTemplateStagees = productTemplateStagees.ToList();
+
                                                     foreach (var stage in productTemplateStagees.OrderBy(x => x.StageNum))
                                                     {
                                                         var productStage = new ProductStage()
@@ -108,15 +116,21 @@ namespace Etailor.API.Service.Service
                                                         var componentTypesInStage = stageComponents.Where(x => x.TemplateStageId == stage.Id);
                                                         if (componentTypesInStage != null && componentTypesInStage.Any())
                                                         {
-                                                            var componentsInStage = components.Where(x => componentTypesInStage.Select(c => c.Id).Contains(x.ComponentTypeId));
+                                                            componentTypesInStage = componentTypesInStage.ToList();
+
+                                                            var componentsInStage = components.Where(x => componentTypesInStage.Select(c => c.ComponentTypeId).Contains(x.ComponentTypeId));
                                                             if (componentsInStage != null && componentsInStage.Any())
                                                             {
+                                                                componentsInStage = componentsInStage.ToList();
+
                                                                 var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(product.SaveOrderComponents);
                                                                 if (productComponents != null && productComponents.Any())
                                                                 {
-                                                                    var productComponent = productComponents.SingleOrDefault(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
+                                                                    var productComponent = productComponents.FirstOrDefault(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
                                                                     if (productComponent != null)
                                                                     {
+                                                                        productComponent.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                                                        productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
                                                                         productComponent.ProductStageId = productStage.Id;
                                                                         productComponent.ProductComponentMaterials = null;
 
@@ -141,7 +155,7 @@ namespace Etailor.API.Service.Service
                 }
             }
 
-            throw new SystemsException("Error some where");
+            throw new SystemsException("Error some where", nameof(ProductStageService));
         }
 
         public void SendDemoSchedule(string hourly)
@@ -157,7 +171,7 @@ namespace Etailor.API.Service.Service
                 //string fromMail = "tudase151149@gmail.com";
                 //string frompassword = "abrxaexoqqpkrjiz"; //"tudase151149@gmail.com"
 
-                var timeNow = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
+                var timeNow = DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss");
                 var timeUTC = DateTime.UtcNow.ToString("yyyy/MM/dd HH:mm:ss");
 
                 MailMessage message = new MailMessage();

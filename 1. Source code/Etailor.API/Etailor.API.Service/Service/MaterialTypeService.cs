@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Etailor.API.Service.Service
 {
@@ -20,13 +21,16 @@ namespace Etailor.API.Service.Service
             this.materialTypeRepository = materialTypeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
         }
-        private bool CheckNameDup(string? id, string name)
-        {
-            return materialTypeRepository.GetAll(x => (id == null || (id != null && x.Id != id)) && (x.Name != null && x.Name.Trim().ToLower() == name.Trim().ToLower()) && x.IsActive == true).Any();
-        }
 
         public async Task<bool> CreateMaterialType(MaterialType materialType)
         {
+            var check = false;
+            if (!string.IsNullOrWhiteSpace(materialType.Name))
+            {
+                var duplicateName = materialTypeRepository.GetAll(x => (x.Name != null && x.Name.Trim().ToLower() == materialType.Name.Trim().ToLower()) && x.IsActive == true);
+                check = duplicateName == null || !duplicateName.Any();
+            }
+
             var tasks = new List<Task>();
 
             tasks.Add(Task.Run(() =>
@@ -35,7 +39,7 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Tên loại nguyên liệu không được để trống");
                 }
-                else if (CheckNameDup(null, materialType.Name))
+                else if (!check)
                 {
                     throw new UserException("Tên loại nguyên liệu đã được sử dụng");
                 }
@@ -56,8 +60,8 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                materialType.LastestUpdatedTime = DateTime.Now;
-                materialType.CreatedTime = DateTime.Now;
+                materialType.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                materialType.CreatedTime = DateTime.UtcNow.AddHours(7);
             }));
 
             tasks.Add(Task.Run(() =>
@@ -76,6 +80,12 @@ namespace Etailor.API.Service.Service
             var dbMaterialType = materialTypeRepository.Get(materialType.Id);
             if (dbMaterialType != null)
             {
+                var check = false;
+                if (!string.IsNullOrWhiteSpace(materialType.Name))
+                {
+                    var duplicateName = materialTypeRepository.GetAll(x => x.Id != dbMaterialType.Id && x.Name != null && x.Name.Trim().ToLower() == materialType.Name.Trim().ToLower() && x.IsActive == true);
+                    check = duplicateName == null || !duplicateName.Any();
+                }
                 var tasks = new List<Task>();
 
                 tasks.Add(Task.Run(() =>
@@ -84,7 +94,7 @@ namespace Etailor.API.Service.Service
                     {
                         throw new UserException("Tên loại nguyên liệu không được để trống");
                     }
-                    else if (CheckNameDup(dbMaterialType.Id, materialType.Name))
+                    else if (!check)
                     {
                         throw new UserException("Tên loại nguyên liệu đã được sử dụng");
                     }
@@ -96,7 +106,19 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    dbMaterialType.LastestUpdatedTime = DateTime.Now;
+                    if (string.IsNullOrWhiteSpace(materialType.Name))
+                    {
+                        throw new UserException("Tên loại nguyên liệu không được để trống");
+                    }
+                    else
+                    {
+                        dbMaterialType.Unit = materialType.Unit;
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    dbMaterialType.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbMaterialType.InactiveTime = null;
                     dbMaterialType.IsActive = true;
                 }));
@@ -131,8 +153,8 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    existMaterial.LastestUpdatedTime = DateTime.Now;
-                    existMaterial.InactiveTime = DateTime.Now;
+                    existMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                    existMaterial.InactiveTime = DateTime.UtcNow.AddHours(7);
                     existMaterial.IsActive = false;
 
                     return materialTypeRepository.Update(existMaterial.Id, existMaterial);

@@ -8,7 +8,9 @@ namespace Etailor.API.Repository.EntityModels
         public Staff()
         {
             Blogs = new HashSet<Blog>();
-            ChatHistories = new HashSet<ChatHistory>();
+            Payments = new HashSet<Payment>();
+            Products = new HashSet<Product>();
+            ChatLists = new HashSet<ChatList>();
             Masteries = new HashSet<Mastery>();
             Notifications = new HashSet<Notification>();
             Orders = new HashSet<Order>();
@@ -32,7 +34,9 @@ namespace Etailor.API.Repository.EntityModels
         public bool? IsActive { get; set; }
 
         public virtual ICollection<Blog> Blogs { get; set; }
-        public virtual ICollection<ChatHistory> ChatHistories { get; set; }
+        public virtual ICollection<Payment> Payments { get; set; }
+        public virtual ICollection<Product> Products { get; set; }
+        public virtual ICollection<ChatList> ChatLists { get; set; }
         public virtual ICollection<Mastery> Masteries { get; set; }
         public virtual ICollection<Notification> Notifications { get; set; }
         public virtual ICollection<Order> Orders { get; set; }

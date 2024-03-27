@@ -13,7 +13,6 @@
     public class CreateBlogVM
     {
         public string? Title { get; set; }
-        //public string? UrlPath { get; set; }
         public string? Content { get; set; }
         public string? Hastag { get; set; }
 
