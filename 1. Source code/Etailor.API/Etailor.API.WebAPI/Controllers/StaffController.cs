@@ -20,14 +20,16 @@ namespace Etailor.API.WebAPI.Controllers
     public class StaffController : ControllerBase
     {
         private readonly IStaffService staffService;
+        private readonly IDashboardService dashboardService;
         private readonly IMapper mapper;
         private readonly string _wwwrootPath;
-        public StaffController(IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost)
+        public StaffController(IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost, IDashboardService dashboardService)
         {
             this.staffService = staffService;
             this.mapper = mapper;
 
             _wwwrootPath = webHost.WebRootPath;
+            this.dashboardService = dashboardService;
         }
 
         [HttpPost()]
@@ -420,6 +422,48 @@ namespace Etailor.API.WebAPI.Controllers
                                 Data = new List<StaffListVM>()
                             });
                         }
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("current-tasks")]
+        public async Task<IActionResult> GetStaffWithTotalTask()
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return Ok(await dashboardService.GetStaffWithTotalTask());
                     }
                 }
             }

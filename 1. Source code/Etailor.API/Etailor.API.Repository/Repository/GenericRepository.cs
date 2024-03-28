@@ -1,6 +1,7 @@
 ﻿using Etailor.API.Repository.DataAccess;
 using Etailor.API.Repository.Interface;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -399,11 +400,26 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
-        public IEnumerable<T> GetStoreProcedure(string storeProcedure)
+        public IEnumerable<T> GetStoreProcedure(string storeProcedure, params SqlParameter[]? parameters)
         {
             try
             {
-                return dbSet.FromSqlRaw(storeProcedure);
+                if (parameters == null || parameters.Length == 0)
+                {
+                    return dbSet.FromSqlRaw(storeProcedure);
+                }
+                else
+                {
+                    var sqlQueryString = $"EXEC {storeProcedure} ";
+                    foreach (var param in parameters)
+                    {
+                        sqlQueryString += $"{param.ParameterName}, ";
+                    }
+
+                    sqlQueryString = sqlQueryString.Remove(sqlQueryString.Length - 2);
+
+                    return dbSet.FromSqlRaw(sqlQueryString, parameters);
+                }
             }
             catch (UserException ex)
             {

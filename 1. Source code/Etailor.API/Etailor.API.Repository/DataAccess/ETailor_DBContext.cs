@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Etailor.API.Repository.EntityModels;
+using Etailor.API.Repository.StoreProcModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
@@ -49,6 +50,10 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<TemplateStage> TemplateStages { get; set; } = null!;
         public virtual DbSet<Staff> Staff { get; set; } = null!;
 
+        #region DashboardModels
+        public virtual DbSet<OrderDashboard> OrderDashboard { get; set; } = null!;
+        public virtual DbSet<StaffWithTotalTask> StaffWithTotalTask { get; set; } = null!;
+        #endregion
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer("server=tungnt-dbcloud.database.windows.net;uid=tungnt;pwd=123456789aA@;database=ETailor_DB;TrustServerCertificate=True;", b => b.MigrationsAssembly("Etailor.API.WebAPI"));
@@ -1023,6 +1028,17 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Username).HasMaxLength(255);
             });
+
+            #region DashboardModelSetting
+            modelBuilder.Entity<OrderDashboard>(entity =>
+            {
+                entity.HasNoKey();
+            });
+            modelBuilder.Entity<StaffWithTotalTask>(entity =>
+            {
+                entity.HasKey(x => x.Id);
+            });
+            #endregion
 
             OnModelCreatingPartial(modelBuilder);
         }

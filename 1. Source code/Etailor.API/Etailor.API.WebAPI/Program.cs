@@ -23,6 +23,8 @@ using SixLabors.ImageSharp;
 using Serilog;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Etailor.API.Repository.Interface.Dashboard;
+using Etailor.API.Repository.Repository.Dashoard;
 
 var builder = WebApplication.CreateBuilder(args);
 var time = DateTime.UtcNow.AddHours(7);
@@ -193,6 +195,14 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
 
 builder.Services.AddScoped<IProductComponentMaterialRepository, ProductComponentMaterialRepository>();
+
+#region Dashboard
+builder.Services.AddScoped<IOrderDashboardRepository, OrderDashoardRepository>();
+builder.Services.AddScoped<IStaffWithTotalTaskRepository, StaffWithTotalTaskRepository>();
+#endregion
+
+
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
