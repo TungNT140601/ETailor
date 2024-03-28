@@ -37,6 +37,7 @@ namespace Etailor.API.Service.Service
         private readonly IMasteryRepository masteryRepository;
         private readonly IProductBodySizeRepository productBodySizeRepository;
         private readonly ICategoryRepository categoryRepository;
+        private readonly IProductComponentMaterialRepository productComponentMaterialRepository;
 
         public TaskService(IProductRepository productRepository, IProductStageRepository productStageRepository
             , IProductComponentRepository productComponentRepository, IOrderRepository orderRepository
@@ -46,7 +47,8 @@ namespace Etailor.API.Service.Service
             , IMaterialTypeRepository materialTypeRepository, ITemplateStateRepository templateStateRepository
             , IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository
             , IProfileBodyRepository profileBodyRepository, IOrderMaterialRepository orderMaterialRepository
-            , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository)
+            , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository
+            , IProductComponentMaterialRepository productComponentMaterialRepository)
         {
             this.productRepository = productRepository;
             this.productStageRepository = productStageRepository;
@@ -67,6 +69,7 @@ namespace Etailor.API.Service.Service
             this.staffRepository = staffRepository;
             this.masteryRepository = masteryRepository;
             this.categoryRepository = categoryRepository;
+            this.productComponentMaterialRepository = productComponentMaterialRepository;
         }
 
         public async Task<Product> GetTask(string productId)
@@ -1495,6 +1498,253 @@ namespace Etailor.API.Service.Service
             }
 
             return null;
+        }
+
+        public bool MaterialDistributionForProductStageComponent(string taskId, string stageId, string componentId, string materialId, decimal quantity)
+        {
+            var product = productRepository.Get(taskId);
+            if (product != null && product.IsActive == true)
+            {
+                switch (product.Status)
+                {
+                    case 0:
+                        throw new UserException("Nhiệm vụ bị hủy");
+                    case 4:
+                        throw new UserException("Nhiệm vụ đã hoàn thành");
+                }
+
+                var order = orderRepository.Get(product.OrderId);
+                if (order != null && order.IsActive == true)
+                {
+                    switch (order.Status)
+                    {
+                        case 0:
+                            throw new UserException("Hóa đơn bị hủy");
+                        case 1:
+                            throw new UserException("Hóa đơn chưa được xác nhận");
+                        case 5:
+                            throw new UserException("Các sản phẩm của hóa đơn đã xong");
+                        case 6:
+                            throw new UserException("Hóa đơn đang chờ khách hàng kiểm thử");
+                        case 7:
+                            throw new UserException("Hóa đơn đã hoàn thành");
+                    }
+
+                    var productStages = productStageRepository.GetAll(x => x.IsActive == true && x.ProductId == taskId && x.Status != 0);
+                    if (productStages != null && productStages.Any())
+                    {
+                        productStages = productStages.ToList();
+                        if (productStages.Any(x => x.Id == stageId))
+                        {
+                            var productStage = productStages.Single(x => x.Id == stageId);
+
+                            var stageComponent = productComponentRepository.GetAll(x => x.ProductStageId == stageId && x.ComponentId == componentId)?.FirstOrDefault();
+
+                            if (stageComponent != null)
+                            {
+                                var material = materialRepository.Get(materialId);
+                                if (material != null && material.IsActive == true)
+                                {
+                                    var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.MaterialId == materialId && x.IsActive == true);
+
+                                    if (orderMaterials != null && orderMaterials.Any())
+                                    {
+                                        orderMaterials = orderMaterials.ToList();
+                                    }
+
+                                    var stageComponentMaterial = productComponentMaterialRepository.GetAll(x => x.ProductComponentId == stageComponent.ComponentId && x.MaterialId == materialId)?.FirstOrDefault();
+                                    if (stageComponentMaterial != null)
+                                    {
+                                        stageComponentMaterial.Quantity += quantity;
+
+                                        if (orderMaterials != null && orderMaterials.Any() && product.FabricMaterialId == materialId)
+                                        {
+                                            if (orderMaterials.Any(x => x.IsCusMaterial == true))
+                                            {
+                                                var cusMaterial = orderMaterials.First(c => c.IsCusMaterial == true);
+                                                if (cusMaterial.Value - cusMaterial.ValueUsed >= quantity)
+                                                {
+                                                    cusMaterial.ValueUsed += quantity;
+                                                    return orderMaterialRepository.Update(cusMaterial.Id, cusMaterial);
+                                                }
+                                                else
+                                                {
+                                                    throw new UserException("Số lượng nguyên vật liệu của khách đưa không đủ");
+                                                }
+                                            }
+                                            else if (orderMaterials.Any(x => x.IsCusMaterial == false))
+                                            {
+                                                var orderMaterial = orderMaterials.First(c => c.IsCusMaterial == false);
+                                                orderMaterial.ValueUsed += quantity;
+                                                orderMaterial.Value += quantity;
+
+                                                if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
+                                                {
+                                                    material.Quantity = material.Quantity - quantity;
+                                                }
+                                                else
+                                                {
+                                                    throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
+                                                }
+                                                if (materialRepository.Update(materialId, material))
+                                                {
+                                                    if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
+                                                    {
+                                                        return productComponentMaterialRepository.Update(stageComponentMaterial.Id, stageComponentMaterial);
+                                                    }
+                                                    else
+                                                    {
+                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService));
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                throw new UserException("Không tìm thấy nguyên vật liệu");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
+                                            {
+                                                material.Quantity = material.Quantity - quantity;
+                                            }
+                                            else
+                                            {
+                                                throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
+                                            }
+                                            if (materialRepository.Update(materialId, material))
+                                            {
+                                                return productComponentMaterialRepository.Update(stageComponentMaterial.Id, stageComponentMaterial);
+                                            }
+                                            else
+                                            {
+                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        stageComponentMaterial = new ProductComponentMaterial
+                                        {
+                                            Id = Ultils.GenGuidString(),
+                                            ProductComponentId = stageComponent.ComponentId,
+                                            MaterialId = materialId,
+                                            Quantity = quantity
+                                        };
+
+                                        if (orderMaterials != null && orderMaterials.Any() && product.FabricMaterialId == materialId)
+                                        {
+                                            if (orderMaterials.Any(x => x.IsCusMaterial == true))
+                                            {
+                                                var cusMaterial = orderMaterials.First(c => c.IsCusMaterial == true);
+                                                if (cusMaterial.Value - cusMaterial.ValueUsed >= quantity)
+                                                {
+                                                    cusMaterial.ValueUsed += quantity;
+                                                    if (orderMaterialRepository.Update(cusMaterial.Id, cusMaterial))
+                                                    {
+                                                        return productComponentMaterialRepository.Create(stageComponentMaterial);
+                                                    }
+                                                    else
+                                                    {
+                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService));
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    throw new UserException("Số lượng nguyên vật liệu của khách đưa không đủ");
+                                                }
+                                            }
+                                            else if (orderMaterials.Any(x => x.IsCusMaterial == false))
+                                            {
+                                                var orderMaterial = orderMaterials.First(c => c.IsCusMaterial == false);
+                                                orderMaterial.ValueUsed += quantity;
+                                                orderMaterial.Value += quantity;
+
+                                                if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
+                                                {
+                                                    material.Quantity = material.Quantity - quantity;
+                                                }
+                                                else
+                                                {
+                                                    throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
+                                                }
+
+                                                if (materialRepository.Update(materialId, material))
+                                                {
+                                                    if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
+                                                    {
+                                                        return productComponentMaterialRepository.Create(stageComponentMaterial);
+                                                    }
+                                                    else
+                                                    {
+                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService));
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                throw new UserException("Không tìm thấy nguyên vật liệu");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
+                                            {
+                                                material.Quantity = material.Quantity - quantity;
+                                            }
+                                            else
+                                            {
+                                                throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
+                                            }
+                                            if (materialRepository.Update(materialId, material))
+                                            {
+                                                return productComponentMaterialRepository.Create(stageComponentMaterial);
+                                            }
+                                            else
+                                            {
+                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    throw new UserException("Không tìm thấy nguyên vật liệu");
+                                }
+                            }
+                            else
+                            {
+                                throw new UserException("Không tìm thấy thành phần");
+                            }
+                        }
+                        else
+                        {
+                            throw new UserException("Không tìm thấy công đoạn");
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Sản phẩm chưa có công đoạn");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy hóa đơn");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy nhiệm vụ");
+            }
         }
     }
 }

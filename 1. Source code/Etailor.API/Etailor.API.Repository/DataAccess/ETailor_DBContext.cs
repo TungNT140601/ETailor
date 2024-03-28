@@ -605,6 +605,10 @@ namespace Etailor.API.Repository.DataAccess
                     .HasColumnType("decimal(18, 3)")
                     .HasDefaultValueSql("((0))");
 
+                entity.Property(e => e.ValueUsed)
+                    .HasColumnType("decimal(18, 3)")
+                    .HasDefaultValueSql("((0))");
+
                 entity.HasOne(d => d.Material)
                     .WithMany(p => p.OrderMaterials)
                     .HasForeignKey(d => d.MaterialId)
