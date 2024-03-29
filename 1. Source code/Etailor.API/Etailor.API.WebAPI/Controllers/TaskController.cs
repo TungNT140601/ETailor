@@ -10,6 +10,7 @@ using Etailor.API.Ultity.CommonValue;
 using System.Security.Claims;
 using Etailor.API.Repository.Repository;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -30,6 +31,7 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ITemplateStageService templateStageService;
         private readonly IProductComponentService productComponentService;
         private readonly IComponentService componentService;
+        private readonly IDashboardService dashboardService;
         private readonly IMapper mapper;
         private readonly string _wwwroot;
 
@@ -38,7 +40,7 @@ namespace Etailor.API.WebAPI.Controllers
             IProfileBodyService profileBodyService, IBodySizeService bodySizeService, IBodyAttributeService bodyAttributeService,
             IMaterialService materialService, IProductTemplateService productTemplateService, ITemplateStageService templateStageService,
             IProductComponentService productComponentService, IComponentService componentService,
-            IMapper mapper, IWebHostEnvironment webHost)
+            IMapper mapper, IWebHostEnvironment webHost, IDashboardService dashboardService)
         {
             this.taskService = taskService;
             this.productService = productService;
@@ -55,6 +57,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.componentService = componentService;
             this.mapper = mapper;
             this._wwwroot = webHost.WebRootPath;
+            this.dashboardService = dashboardService;
         }
 
         [HttpGet("{id}")]

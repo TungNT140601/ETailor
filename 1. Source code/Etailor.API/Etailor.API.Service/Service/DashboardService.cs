@@ -1,8 +1,10 @@
-﻿using Etailor.API.Repository.Interface.Dashboard;
+﻿using Etailor.API.Repository.EntityModels;
+using Etailor.API.Repository.Interface.Dashboard;
 using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Microsoft.Data.SqlClient;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -17,7 +19,8 @@ namespace Etailor.API.Service.Service
         private readonly IOrderDashboardRepository orderDashboardRepository;
         private readonly IStaffWithTotalTaskRepository staffWithTotalTaskRepository;
 
-        public DashboardService(IOrderDashboardRepository orderDashboardRepository, IStaffWithTotalTaskRepository staffWithTotalTaskRepository)
+        public DashboardService(IOrderDashboardRepository orderDashboardRepository
+            , IStaffWithTotalTaskRepository staffWithTotalTaskRepository)
         {
             this.orderDashboardRepository = orderDashboardRepository;
             this.staffWithTotalTaskRepository = staffWithTotalTaskRepository;
