@@ -11,5 +11,9 @@ namespace Etailor.API.Service.Interface
     {
         object GetOrderDashboard(DateTime? date);
         Task<object> GetStaffWithTotalTask();
+        int GetTotalOrder();
+        double GetOrderRate();
+        decimal GetTotalOrderPrice();
+        double GetOrderTotalPriceRate();
     }
 }

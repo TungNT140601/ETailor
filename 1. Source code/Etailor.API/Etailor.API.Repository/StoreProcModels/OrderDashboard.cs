@@ -9,6 +9,7 @@ namespace Etailor.API.Repository.StoreProcModels
     public class OrderDashboard
     {
         public int? Status { get; set; }
-        public int? Total { get; set; } = 0;
+        public int? Total { get; set; }
+        public decimal? TotalPrice { get; set; }
     }
 }

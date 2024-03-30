@@ -1034,9 +1034,10 @@ namespace Etailor.API.Repository.DataAccess
             {
                 entity.HasNoKey();
             });
+
             modelBuilder.Entity<StaffWithTotalTask>(entity =>
             {
-                entity.HasKey(x => x.Id);
+                entity.HasNoKey();
             });
             #endregion
 
