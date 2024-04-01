@@ -26,10 +26,14 @@ namespace Etailor.API.Service.Service
         private readonly IProductTemplateRepository productTemplaTeRepository;
         private readonly IProductTemplateService productTemplateService;
         private readonly IProductStageRepository productStageRepository;
+        private readonly IOrderMaterialRepository orderMaterialRepository;
+        private readonly IMaterialRepository materialRepository;
 
         public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository,
             IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository,
-            IProductTemplateRepository productTemplaTeRepository, IProductTemplateService productTemplateService, IProductStageRepository productStageRepository)
+            IProductTemplateRepository productTemplaTeRepository, IProductTemplateService productTemplateService,
+            IProductStageRepository productStageRepository, IOrderMaterialRepository orderMaterialRepository,
+            IMaterialRepository materialRepository)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
@@ -40,6 +44,8 @@ namespace Etailor.API.Service.Service
             this.productTemplaTeRepository = productTemplaTeRepository;
             this.productTemplateService = productTemplateService;
             this.productStageRepository = productStageRepository;
+            this.orderMaterialRepository = orderMaterialRepository;
+            this.materialRepository = materialRepository;
         }
 
         public async Task<string> CreateOrder(Order order, string? role)
@@ -185,6 +191,16 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     dbOrder.Status = role == RoleName.STAFF ? 1 : role == RoleName.MANAGER ? 2 : 0;
+
+                    if (dbOrder.TotalProduct == 0)
+                    {
+                        throw new UserException("Không thể hoàn thành hóa đơn không có sản phẩm");
+                    }
+
+                    if (dbOrder.PaidMoney == 0)
+                    {
+                        throw new UserException("Không thể hoàn thành hóa đơn chưa thanh toán hoặc chưa đặt cọc");
+                    }
 
                     dbOrder.IsActive = true;
 
@@ -741,20 +757,84 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Order GetOrder(string id)
+        public async Task<Order> GetOrder(string id)
         {
             var order = orderRepository.Get(id);
-            return order == null ? null : order.Status >= 1 ? order : null;
+            if (order != null && order.Status >= 1)
+            {
+                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                if (orderMaterials != null && orderMaterials.Any())
+                {
+                    order.OrderMaterials = orderMaterials.ToList();
+                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    if (materials != null && materials.Any())
+                    {
+                        materials = materials.ToList();
+                        var tasks = new List<Task>();
+                        foreach (var orderMaterial in order.OrderMaterials)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                orderMaterial.Material = materials.FirstOrDefault(x => x.Id == orderMaterial.MaterialId);
+                                if (orderMaterial.Material != null)
+                                {
+                                    orderMaterial.Material.Image = await Ultils.GetUrlImage(orderMaterial.Material.Image);
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+                    }
+                }
+                else
+                {
+                    order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                return order;
+            }
+            return null;
         }
 
         public IEnumerable<Order> GetOrdersByCustomer(string cusId)
         {
             return orderRepository.GetAll(x => x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true);
         }
-        public Order GetOrderByCustomer(string cusId, string orderId)
+        public async Task<Order> GetOrderByCustomer(string cusId, string orderId)
         {
             var order = orderRepository.Get(orderId);
-            return order == null ? null : order.CustomerId == cusId && order.Status > 1 && order.IsActive == true ? order : null;
+            if (order != null && order.IsActive == true && order.Status >= 1 && order.CustomerId == cusId)
+            {
+                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                if (orderMaterials != null && orderMaterials.Any())
+                {
+                    order.OrderMaterials = orderMaterials.ToList();
+                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    if (materials != null && materials.Any())
+                    {
+                        materials = materials.ToList();
+                        var tasks = new List<Task>();
+                        foreach (var orderMaterial in order.OrderMaterials)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                orderMaterial.Material = materials.FirstOrDefault(x => x.Id == orderMaterial.MaterialId);
+                                if (orderMaterial.Material != null)
+                                {
+                                    orderMaterial.Material.Image = await Ultils.GetUrlImage(orderMaterial.Material.Image);
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+                    }
+                }
+                else
+                {
+                    order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                return order;
+            }
+            return null;
         }
         public IEnumerable<Order> GetOrders()
         {

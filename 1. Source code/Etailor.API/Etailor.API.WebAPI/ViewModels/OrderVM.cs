@@ -77,5 +77,6 @@ namespace Etailor.API.WebAPI.ViewModels
         public DiscountOrderDetailVM? Discount { get; set; }
         //public virtual ICollection<Payment> Payments { get; set; }
         public List<ProductListOrderDetailVM>? Products { get; set; }
+        public List<OrderMaterialVM>? OrderMaterials { get; set; }
     }
 }

@@ -10,5 +10,6 @@ namespace Etailor.API.Repository.StoreProcModels
     {
         public static string Get_Order_Dashboard = "GetOrderDashboard";
         public static string Get_Staff_With_Total_Task = "GetStaffWithTotalTask";
+        public static string Get_Order_Chat_List = "GetOrderChatList";
     }
 }

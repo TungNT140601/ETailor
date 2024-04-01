@@ -13,9 +13,9 @@ namespace Etailor.API.Service.Interface
         Task<string> UpdateOrder(Order order, string? role);
         Task<bool> ApplyDiscount(string orderId, string code);
         Task<bool> DeleteOrder(string id);
-        Order GetOrder(string id);
+        Task<Order> GetOrder(string id);
         IEnumerable<Order> GetOrders();
-        Order GetOrderByCustomer(string cusId, string orderId);
+        Task<Order> GetOrderByCustomer(string cusId, string orderId);
         IEnumerable<Order> GetOrdersByCustomer(string cusId);
         Task<bool> PayDeposit(string orderId, decimal amount);
         Task<bool> CheckOrderPaid(string id);

@@ -203,11 +203,11 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (role == RoleName.CUSTOMER)
                         {
-                            order = mapper.Map<OrderDetailVM>(orderService.GetOrderByCustomer(staffid, id));
+                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrderByCustomer(staffid, id));
                         }
                         else
                         {
-                            order = mapper.Map<OrderDetailVM>(orderService.GetOrder(id));
+                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrder(id));
                         }
 
                         if (order != null)
