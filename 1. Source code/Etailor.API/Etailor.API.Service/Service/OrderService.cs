@@ -118,6 +118,14 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
+                        dbOrder.CusAddress = order.CusAddress;
+                        dbOrder.CusEmail = order.CusEmail;
+                        dbOrder.CusName = order.CusName;
+                        dbOrder.CusPhone = order.CusPhone;
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
                         dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                         dbOrder.InactiveTime = null;
                         dbOrder.IsActive = false;

@@ -25,6 +25,10 @@ namespace Etailor.API.WebAPI.ViewModels
     {
         public string? Id { get; set; }
         public string? CustomerId { get; set; }
+        public string? CusName { get; set; }
+        public string? CusPhone { get; set; }
+        public string? CusEmail { get; set; }
+        public string? CusAddress { get; set; }
     }
 
     public class GetOrderVM

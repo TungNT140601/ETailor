@@ -559,17 +559,13 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                // Read the content of the file into a byte array
-                using (MemoryStream ms = new MemoryStream())
+                var file = Ultils.ConvertBase64ToIFormFile(base64.Base64String, base64.FileName);
+                if (file == null || file.Length == 0)
                 {
-
-                    // Convert the base64-encoded string to a byte array
-                    byte[] fileBytes2 = Convert.FromBase64String(base64.Base64String);
-
-                    string filePath = base64.FileName.Split(".").Last();
-                    // Return the file in the response
-                    return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
+                    return BadRequest("Invalid file");
                 }
+                var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", file, null);
+                return Ok(Ultils.GetUrlImage(fileObject));
             }
             catch (Exception ex)
             {

@@ -411,6 +411,7 @@ namespace Etailor.API.Ultity
             {
                 if (IsValidFileName(fileName))
                 {
+                    base64String = base64String.StartsWith("data:") ? base64String.Split(",")[1] : base64String;
                     // Convert Base64 string to byte array
                     byte[] bytes = Convert.FromBase64String(base64String);
 
