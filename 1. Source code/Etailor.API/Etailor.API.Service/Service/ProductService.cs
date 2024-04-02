@@ -135,7 +135,7 @@ namespace Etailor.API.Service.Service
                             if (orderMaterials.Any(x => x.MaterialId == materialId))
                             {
                                 var orderMaterial = orderMaterials.FirstOrDefault(x => x.MaterialId == materialId);
-                                if (orderMaterial.IsCusMaterial.Value)
+                                if (orderMaterial.IsCusMaterial.HasValue && orderMaterial.IsCusMaterial.Value)
                                 {
                                     insideTasks.Add(Task.Run(() =>
                                     {
@@ -562,61 +562,134 @@ namespace Etailor.API.Service.Service
                                     }
                                 }));
 
+                                //tasks.Add(Task.Run(async () =>
+                                //{
+                                //    var tasksSetComponents = new List<Task>();
+
+                                //    var saveOrderComponents = new List<ProductComponent>();
+
+                                //    if (templateComponentTypes != null && templateComponentTypes.Any())
+                                //    {
+                                //        if (templateComponents != null && templateComponents.Any())
+                                //        {
+                                //            foreach (var type in templateComponentTypes)
+                                //            {
+                                //                tasksSetComponents.Add(Task.Run(() =>
+                                //                {
+                                //                    var productComponentAdds = templateComponents.Where(x => x.ComponentTypeId == type.Id && productComponents.Select(c => c.ComponentId).Contains(x.Id));
+                                //                    var component = new Component();
+                                //                    if (productComponentAdds != null && productComponentAdds.Any())
+                                //                    {
+                                //                        if (productComponentAdds.Count() > 1)
+                                //                        {
+                                //                            throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
+                                //                        }
+                                //                        else
+                                //                        {
+                                //                            component = productComponentAdds.First();
+                                //                        }
+                                //                    }
+                                //                    else
+                                //                    {
+                                //                        component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
+                                //                    }
+
+                                //                    if (component != null)
+                                //                    {
+                                //                        saveOrderComponents.Add(new ProductComponent()
+                                //                        {
+                                //                            ComponentId = component.Id,
+                                //                            Id = Ultils.GenGuidString(),
+                                //                            LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                //                            Name = component.Name,
+                                //                            Image = "",
+                                //                            ProductStageId = null
+                                //                        });
+                                //                    }
+                                //                }));
+                                //            }
+                                //        }
+                                //        else
+                                //        {
+                                //            throw new Exception("Không tìm thấy kiểu bộ phận của bản mẫu");
+                                //        }
+                                //    }
+                                //    else
+                                //    {
+                                //        throw new Exception("Không tìm thấy bộ phận của bản mẫu");
+                                //    }
+
+                                //    await Task.WhenAll(tasksSetComponents);
+
+                                //    dbProduct.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
+                                //}));
+
                                 tasks.Add(Task.Run(async () =>
                                 {
                                     var tasksSetComponents = new List<Task>();
 
                                     var saveOrderComponents = new List<ProductComponent>();
 
-                                    if (templateComponentTypes != null && templateComponentTypes.Any())
+                                    if (templateComponentTypes.Any())
                                     {
-                                        if (templateComponents != null && templateComponents.Any())
+                                        foreach (var type in templateComponentTypes)
                                         {
-                                            foreach (var type in templateComponentTypes)
+                                            tasksSetComponents.Add(Task.Run(() =>
                                             {
-                                                tasksSetComponents.Add(Task.Run(() =>
+                                                var productComponentAdds = templateComponents.Where(x => x.ComponentTypeId == type.Id && productComponents.Select(c => c.ComponentId).Contains(x.Id));
+                                                var component = new Component();
+                                                if (productComponentAdds != null && productComponentAdds.Any())
                                                 {
-                                                    var productComponentAdds = templateComponents.Where(x => x.ComponentTypeId == type.Id && productComponents.Select(c => c.ComponentId).Contains(x.Id));
-                                                    var component = new Component();
-                                                    if (productComponentAdds != null && productComponentAdds.Any())
+                                                    if (productComponentAdds.Count() > 1)
                                                     {
-                                                        if (productComponentAdds.Count() > 1)
-                                                        {
-                                                            throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
-                                                        }
-                                                        else
-                                                        {
-                                                            component = productComponentAdds.First();
-                                                        }
+                                                        throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
                                                     }
                                                     else
                                                     {
-                                                        component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
+                                                        component = productComponentAdds.First();
                                                     }
-
-                                                    if (component != null)
+                                                }
+                                                else
+                                                {
+                                                    component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
+                                                }
+                                                if (component != null)
+                                                {
+                                                    saveOrderComponents.Add(new ProductComponent()
                                                     {
-                                                        saveOrderComponents.Add(new ProductComponent()
-                                                        {
-                                                            ComponentId = component.Id,
-                                                            Id = Ultils.GenGuidString(),
-                                                            LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
-                                                            Name = component.Name,
-                                                            Image = "",
-                                                            ProductStageId = null
-                                                        });
-                                                    }
-                                                }));
-                                            }
-                                        }
-                                        else
-                                        {
-                                            throw new Exception("Không tìm thấy kiểu bộ phận của bản mẫu");
+                                                        ComponentId = component.Id,
+                                                        Id = Ultils.GenGuidString(),
+                                                        LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                                        Name = component.Name,
+                                                        Image = "",
+                                                        ProductStageId = null
+                                                    });
+                                                }
+                                            }));
                                         }
                                     }
                                     else
                                     {
-                                        throw new Exception("Không tìm thấy bộ phận của bản mẫu");
+                                        foreach (var type in templateComponentTypes)
+                                        {
+                                            tasksSetComponents.Add(Task.Run(() =>
+                                            {
+                                                var component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
+
+                                                if (component != null)
+                                                {
+                                                    saveOrderComponents.Add(new ProductComponent()
+                                                    {
+                                                        ComponentId = component.Id,
+                                                        Id = Ultils.GenGuidString(),
+                                                        LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                                        Name = component.Name,
+                                                        Image = "",
+                                                        ProductStageId = null
+                                                    });
+                                                }
+                                            }));
+                                        }
                                     }
 
                                     await Task.WhenAll(tasksSetComponents);

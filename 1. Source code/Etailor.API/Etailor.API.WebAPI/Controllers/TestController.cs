@@ -31,6 +31,7 @@ using System.IO.Compression;
 using System.IO;
 using Serilog;
 using Etailor.API.WebAPI.ViewModels;
+using Etailor.API.Repository.DataAccess;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -47,11 +48,13 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ISignalRService signalRService;
         private readonly IBackgroundService backgroundService;
         private readonly INotificationService notificationService;
+        private readonly ETailor_DBContext dBContext;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
-            , ITaskService taskService, INotificationService notificationService)
+            , ITaskService taskService, INotificationService notificationService
+            , ETailor_DBContext dBContext)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -64,6 +67,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.backgroundService = backgroundService;
             this.taskService = taskService;
             this.notificationService = notificationService;
+            this.dBContext = dBContext;
         }
 
         #region SendMail

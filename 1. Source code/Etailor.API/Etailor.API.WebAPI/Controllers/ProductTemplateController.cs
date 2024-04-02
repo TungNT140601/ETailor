@@ -196,117 +196,30 @@ namespace Etailor.API.WebAPI.Controllers
         [HttpPost("create-template")]
         public async Task<IActionResult> CreateTemplate([FromForm] ProductTemplateCreateVM templateCreateVM)
         {
-
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(id, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return Ok(await productTemplateService.AddTemplate(mapper.Map<ProductTemplate>(templateCreateVM), _wwwroot, templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
-                //    }
-                //}
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpPost("{id}/body-size-template")]
-        public async Task<IActionResult> CreateBodySize(string id, [FromBody] List<string>? bodySizes)
-        {
-
-            try
-            {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(id, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return Ok(bodySizes);
-                //    }
-                //}
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
-        [HttpPost("{id}/create-template-stage")]
-        public async Task<IActionResult> CreateStage(string id, [FromBody] TemplateStageCreateVM createVM)
-        {
-
-            try
-            {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(id, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return Ok(createVM);
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return Ok(await productTemplateService.AddTemplate(mapper.Map<ProductTemplate>(templateCreateVM), _wwwroot, templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -328,28 +241,28 @@ namespace Etailor.API.WebAPI.Controllers
 
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(id, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return Ok(await productTemplateService.UpdateTemplate(_wwwroot, mapper.Map<ProductTemplate>(templateCreateVM), templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return Ok(await productTemplateService.UpdateTemplate(_wwwroot, mapper.Map<ProductTemplate>(templateCreateVM), templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -371,28 +284,28 @@ namespace Etailor.API.WebAPI.Controllers
 
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(id, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return Ok(productTemplateService.DeleteTemplate(id));
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return productTemplateService.DeleteTemplate(id) ? Ok("Xóa bản mẫu thành công") : BadRequest("Xóa bản mẫu thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {

@@ -22,5 +22,6 @@ namespace Etailor.API.Service.Interface
         Task<bool> FinishOrder(string orderId, string role);
         Task<bool> ApproveOrder(string id);
         Task<bool> UpdateOrderPrice(string id, int price);
+        Task<bool> UpdateOrderMaterial(List<OrderMaterial> orderMaterials);
     }
 }
