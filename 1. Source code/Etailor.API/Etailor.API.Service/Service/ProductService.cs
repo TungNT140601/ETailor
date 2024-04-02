@@ -342,7 +342,7 @@ namespace Etailor.API.Service.Service
                         throw new UserException("Không tìm thấy kiểu bộ phận");
                     }
 
-                    dbProduct.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
+                    product.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
                 }));
                 #endregion
 
