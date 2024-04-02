@@ -559,13 +559,27 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var file = Ultils.ConvertBase64ToIFormFile(base64.Base64String, base64.FileName);
-                if (file == null || file.Length == 0)
+                var base64String = base64.Base64String.StartsWith("data:") ? base64.Base64String.Split(",")[1] : base64.Base64String;
+                // Convert Base64 string to byte array
+                byte[] bytes = Convert.FromBase64String(base64String);
+
+                // Create a MemoryStream from the byte array
+                using (MemoryStream memoryStream = new MemoryStream(bytes))
                 {
-                    return BadRequest("Invalid file");
+                    // Create an instance of IFormFile
+                    var formFile = new FormFile(memoryStream, 0, bytes.Length, null, base64.FileName)
+                    {
+                        Headers = new HeaderDictionary(),
+                        ContentType = "application/octet-stream" // Set the content type appropriately
+                    };
+
+                    if (formFile == null || formFile.Length == 0)
+                    {
+                        return BadRequest("Invalid file");
+                    }
+                    var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", formFile, null);
+                    return Ok(Ultils.GetUrlImage(fileObject));
                 }
-                var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", file, null);
-                return Ok(Ultils.GetUrlImage(fileObject));
             }
             catch (Exception ex)
             {
