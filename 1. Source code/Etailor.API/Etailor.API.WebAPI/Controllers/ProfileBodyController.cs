@@ -101,52 +101,6 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        //[HttpPut("{id}")]
-        //public async Task<IActionResult> UpdateProfileBody(string id, [FromBody] UpdateProfileBodyVM profileBodyVM)
-        //{
-        //    try
-        //    {
-        //        var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-        //        if (role == null)
-        //        {
-        //            return Unauthorized("Chưa đăng nhập");
-        //        }
-        //        else if (!(role == RoleName.MANAGER || role == RoleName.STAFF))
-        //        {
-        //            return Unauthorized("Không có quyền truy cập");
-        //        }
-        //        else
-        //        {
-        //            var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-        //            var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-        //            if (!staffService.CheckSecrectKey(staffid, secrectKey))
-        //            {
-        //                return Unauthorized("Chưa đăng nhập");
-        //            }
-        //            else
-        //            {
-        //                if (id == null || id != profileBodyVM.Id)
-        //                {
-        //                    return NotFound("Id danh mục không tồn tại");
-        //                }
-        //                return (await profileBodyService.UpdateProfileBody(mapper.Map<ProfileBody>(profileBodyVM))) ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
-        //            }
-        //        }
-        //    }
-        //    catch (UserException ex)
-        //    {
-        //        return BadRequest(ex.Message);
-        //    }
-        //    catch (SystemsException ex)
-        //    {
-        //        return StatusCode(500, ex.Message);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        return StatusCode(500, ex.Message);
-        //    }
-        //}
-
         [HttpPut("customer/{profileBodyId}")]
         public async Task<IActionResult> UpdateProfileBod(string profileBodyId, [FromBody] UpdateProfileBodyByStaffVM updateProfileBodyByStaffVM)
         {
@@ -178,21 +132,26 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            List<(string id, decimal? value)> list = new List<(string id, decimal? value)>();
+                            var listAttribute = new List<BodyAttribute>();
                             var listBodyAttribute = updateProfileBodyByStaffVM.valueBodyAttribute;
+
                             foreach (var item in listBodyAttribute)
                             {
-                                list.Add((item.Id, item.Value));
+                                listAttribute.Add(new BodyAttribute
+                                {
+                                    BodySizeId = item.Id,
+                                    Value = item.Value
+                                }); 
                             }
 
                             if (role == RoleName.STAFF || role == RoleName.MANAGER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByStaff(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
+                                return (await profileBodyService.UpdateProfileBodyByStaff(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, listAttribute, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else if (role == RoleName.CUSTOMER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByCustomer(accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
+                                return (await profileBodyService.UpdateProfileBodyByCustomer(accountId, updateProfileBodyByStaffVM.Name, profileBodyId, listAttribute, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else
