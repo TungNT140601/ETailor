@@ -623,10 +623,15 @@ namespace Etailor.API.Service.Service
                 {
                     if (!string.IsNullOrEmpty(template.Image))
                     {
-                        var listImages = JsonSerializer.Deserialize<List<ImageFileDTO>>(template.Image);
+                        var listImages = JsonSerializer.Deserialize<List<string>>(template.Image);
                         if (listImages != null && listImages.Count() > 0)
                         {
-                            var listUrls = listImages.Select(c => c.ObjectUrl);
+                            var listUrls = new List<string>();
+
+                            foreach (var image in listImages)
+                            {
+                                listUrls.Add(Ultils.GetUrlImage(image));
+                            }
 
                             template.Image = JsonSerializer.Serialize(listUrls);
                         }
