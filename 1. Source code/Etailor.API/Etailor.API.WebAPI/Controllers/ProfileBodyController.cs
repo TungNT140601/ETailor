@@ -141,17 +141,17 @@ namespace Etailor.API.WebAPI.Controllers
                                 {
                                     BodySizeId = item.Id,
                                     Value = item.Value
-                                }); 
+                                });
                             }
 
                             if (role == RoleName.STAFF || role == RoleName.MANAGER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByStaff(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, listAttribute, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
+                                return (await profileBodyService.UpdateProfileBody(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, listAttribute, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else if (role == RoleName.CUSTOMER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByCustomer(accountId, updateProfileBodyByStaffVM.Name, profileBodyId, listAttribute, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
+                                return (await profileBodyService.UpdateProfileBody(accountId, null, updateProfileBodyByStaffVM.Name, profileBodyId, listAttribute, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else

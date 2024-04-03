@@ -14,9 +14,7 @@ namespace Etailor.API.Service.Interface
         Task<bool> CreateProfileBodyByCustomer(string customerId, string name, List<(string id, decimal? value)> bodySizeId);
 
         //Task<bool> UpdateProfileBody(ProfileBody ProfileBody);
-        Task<bool> UpdateProfileBodyByStaff(string customerId, string staffId, string name, string profileBodyId, List<BodyAttribute>? bodyAttributes, ProfileBody profileBody);
-        Task<bool> UpdateProfileBodyByCustomer(string customerId, string name, string profileBodyId, List<BodyAttribute>? bodyAttributes, ProfileBody profileBody);
-
+        Task<bool> UpdateProfileBody(string customerId, string? staffId, string name, string profileBodyId, List<BodyAttribute>? bodyAttributes, ProfileBody profileBody);
         Task<bool> DeleteProfileBody(string id);
 
         Task<ProfileBody> GetProfileBody(string id);
