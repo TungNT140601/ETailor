@@ -578,7 +578,7 @@ namespace Etailor.API.WebAPI.Controllers
                         return BadRequest("Invalid file");
                     }
                     var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", formFile, null);
-                    return Ok(Ultils.GetUrlImage(fileObject));
+                    return Ok(await Ultils.GetUrlImage(fileObject));
                 }
             }
             catch (Exception ex)

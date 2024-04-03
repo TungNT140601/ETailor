@@ -353,6 +353,47 @@ namespace Etailor.API.Ultity
                 return $"Uploads/{generalPath}/{file.FileName}";
             }
         }
+        public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string name,string base64, string? oldName) // Upload 1 image
+        {
+            if (oldName != null && ObjectExistsInStorage(oldName))
+            {
+                DeleteObject(oldName);
+            }
+            //Check if file exist
+            if (!ObjectExistsInStorage($"Uploads/{generalPath}/{name}"))
+            {
+                var fileName = GenGuidString() + Path.GetExtension(name)?.ToLower();
+
+                var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
+
+                var file = ConvertBase64ToIFormFile(base64, name);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Upload to Firebase Storage
+                var bucketName = AppValue.BUCKET_NAME;
+                var objectName = $"Uploads/{generalPath}/{fileName}";
+
+                Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+                using (var fileStream = System.IO.File.OpenRead(filePath))
+                {
+                    uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
+                }
+
+                // Clean up: delete the local file
+                System.IO.File.Delete(filePath);
+
+                return objectName;
+            }
+            else
+            {
+                return $"Uploads/{generalPath}/{name}";
+            }
+        }
 
         public static async Task<string> GetUrlImage(string? objectName) // Get image url
         {

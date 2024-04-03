@@ -39,7 +39,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("{orderId}")]
-        public async Task<IActionResult> AddProduct(string orderId, [FromForm] ProductOrderVM productVM)
+        public async Task<IActionResult> AddProduct(string orderId, [FromBody] ProductOrderVM productVM)
         {
             try
             {
@@ -81,7 +81,7 @@ namespace Etailor.API.WebAPI.Controllers
                                         {
                                             insideTasks.Add(Task.Run(async () =>
                                             {
-                                                var img = await Ultils.UploadImage(wwwrootPath, "Product/Note/Image", image, null);
+                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.FileName, image.FileBase64String, null);
                                                 images.Add(img);
                                             }));
                                         }
@@ -116,38 +116,68 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{orderId}/{productId}")]
-        public async Task<IActionResult> UpdateProduct(string orderId, string productId, [FromForm] ProductOrderVM productVM)
+        public async Task<IActionResult> UpdateProduct(string orderId, string productId, [FromBody] ProductOrderVM productVM)
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var product = mapper.Map<Product>(productVM);
-                product.Id = productId;
-                var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                var check = await productService.UpdateProduct(orderId, product, productComponents,
-                     productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
-                     productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
-                return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var product = mapper.Map<Product>(productVM);
+                        product.Id = productId;
+                        var productComponents = new List<ProductComponent>();
+
+                        if (productVM.ProductComponents != null && productVM.ProductComponents.Any())
+                        {
+                            var tasks = new List<Task>();
+                            foreach (var component in productVM.ProductComponents)
+                            {
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    var productComponent = mapper.Map<ProductComponent>(component);
+                                    if (component.NoteImageFiles != null && component.NoteImageFiles.Any())
+                                    {
+                                        var insideTasks = new List<Task>();
+                                        var images = new List<string>();
+                                        foreach (var image in component.NoteImageFiles)
+                                        {
+                                            insideTasks.Add(Task.Run(async () =>
+                                            {
+                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.FileName, image.FileBase64String, null);
+                                                images.Add(img);
+                                            }));
+                                        }
+                                        await Task.WhenAll(insideTasks);
+                                        productComponent.NoteImage = JsonConvert.SerializeObject(images);
+                                    }
+                                    productComponents.Add(productComponent);
+                                }));
+                            }
+                            await Task.WhenAll(tasks);
+                        }
+
+                        var check = await productService.UpdateProduct(orderId, product, productComponents,
+                             productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
+                             productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
+                        return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -168,32 +198,32 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else
-                //{
-                if (id == null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    return NotFound("Id sản phẩm không tồn tại");
+                    return Unauthorized("Chưa đăng nhập");
                 }
-                return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
-                //    }
-                //}
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (id == null)
+                        {
+                            return NotFound("Id sản phẩm không tồn tại");
+                        }
+                        return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
