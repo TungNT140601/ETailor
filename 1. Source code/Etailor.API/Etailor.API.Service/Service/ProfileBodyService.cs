@@ -478,10 +478,7 @@ namespace Etailor.API.Service.Service
                                 }
                             }));
                         }
-
                         await Task.WhenAll(tasks);
-
-                        profileBody.BodyAttributes = profileBody.BodyAttributes.OrderBy(x => x.BodySize.BodyIndex).ToList();
                     }
                     else
                     {
@@ -502,6 +499,10 @@ namespace Etailor.API.Service.Service
                         await Task.WhenAll(tasks);
                     }
                 }
+                if (profileBody.BodyAttributes != null && profileBody.BodyAttributes.Any())
+                {
+                    profileBody.BodyAttributes = profileBody.BodyAttributes.OrderBy(x => x.BodySize.BodyIndex).OrderBy(x => x.BodySize.Name).ToList();
+                }
 
                 return profileBody;
             }
@@ -511,7 +512,7 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<ProfileBody> GetProfileBodysByCustomerId(string customerId)
         {
-            return profileBodyRepository.GetAll(x => x.CustomerId == customerId && x.IsActive == true);
+            return profileBodyRepository.GetAll(x => x.CustomerId == customerId && x.IsActive == true)?.OrderByDescending(x => x.LastestUpdatedTime);
         }
 
         public IEnumerable<ProfileBody> GetProfileBodysByStaffId(string? search)
