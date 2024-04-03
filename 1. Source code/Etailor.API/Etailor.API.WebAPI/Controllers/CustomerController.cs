@@ -125,7 +125,7 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 tasks.Add(Task.Run(async () =>
                                 {
-                                    customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                                    customer.Avatar = Ultils.GetUrlImage(customer.Avatar);
                                 }));
                             }
                             await Task.WhenAll(tasks);
@@ -174,7 +174,7 @@ namespace Etailor.API.WebAPI.Controllers
                 var customer = mapper.Map<CustomerAllVM>(customerService.FindById(id));
                 if (customer != null)
                 {
-                    customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                    customer.Avatar = Ultils.GetUrlImage(customer.Avatar);
                 }
                 return Ok(customer);
                 //    }
@@ -220,7 +220,7 @@ namespace Etailor.API.WebAPI.Controllers
                         var customer = mapper.Map<CustomerAllVM>(customerService.FindById(customerId));
                         if (customer != null)
                         {
-                            customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                            customer.Avatar = Ultils.GetUrlImage(customer.Avatar);
                         }
                         return Ok(customer);
                     }

@@ -229,7 +229,7 @@ namespace Etailor.API.Service.Service
                                     {
                                         getImageUrlTasks.Add(Task.Run(async () =>
                                         {
-                                            listUrl.Add(await Ultils.GetUrlImage(image));
+                                            listUrl.Add(Ultils.GetUrlImage(image));
                                         }));
                                     }
                                     await Task.WhenAll(getImageUrlTasks);

@@ -452,7 +452,7 @@ namespace Etailor.API.Service.Service
                             {
                                 if (!string.IsNullOrEmpty(bodySize.Image))
                                 {
-                                    bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+                                    bodySize.Image = Ultils.GetUrlImage(bodySize.Image);
                                 }
 
                                 var bodyAttribute = bodyAttributeList.FirstOrDefault(x => x.BodySizeId == bodySize.Id);

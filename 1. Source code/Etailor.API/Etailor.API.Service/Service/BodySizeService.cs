@@ -108,7 +108,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+                    bodySize.Image = Ultils.GetUrlImage(bodySize.Image);
                     
                 }
             });
@@ -134,7 +134,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            bodySize.Image = await Ultils.GetUrlImage(bodySize.Image);
+                            bodySize.Image = Ultils.GetUrlImage(bodySize.Image);
 
                         }
                     }));

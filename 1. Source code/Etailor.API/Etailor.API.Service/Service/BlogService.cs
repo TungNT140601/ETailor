@@ -192,7 +192,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
+                        blog.Thumbnail = Ultils.GetUrlImage(blog.Thumbnail);
                     }
                 });
                 await Task.WhenAll(setThumbnail);
@@ -218,7 +218,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
+                            blog.Thumbnail = Ultils.GetUrlImage(blog.Thumbnail);
                         }
                     });
                     await Task.WhenAll(setThumbnail);

@@ -61,7 +61,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return Ok(new
                 {
                     Name = customer.Fullname ?? "",
-                    Avatar = customer.Avatar != string.Empty ? await Ultils.GetUrlImage(customer.Avatar) : "",
+                    Avatar = customer.Avatar != string.Empty ? Ultils.GetUrlImage(customer.Avatar) : "",
                     Token = Ultils.GetToken(customer.Id, customer.Fullname ?? string.Empty, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration)
                 });
             }
@@ -333,7 +333,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF,
                     Name = staff.Fullname ?? string.Empty,
-                    Avatar = staff.Avatar != string.Empty ? await Ultils.GetUrlImage(staff.Avatar) : "",
+                    Avatar = staff.Avatar != string.Empty ? Ultils.GetUrlImage(staff.Avatar) : "",
                     Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration)
                 });
             }
@@ -432,7 +432,7 @@ namespace Etailor.API.WebAPI.Controllers
                         return Ok(new
                         {
                             Name = staff.Fullname ?? string.Empty,
-                            Avatar = staff.Avatar != string.Empty ? await Ultils.GetUrlImage(staff.Avatar) : "",
+                            Avatar = staff.Avatar != string.Empty ? Ultils.GetUrlImage(staff.Avatar) : "",
                             Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration),
                             Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF
                         });
@@ -443,7 +443,7 @@ namespace Etailor.API.WebAPI.Controllers
                     return Ok(new
                     {
                         Name = customer.Fullname ?? "",
-                        Avatar = customer.Avatar != string.Empty ? await Ultils.GetUrlImage(customer.Avatar) : "",
+                        Avatar = customer.Avatar != string.Empty ? Ultils.GetUrlImage(customer.Avatar) : "",
                         Token = Ultils.GetToken(customer.Id, customer.Fullname ?? string.Empty, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration),
                         Role = RoleName.CUSTOMER
                     });

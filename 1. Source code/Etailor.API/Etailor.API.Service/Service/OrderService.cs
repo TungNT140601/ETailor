@@ -787,7 +787,7 @@ namespace Etailor.API.Service.Service
                                 orderMaterial.Material = materials.FirstOrDefault(x => x.Id == orderMaterial.MaterialId);
                                 if (orderMaterial.Material != null)
                                 {
-                                    orderMaterial.Material.Image = await Ultils.GetUrlImage(orderMaterial.Material.Image);
+                                    orderMaterial.Material.Image = Ultils.GetUrlImage(orderMaterial.Material.Image);
                                 }
                             }));
                         }
@@ -829,7 +829,7 @@ namespace Etailor.API.Service.Service
                                 orderMaterial.Material = materials.FirstOrDefault(x => x.Id == orderMaterial.MaterialId);
                                 if (orderMaterial.Material != null)
                                 {
-                                    orderMaterial.Material.Image = await Ultils.GetUrlImage(orderMaterial.Material.Image);
+                                    orderMaterial.Material.Image = Ultils.GetUrlImage(orderMaterial.Material.Image);
                                 }
                             }));
                         }

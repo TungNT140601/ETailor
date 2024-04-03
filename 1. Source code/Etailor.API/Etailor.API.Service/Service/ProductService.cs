@@ -719,7 +719,7 @@ namespace Etailor.API.Service.Service
                     }
                     if (product.ProductTemplate != null)
                     {
-                        product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                        product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
                     }
                     return product;
                 }
@@ -747,14 +747,14 @@ namespace Etailor.API.Service.Service
                     {
                         if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
                         {
-                            product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                            product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
                         }
                     }),
                     Task.Run(async () =>
                     {
                         if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
                         {
-                            product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                            product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
                         }
                     }));
                     return product;
@@ -797,7 +797,7 @@ namespace Etailor.API.Service.Service
                                         product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
                                         if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
                                         {
-                                            product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                            product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
                                         }
                                     }));
                                     setValueTasks.Add(Task.Run(async () =>
@@ -805,7 +805,7 @@ namespace Etailor.API.Service.Service
                                         product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
                                         if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
                                         {
-                                            product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                            product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
                                         }
                                     }));
 
@@ -858,7 +858,7 @@ namespace Etailor.API.Service.Service
                                         product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
                                         if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
                                         {
-                                            product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                            product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
                                         }
                                     }));
                                     setValueTasks.Add(Task.Run(async () =>
@@ -866,7 +866,7 @@ namespace Etailor.API.Service.Service
                                         product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
                                         if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
                                         {
-                                            product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                            product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
                                         }
                                     }));
 
@@ -908,7 +908,7 @@ namespace Etailor.API.Service.Service
                                 product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
                                 if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
                                 {
-                                    product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                    product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
                                 }
                             }));
                             setValueTasks.Add(Task.Run(async () =>
@@ -916,7 +916,7 @@ namespace Etailor.API.Service.Service
                                 product.FabricMaterial = fabricMaterials.SingleOrDefault(x => x.Id == product.FabricMaterialId);
                                 if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
                                 {
-                                    product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                    product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
                                 }
                             }));
 

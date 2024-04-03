@@ -453,7 +453,7 @@ namespace Etailor.API.WebAPI.Controllers
                     return BadRequest("Invalid file");
 
                 var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestUpdateImage", file, null);
-                var url = await Ultils.GetUrlImage(viewLink);
+                var url = Ultils.GetUrlImage(viewLink);
                 return Ok(new
                 {
                     Name = viewLink,
@@ -578,7 +578,7 @@ namespace Etailor.API.WebAPI.Controllers
                         return BadRequest("Invalid file");
                     }
                     var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", formFile, null);
-                    return Ok(await Ultils.GetUrlImage(fileObject));
+                    return Ok(Ultils.GetUrlImage(fileObject));
                 }
             }
             catch (Exception ex)

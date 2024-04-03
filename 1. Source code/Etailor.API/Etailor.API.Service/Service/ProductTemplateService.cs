@@ -493,7 +493,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (!string.IsNullOrEmpty(template.ThumbnailImage))
                         {
-                            template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
+                            template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
                         }
                         template.CollectionImage = null;
                         template.Image = null;
@@ -521,7 +521,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (!string.IsNullOrEmpty(template.ThumbnailImage))
                         {
-                            template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
+                            template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
                         }
                         template.CollectionImage = null;
                         template.Image = null;
@@ -547,7 +547,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (!string.IsNullOrEmpty(template.ThumbnailImage))
                     {
-                        template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
+                        template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
                     }
                 }));
                 tasks.Add(Task.Run(async () =>
@@ -563,7 +563,7 @@ namespace Etailor.API.Service.Service
                             {
                                 listTaskImages.Add(Task.Run(async () =>
                                 {
-                                    listUrls.Add(await Ultils.GetUrlImage(image));
+                                    listUrls.Add(Ultils.GetUrlImage(image));
                                 }));
                             }
                             await Task.WhenAll(listTaskImages);
@@ -589,7 +589,7 @@ namespace Etailor.API.Service.Service
                             {
                                 listTaskImages.Add(Task.Run(async () =>
                                 {
-                                    listUrls.Add(await Ultils.GetUrlImage(image));
+                                    listUrls.Add(Ultils.GetUrlImage(image));
                                 }));
                             }
                             await Task.WhenAll(listTaskImages);
@@ -616,7 +616,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (!string.IsNullOrEmpty(template.ThumbnailImage))
                     {
-                        template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
+                        template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
                     }
                 }));
                 tasks.Add(Task.Run(async () =>
@@ -632,7 +632,7 @@ namespace Etailor.API.Service.Service
                             {
                                 listTaskImages.Add(Task.Run(async () =>
                                 {
-                                    listUrls.Add(await Ultils.GetUrlImage(image));
+                                    listUrls.Add(Ultils.GetUrlImage(image));
                                 }));
                             }
                             await Task.WhenAll(listTaskImages);
@@ -658,7 +658,7 @@ namespace Etailor.API.Service.Service
                             {
                                 listTaskImages.Add(Task.Run(async () =>
                                 {
-                                    listUrls.Add(await Ultils.GetUrlImage(image));
+                                    listUrls.Add(Ultils.GetUrlImage(image));
                                 }));
                             }
                             await Task.WhenAll(listTaskImages);
@@ -729,7 +729,7 @@ namespace Etailor.API.Service.Service
                                         {
                                             if (!string.IsNullOrEmpty(component.Image))
                                             {
-                                                component.Image = await Ultils.GetUrlImage(component.Image);
+                                                component.Image = Ultils.GetUrlImage(component.Image);
                                             }
                                             componentType.Components.Add(component);
                                         }));
@@ -779,7 +779,7 @@ namespace Etailor.API.Service.Service
                         {
                             if (!string.IsNullOrEmpty(template.ThumbnailImage))
                             {
-                                template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
+                                template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
                             }
                             template.Image = null;
                             template.CollectionImage = null;

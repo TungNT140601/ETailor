@@ -104,7 +104,7 @@ namespace Etailor.API.Service.Service
                     }
                     if (!string.IsNullOrEmpty(product.FabricMaterial.Image) && !product.FabricMaterial.Image.StartsWith("https://firebasestorage.googleapis.com"))
                     {
-                        product.FabricMaterial.Image = await Ultils.GetUrlImage(product.FabricMaterial.Image);
+                        product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
                     }
                     else if (product.FabricMaterial.Image.StartsWith("https://firebasestorage.googleapis.com/"))
                     {
@@ -123,7 +123,7 @@ namespace Etailor.API.Service.Service
                     }
                     if (!string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage) && !product.ProductTemplate.ThumbnailImage.StartsWith("https://firebasestorage.googleapis.com/"))
                     {
-                        product.ProductTemplate.ThumbnailImage = await Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                        product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
                     }
                     else if (product.ProductTemplate.Image.StartsWith("https://firebasestorage.googleapis.com/"))
                     {
@@ -200,7 +200,7 @@ namespace Etailor.API.Service.Service
                                                             }
                                                             if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
                                                             {
-                                                                component.Component.Image = await Ultils.GetUrlImage(component.Component.Image);
+                                                                component.Component.Image = Ultils.GetUrlImage(component.Component.Image);
                                                             }
                                                             else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
                                                             {
@@ -224,7 +224,7 @@ namespace Etailor.API.Service.Service
                                                                         {
                                                                             if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
                                                                             {
-                                                                                noteImages.Add(await Ultils.GetUrlImage(image));
+                                                                                noteImages.Add(Ultils.GetUrlImage(image));
                                                                             }
                                                                             else
                                                                             {
@@ -327,7 +327,7 @@ namespace Etailor.API.Service.Service
                                     {
                                         if (!string.IsNullOrEmpty(task.StaffMaker.Avatar))
                                         {
-                                            task.StaffMaker.Avatar = await Ultils.GetUrlImage(task.StaffMaker.Avatar);
+                                            task.StaffMaker.Avatar = Ultils.GetUrlImage(task.StaffMaker.Avatar);
                                         }
                                     }
                                 }
@@ -1465,7 +1465,7 @@ namespace Etailor.API.Service.Service
 
                                                                         if (product.StaffMaker?.Avatar != null)
                                                                         {
-                                                                            product.StaffMaker.Avatar = await Ultils.GetUrlImage(product.StaffMaker.Avatar);
+                                                                            product.StaffMaker.Avatar = Ultils.GetUrlImage(product.StaffMaker.Avatar);
                                                                         }
                                                                     }
                                                                     product.ProductStages.Clear();

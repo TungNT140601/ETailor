@@ -17,9 +17,16 @@ using Microsoft.AspNetCore.Http.Internal;
 using Etailor.API.Ultity.CustomException;
 using System.Globalization;
 using Microsoft.AspNetCore.Hosting;
+using System.Security.AccessControl;
+using Newtonsoft.Json;
 
 namespace Etailor.API.Ultity
 {
+    public class ImageFileDTO
+    {
+        public string? ObjectName { get; set; }
+        public string? ObjectUrl { get; set; }
+    }
     public static class Ultils
     {
         private static StorageClient _storage = StorageClient.Create(GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY)));
@@ -346,14 +353,22 @@ namespace Etailor.API.Ultity
                 // Clean up: delete the local file
                 System.IO.File.Delete(filePath);
 
-                return objectName;
+                return JsonConvert.SerializeObject(new ImageFileDTO
+                {
+                    ObjectName = objectName,
+                    ObjectUrl = await GetUrlImageFirebase(objectName)
+                });
             }
             else
             {
-                return $"Uploads/{generalPath}/{file.FileName}";
+                return JsonConvert.SerializeObject(new ImageFileDTO
+                {
+                    ObjectName = $"Uploads/{generalPath}/{file.FileName}",
+                    ObjectUrl = await GetUrlImageFirebase($"Uploads/{generalPath}/{file.FileName}")
+                });
             }
         }
-        public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string name,string base64, string? oldName) // Upload 1 image
+        public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string name, string base64, string? oldName) // Upload 1 image
         {
             if (oldName != null && ObjectExistsInStorage(oldName))
             {
@@ -395,7 +410,7 @@ namespace Etailor.API.Ultity
             }
         }
 
-        public static async Task<string> GetUrlImage(string? objectName) // Get image url
+        private static async Task<string> GetUrlImageFirebase(string? objectName) // Get image url
         {
             try
             {
@@ -406,6 +421,26 @@ namespace Etailor.API.Ultity
                     var starsRef = storage.Child(objectName);
 
                     return await starsRef.GetDownloadUrlAsync();
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            catch (FirebaseStorageException ex)
+            {
+                return "";
+            }
+        }
+        public static string? GetUrlImage(string? objectName) // Get image url
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(objectName))
+                {
+                    var file = JsonConvert.DeserializeObject<ImageFileDTO>(objectName);
+
+                    return file.ObjectUrl;
                 }
                 else
                 {

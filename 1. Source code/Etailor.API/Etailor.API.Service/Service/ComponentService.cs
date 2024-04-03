@@ -37,7 +37,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    component.Image = await Ultils.GetUrlImage(component.Image);
+                    component.Image = Ultils.GetUrlImage(component.Image);
                 }
             });
             await Task.WhenAll(setImage);
@@ -58,7 +58,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        component.Image = await Ultils.GetUrlImage(component.Image);
+                        component.Image = Ultils.GetUrlImage(component.Image);
                     }
                 });
                 await Task.WhenAll(setImage);
@@ -292,7 +292,7 @@ namespace Etailor.API.Service.Service
                 {
                     tasks.Add(Task.Run(async () =>
                     {
-                        component.Image = await Ultils.GetUrlImage(component.Image);
+                        component.Image = Ultils.GetUrlImage(component.Image);
                     }));
                 }
                 await Task.WhenAll(tasks);

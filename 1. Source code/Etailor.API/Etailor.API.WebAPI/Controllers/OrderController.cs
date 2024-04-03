@@ -220,7 +220,7 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 order.Customer = mapper.Map<CustomerAllVM>(customerService.FindById(order.CustomerId));
 
-                                order.Customer.Avatar = await Ultils.GetUrlImage(order.Customer.Avatar);
+                                order.Customer.Avatar = Ultils.GetUrlImage(order.Customer.Avatar);
                             }
 
                             var listProducts = await productService.GetProductsByOrderId(order.Id);

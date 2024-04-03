@@ -333,7 +333,7 @@ namespace Etailor.API.WebAPI.Controllers
                                     var staffVM = mapper.Map<StaffListVM>(staff);
                                     staffVM.STT = stt;
                                     stt++;
-                                    staffVM.Avatar = await Ultils.GetUrlImage(staffVM.Avatar);
+                                    staffVM.Avatar = Ultils.GetUrlImage(staffVM.Avatar);
                                     staffVMs.Add(staffVM);
                                 }));
                             }
@@ -401,7 +401,7 @@ namespace Etailor.API.WebAPI.Controllers
                                     var staffVM = mapper.Map<StaffListVM>(staff);
                                     staffVM.STT = stt;
                                     stt++;
-                                    staffVM.Avatar = await Ultils.GetUrlImage(staffVM.Avatar);
+                                    staffVM.Avatar = Ultils.GetUrlImage(staffVM.Avatar);
                                     staffVMs.Add(staffVM);
                                 }));
                             }

@@ -83,7 +83,7 @@ namespace Etailor.API.Service.Service
                     {
                         if (!string.IsNullOrWhiteSpace(staff.Avatar))
                         {
-                            staff.Avatar = await Ultils.GetUrlImage(staff.Avatar);
+                            staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
                         }
                         else
                         {
