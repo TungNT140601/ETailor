@@ -321,7 +321,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpDelete("detail/{id}")]
+        [HttpGet("detail/{id}")]
         public async Task<IActionResult> GetTemplateDetail(string id)
         {
 
