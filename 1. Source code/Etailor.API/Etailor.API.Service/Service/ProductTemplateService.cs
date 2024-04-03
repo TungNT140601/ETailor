@@ -316,7 +316,6 @@ namespace Etailor.API.Service.Service
                 return false;
             }
         }
-
         public async Task<string> UpdateTemplate(string wwwroot, ProductTemplate productTemplate, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
         {
 
@@ -480,7 +479,6 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
         }
-
         public async Task<IEnumerable<ProductTemplate>> GetByCategory(string id)
         {
             var templates = productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true);
@@ -508,7 +506,6 @@ namespace Etailor.API.Service.Service
                 return null;
             }
         }
-
         public async Task<IEnumerable<ProductTemplate>> GetByCategorys(List<string> ids)
         {
             var templates = productTemplateRepository.GetAll(x => ids.Contains(x.CategoryId) && x.IsActive == true);
