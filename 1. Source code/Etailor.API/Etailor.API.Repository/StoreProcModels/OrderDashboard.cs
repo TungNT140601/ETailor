@@ -12,4 +12,11 @@ namespace Etailor.API.Repository.StoreProcModels
         public int? Total { get; set; }
         public decimal? TotalPrice { get; set; }
     }
+    public class OrderDashboardMonth
+    {
+        public int? Month { get; set; }
+        public int? Year { get; set; }
+        public OrderDashboard? OrderDone { get; set; }
+        public OrderDashboard? OrderCancel { get; set; }
+    }
 }

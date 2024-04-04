@@ -81,7 +81,7 @@ namespace Etailor.API.WebAPI.Controllers
                                         {
                                             insideTasks.Add(Task.Run(async () =>
                                             {
-                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.FileName, image.FileBase64String, null);
+                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.Base64String, image.FileName, image.Type, null);
                                                 images.Add(img);
                                             }));
                                         }
@@ -159,7 +159,7 @@ namespace Etailor.API.WebAPI.Controllers
                                         {
                                             insideTasks.Add(Task.Run(async () =>
                                             {
-                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.FileName, image.FileBase64String, null);
+                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.Base64String, image.FileName, image.Type, null);
                                                 images.Add(img);
                                             }));
                                         }

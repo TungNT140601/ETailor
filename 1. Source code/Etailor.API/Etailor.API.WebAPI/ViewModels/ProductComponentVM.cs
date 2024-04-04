@@ -12,7 +12,8 @@ namespace Etailor.API.WebAPI.ViewModels
     public class ImageFile
     {
         public string? FileName { get; set; }
-        public string? FileBase64String { get; set; }
+        public string? Base64String { get; set; }
+        public string? Type { get; set; }
     }
     public class ProductComponentTaskDetailVM
     {

@@ -45,17 +45,51 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        if (year == null)
-                        {
-                            year = DateTime.UtcNow.AddHours(7).Year;
-                        }
-                        if (month == null)
-                        {
-                            month = DateTime.UtcNow.AddHours(7).Month;
-                        }
-                        var date = new DateTime(year.Value, month.Value, 1);
+                        var result = _dashboardService.GetOrderDashboard(year, month);
+                        return Ok(result);
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
 
-                        var result = _dashboardService.GetOrderDashboard(date);
+        [HttpGet("order-dashboard-by-year")]
+        public IActionResult GetOrderDashboardByYear(int? year)
+        {
+
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var result = _dashboardService.GetOrderDashboardByYear(year);
                         return Ok(result);
                     }
                 }
@@ -75,7 +109,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("order-rate-dashboard")]
-        public IActionResult GetOrderRate()
+        public IActionResult GetOrderRate(int? year, int? month)
         {
             try
             {
@@ -98,8 +132,8 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var totalOrder = _dashboardService.GetTotalOrder();
-                        var rate = _dashboardService.GetOrderRate();
+                        var totalOrder = _dashboardService.GetTotalOrder(year, month);
+                        var rate = _dashboardService.GetOrderRate(year, month);
 
                         return Ok(new
                         {
@@ -125,7 +159,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet("order-price-rate-dashboard")]
-        public IActionResult GetOrderPriceRate()
+        public IActionResult GetOrderPriceRate(int? year, int? month)
         {
             try
             {
@@ -148,8 +182,8 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var totalOrder = _dashboardService.GetTotalOrderPrice();
-                        var rate = _dashboardService.GetOrderTotalPriceRate();
+                        var totalOrder = _dashboardService.GetTotalOrderPrice(year, month);
+                        var rate = _dashboardService.GetOrderTotalPriceRate(year, month);
 
                         return Ok(new
                         {

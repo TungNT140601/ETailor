@@ -55,6 +55,7 @@ namespace Etailor.API.WebAPI
             CreateMap<ProductTemplate, ProductTemplateAllTaskVM>();
             CreateMap<ProductTemplateALLVM, ProductTemplate>();
             CreateMap<ProductTemplate, ProductTemplateCreateVM>().ReverseMap();
+            CreateMap<ProductTemplate, ProductTemplateUpdateVM>().ReverseMap();
             CreateMap<ProductTemplate, ProductTemplateTaskDetailVM>().ReverseMap();
 
             CreateMap<Product, ProductVM>().ReverseMap();

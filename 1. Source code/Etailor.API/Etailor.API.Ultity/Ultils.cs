@@ -368,45 +368,49 @@ namespace Etailor.API.Ultity
                 });
             }
         }
-        public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string name, string base64, string? oldName) // Upload 1 image
+        public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string base64Image, string fileName, string contentType, string? oldName) // Upload 1 image
         {
             if (oldName != null && ObjectExistsInStorage(oldName))
             {
                 DeleteObject(oldName);
             }
+
+            var extension = Path.GetExtension(fileName)?.ToLower();
+            var newFileName = GenGuidString() + extension;
+            var objectName = $"Uploads/{generalPath}/{newFileName}";
+
             //Check if file exist
-            if (!ObjectExistsInStorage($"Uploads/{generalPath}/{name}"))
+            if (!ObjectExistsInStorage(objectName))
             {
-                var fileName = GenGuidString() + Path.GetExtension(name)?.ToLower();
-
-                var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
-
-                var file = ConvertBase64ToIFormFile(base64, name);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                // Decode base64 to byte array
+                if (base64Image.StartsWith("data:"))
                 {
-                    await file.CopyToAsync(stream);
+                    base64Image = base64Image.Split(",")[1];
                 }
+                var imageBytes = Convert.FromBase64String(base64Image);
 
                 // Upload to Firebase Storage
                 var bucketName = AppValue.BUCKET_NAME;
-                var objectName = $"Uploads/{generalPath}/{fileName}";
-
                 Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
 
-                using (var fileStream = System.IO.File.OpenRead(filePath))
+                using (var memoryStream = new MemoryStream(imageBytes))
                 {
-                    uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
+                    uploadFile = _storage.UploadObject(bucketName, objectName, contentType, memoryStream);
                 }
 
-                // Clean up: delete the local file
-                System.IO.File.Delete(filePath);
-
-                return objectName;
+                return JsonConvert.SerializeObject(new ImageFileDTO
+                {
+                    ObjectName = objectName,
+                    ObjectUrl = await GetUrlImageFirebase(objectName)
+                });
             }
             else
             {
-                return $"Uploads/{generalPath}/{name}";
+                return JsonConvert.SerializeObject(new ImageFileDTO
+                {
+                    ObjectName = objectName,
+                    ObjectUrl = await GetUrlImageFirebase(objectName)
+                });
             }
         }
 
@@ -474,6 +478,74 @@ namespace Etailor.API.Ultity
             }
             catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
             {
+            }
+        }
+
+
+        public static async Task<string> CheckExistImageAfterUpdate(string? dbImages, List<string>? existImages)
+        {
+            try
+            {
+                if (existImages != null && existImages.Count > 0)
+                {
+                    if (!string.IsNullOrEmpty(dbImages))
+                    {
+
+                        var dbImageList = JsonConvert.DeserializeObject<List<string>>(dbImages);
+
+                        if (dbImageList != null && dbImageList.Count > 0)
+                        {
+                            var existImageList = new List<string>();
+                            do
+                            {
+                                existImageList = new List<string>();
+
+                                var tasks = new List<Task>();
+                                foreach (var image in dbImageList)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        var imageObject = JsonConvert.DeserializeObject<ImageFileDTO>(image);
+                                        if (!existImages.Contains(imageObject.ObjectUrl))
+                                        {
+                                            DeleteObject(imageObject.ObjectName);
+                                        }
+                                        else
+                                        {
+                                            existImageList.Add(image);
+                                        }
+                                    }));
+                                }
+                                await Task.WhenAll(tasks);
+                            } while (existImageList.Count != existImages.Count);
+
+                            if (existImageList.Count > 0)
+                            {
+                                return JsonConvert.SerializeObject(existImageList);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(dbImages))
+                    {
+                        var dbImageList = JsonConvert.DeserializeObject<List<string>>(dbImages);
+                        if (dbImageList != null && dbImageList.Count > 0)
+                        {
+                            foreach (var image in dbImageList)
+                            {
+                                var imageObject = JsonConvert.DeserializeObject<ImageFileDTO>(image);
+                                DeleteObject(imageObject.ObjectName);
+                            }
+                        }
+                    }
+                }
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(Ultils.CheckExistImageAfterUpdate));
             }
         }
         #endregion

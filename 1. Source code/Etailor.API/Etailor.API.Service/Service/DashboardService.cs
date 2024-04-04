@@ -3,6 +3,7 @@ using Etailor.API.Repository.Interface.Dashboard;
 using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
+using Hangfire.MemoryStorage.Database;
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System;
@@ -26,18 +27,20 @@ namespace Etailor.API.Service.Service
             this.staffWithTotalTaskRepository = staffWithTotalTaskRepository;
         }
 
-        public object GetOrderDashboard(DateTime? date)
+        public object GetOrderDashboard(int? year, int? month)
         {
             SqlParameter startDateParam = new SqlParameter("@StartDate", SqlDbType.DateTime);
 
-            if (date != null)
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
             {
-                startDateParam.Value = date;
+                year = DateTime.UtcNow.AddHours(7).Year;
             }
-            else
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
             {
-                startDateParam.Value = DateTime.UtcNow.AddHours(7);
+                month = DateTime.UtcNow.AddHours(7).Month;
             }
+
+            startDateParam.Value = new DateTime(year.Value, month.Value, 1);
 
             var orderDashboards = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, startDateParam);
 
@@ -67,6 +70,80 @@ namespace Etailor.API.Service.Service
             return returnResult.OrderBy(x => x.Status);
         }
 
+        public object GetOrderDashboardByYear(int? year)
+        {
+            if (year == null)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+
+            var returnResult = new List<OrderDashboardMonth>();
+
+            for (int month = 1; month <= 12; month++)
+            {
+                var date = new DateTime(year.Value, month, 1);
+
+                SqlParameter startDateParam = new SqlParameter("@StartDate", SqlDbType.DateTime);
+
+                if (date != null)
+                {
+                    startDateParam.Value = date;
+                }
+                else
+                {
+                    startDateParam.Value = DateTime.UtcNow.AddHours(7);
+                }
+
+                var orderDashboards = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, startDateParam);
+
+                if (orderDashboards != null && orderDashboards.Any(x => x.Status == 7 || x.Status == 0))
+                {
+                    orderDashboards = orderDashboards.ToList();
+
+                    var done = orderDashboards.SingleOrDefault(x => x.Status == 7);
+                    var cancel = orderDashboards.SingleOrDefault(x => x.Status == 0);
+                    returnResult.Add(new OrderDashboardMonth
+                    {
+                        Year = year.Value,
+                        Month = month,
+                        OrderCancel = cancel != null ? cancel : new OrderDashboard()
+                        {
+                            Status = 0,
+                            Total = 0,
+                            TotalPrice = 0
+                        },
+                        OrderDone = done != null ? done : new OrderDashboard()
+                        {
+                            Status = 7,
+                            Total = 0,
+                            TotalPrice = 0
+                        }
+                    });
+                }
+                else
+                {
+                    returnResult.Add(new OrderDashboardMonth
+                    {
+                        Year = year.Value,
+                        Month = month,
+                        OrderCancel = new OrderDashboard()
+                        {
+                            Status = 0,
+                            Total = 0,
+                            TotalPrice = 0
+                        },
+                        OrderDone = new OrderDashboard()
+                        {
+                            Status = 7,
+                            Total = 0,
+                            TotalPrice = 0
+                        }
+                    });
+                }
+            }
+
+            return returnResult.OrderBy(x => x.Month);
+        }
         public async Task<object> GetStaffWithTotalTask()
         {
             var staffs = staffWithTotalTaskRepository.GetStoreProcedure(StoreProcName.Get_Staff_With_Total_Task);
@@ -98,10 +175,20 @@ namespace Etailor.API.Service.Service
 
             return null;
         }
-
-        public int GetTotalOrder()
+        public int GetTotalOrder(int? year, int? month)
         {
-            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", DateTime.UtcNow.AddHours(7)));
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
+            {
+                month = DateTime.UtcNow.AddHours(7).Month;
+            }
+
+            var date = new DateTime(year.Value, month.Value, 1);
+
+            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", date));
             if (thisMonth != null && thisMonth.Any(x => x.Status == 7))
             {
                 return thisMonth.Single(x => x.Status == 7).Total.Value;
@@ -111,11 +198,22 @@ namespace Etailor.API.Service.Service
                 return 0;
             }
         }
-
-        public double GetOrderRate()
+        public double GetOrderRate(int? year, int? month)
         {
-            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", DateTime.UtcNow.AddHours(7)));
-            var preMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", DateTime.UtcNow.AddHours(7).AddHours(-1)));
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
+            {
+                month = DateTime.UtcNow.AddHours(7).Month;
+            }
+
+            var date = new DateTime(year.Value, month.Value, 1);
+            var preDate = date.AddMonths(-1);
+
+            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", date));
+            var preMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", preDate));
             double totalThisMonth = 0;
             double totalPreMonth = 0;
 
@@ -150,9 +248,20 @@ namespace Etailor.API.Service.Service
                 return (double)(totalThisMonth - totalPreMonth) / totalPreMonth;
             }
         }
-        public decimal GetTotalOrderPrice()
+        public decimal GetTotalOrderPrice(int? year, int? month)
         {
-            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", DateTime.UtcNow.AddHours(7)));
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
+            {
+                month = DateTime.UtcNow.AddHours(7).Month;
+            }
+
+            var date = new DateTime(year.Value, month.Value, 1);
+
+            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", date));
             if (thisMonth != null && thisMonth.Any(x => x.Status == 7))
             {
                 return thisMonth.Single(x => x.Status == 7).TotalPrice.Value;
@@ -162,11 +271,21 @@ namespace Etailor.API.Service.Service
                 return 0;
             }
         }
-
-        public double GetOrderTotalPriceRate()
+        public double GetOrderTotalPriceRate(int? year, int? month)
         {
-            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", DateTime.UtcNow.AddHours(7)));
-            var preMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", DateTime.UtcNow.AddHours(7).AddHours(-1)));
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
+            {
+                month = DateTime.UtcNow.AddHours(7).Month;
+            }
+            var date = new DateTime(year.Value, month.Value, 1);
+            var preDate = date.AddMonths(-1);
+
+            var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", date));
+            var preMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", preDate));
             decimal totalThisMonth = 0;
             decimal totalPreMonth = 0;
 

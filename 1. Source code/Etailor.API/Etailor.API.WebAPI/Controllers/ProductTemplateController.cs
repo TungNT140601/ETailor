@@ -175,7 +175,7 @@ namespace Etailor.API.WebAPI.Controllers
                     return Ok(new
                     {
                         Template = mapper.Map<ProductTemplateALLVM>(template),
-                        Component = mapper.Map<IEnumerable<ComponentTypeOrderVM>>(productTemplateService.GetTemplateComponent(template.Id))
+                        Component = mapper.Map<IEnumerable<ComponentTypeOrderVM>>(await productTemplateService.GetTemplateComponent(template.Id))
                     });
                 }
             }
@@ -236,7 +236,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("update-template/{id}")]
-        public async Task<IActionResult> UpdateTemplate(string id, [FromForm] ProductTemplateCreateVM templateCreateVM)
+        public async Task<IActionResult> UpdateTemplate(string id, [FromForm] ProductTemplateUpdateVM templateCreateVM)
         {
 
             try
@@ -260,7 +260,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return Ok(await productTemplateService.UpdateTemplate(_wwwroot, mapper.Map<ProductTemplate>(templateCreateVM), templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
+                        return Ok(await productTemplateService.UpdateTemplate(_wwwroot, mapper.Map<ProductTemplate>(templateCreateVM), templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.OldImages, templateCreateVM.CollectionImageFiles, templateCreateVM.OldCollectionImages));
                     }
                 }
             }
