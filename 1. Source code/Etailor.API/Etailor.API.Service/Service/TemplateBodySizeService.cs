@@ -228,8 +228,8 @@ namespace Etailor.API.Service.Service
                             {
                                 if (!ids.Contains(id))
                                 {
-                                    var currentTemplateBodySize = currentTemplateBodySizes.Single(x => x.BodySizeId == id);
-                                    if (currentTemplateBodySize.IsActive == true)
+                                    var currentTemplateBodySize = currentTemplateBodySizes.SingleOrDefault(x => x.BodySizeId == id);
+                                    if (currentTemplateBodySize != null && currentTemplateBodySize.IsActive == true)
                                     {
                                         currentTemplateBodySize.InactiveTime = DateTime.UtcNow.AddHours(7);
                                         currentTemplateBodySize.IsActive = false;
