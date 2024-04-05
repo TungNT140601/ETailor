@@ -22,4 +22,10 @@ namespace Etailor.API.Repository.Repository.Dashoard
         {
         }
     }
+    public class FabricMaterialCommonUsedRepository : GenericRepository<FabricMaterialCommonUsed>, IFabricMaterialCommonUsedRepository
+    {
+        public FabricMaterialCommonUsedRepository(ETailor_DBContext dBContext) : base(dBContext)
+        {
+        }
+    }
 }

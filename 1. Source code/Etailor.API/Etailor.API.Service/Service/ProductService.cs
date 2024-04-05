@@ -102,7 +102,7 @@ namespace Etailor.API.Service.Service
 
                 //các kiểu bộ phận của bản mẫu
                 var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == template.Id && x.IsActive == true);
-                if(templateComponents != null && templateComponents.Any())
+                if (templateComponents != null && templateComponents.Any())
                 {
                     templateComponents = templateComponents.ToList();
                 }
@@ -443,6 +443,7 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
+                                #region GetData
                                 var tasks = new List<Task>();
                                 //bản mẫu
                                 var template = productTemplateRepository.Get(product.ProductTemplateId);
@@ -483,6 +484,7 @@ namespace Etailor.API.Service.Service
                                 }
                                 var addOrderMaterial = new OrderMaterial();
                                 var updateOrderMaterial = new OrderMaterial();
+                                #endregion
 
                                 tasks.Add(Task.Run(() =>
                                 {
@@ -490,7 +492,7 @@ namespace Etailor.API.Service.Service
                                     {
                                         if (sameProductMaterialdbs == null || !sameProductMaterialdbs.Any(x => x.Id != product.Id))
                                         {
-                                            var oldMaterial = orderMaterials.SingleOrDefault(x => x.MaterialId == dbProduct.FabricMaterialId);
+                                            var oldMaterial = orderMaterials.FirstOrDefault(x => x.MaterialId == dbProduct.FabricMaterialId);
                                             if (oldMaterial != null)
                                             {
                                                 if (!orderMaterialRepository.Delete(oldMaterial.Id))
@@ -586,7 +588,7 @@ namespace Etailor.API.Service.Service
                                                     }
                                                     else
                                                     {
-                                                        component = templateComponents.SingleOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
+                                                        component = templateComponents.FirstOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
                                                     }
                                                     if (component != null)
                                                     {

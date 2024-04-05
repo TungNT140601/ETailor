@@ -96,7 +96,7 @@ namespace Etailor.API.Service.Service
                 {
                     tasks.Add(Task.Run(() =>
                     {
-                        var cusBodySize = bodyAttributes.SingleOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
+                        var cusBodySize = bodyAttributes.FirstOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
                         if (cusBodySize == null || cusBodySize.IsActive == false || !cusBodySize.Value.HasValue || cusBodySize.Value == 0)
                         {
                             throw new UserException("Số đo cần thiết bị thiếu trong hồ sơ đo. Vui lòng đo và cập nhật bổ sung");
@@ -194,10 +194,10 @@ namespace Etailor.API.Service.Service
                 {
                     tasks.Add(Task.Run(() =>
                     {
-                        var oldProductBodySize = oldProductBodySizes.SingleOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
+                        var oldProductBodySize = oldProductBodySizes.FirstOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
                         if (oldProductBodySize != null)
                         {
-                            var cusBodySize = bodyAttributes.SingleOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
+                            var cusBodySize = bodyAttributes.FirstOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
                             if (cusBodySize == null || cusBodySize.IsActive == false || !cusBodySize.Value.HasValue || cusBodySize.Value == 0)
                             {
                                 throw new UserException("Số đo cần thiết bị thiếu trong hồ sơ đo. Vui lòng đo và cập nhật bổ sung");
@@ -215,7 +215,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            var cusBodySize = bodyAttributes.SingleOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
+                            var cusBodySize = bodyAttributes.FirstOrDefault(x => x.BodySizeId == templateBodySize.BodySizeId);
                             if (cusBodySize == null || cusBodySize.IsActive == false || !cusBodySize.Value.HasValue || cusBodySize.Value == 0)
                             {
                                 throw new UserException("Số đo cần thiết bị thiếu trong hồ sơ đo. Vui lòng đo và cập nhật bổ sung");

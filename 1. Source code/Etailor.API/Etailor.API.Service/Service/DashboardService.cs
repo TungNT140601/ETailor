@@ -19,12 +19,15 @@ namespace Etailor.API.Service.Service
     {
         private readonly IOrderDashboardRepository orderDashboardRepository;
         private readonly IStaffWithTotalTaskRepository staffWithTotalTaskRepository;
+        private readonly IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository;
 
         public DashboardService(IOrderDashboardRepository orderDashboardRepository
-            , IStaffWithTotalTaskRepository staffWithTotalTaskRepository)
+            , IStaffWithTotalTaskRepository staffWithTotalTaskRepository
+            , IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository)
         {
             this.orderDashboardRepository = orderDashboardRepository;
             this.staffWithTotalTaskRepository = staffWithTotalTaskRepository;
+            this.fabricMaterialCommonUsedRepository = fabricMaterialCommonUsedRepository;
         }
 
         public object GetOrderDashboard(int? year, int? month)
@@ -319,6 +322,39 @@ namespace Etailor.API.Service.Service
             {
                 return (double)(totalThisMonth - totalPreMonth) / (double)totalPreMonth;
             }
+        }
+
+        public async Task<List<FabricMaterialCommonUsed>> GetFabricMaterialCommonUsedByMonth(int? year, int? month)
+        {
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
+            {
+                month = DateTime.UtcNow.AddHours(7).Month;
+            }
+            var date = new DateTime(year.Value, month.Value, 1);
+
+            var monthData = fabricMaterialCommonUsedRepository.GetStoreProcedure(StoreProcName.Get_Total_Fabric_Material_Common_Used, new SqlParameter("@StartDate", date));
+
+            if (monthData != null && monthData.Any())
+            {
+                monthData = monthData.ToList();
+                var tasks = new List<Task>();
+                foreach (var item in monthData)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        item.Image = Ultils.GetUrlImage(item.Image);
+                    }));
+                }
+                await Task.WhenAll(tasks);
+
+                return monthData.ToList();
+            }
+
+            return null;
         }
     }
 }

@@ -306,21 +306,68 @@ namespace Etailor.API.WebAPI.Controllers
                                     {
                                         foreach (var component in productVM.ComponentTypeOrders)
                                         {
-                                            tasks.Add(Task.Run(() =>
+                                            tasks.Add(Task.Run(async () =>
                                             {
-                                                component.Component_Id = $"component_{component.Id}";
+                                                var insideTasks = new List<Task>();
 
-                                                if (role == RoleName.CUSTOMER)
+                                                insideTasks.Add(Task.Run(() =>
                                                 {
-                                                    if (component.Components != null && component.Components.Any() && component.Components.Count > 0)
+                                                    component.Component_Id = $"component_{component.Id}";
+                                                }));
+
+                                                insideTasks.Add(Task.Run(() =>
+                                                {
+                                                    if (role == RoleName.CUSTOMER)
                                                     {
-                                                        component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                                        if (component.Components != null && component.Components.Any() && component.Components.Count > 0)
+                                                        {
+                                                            component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                                        }
                                                     }
-                                                }
-                                                else if (component.Components != null && component.Components.Any())
+                                                    else if (component.Components != null && component.Components.Any())
+                                                    {
+                                                        component.Selected_Component_Id = component.Components.SingleOrDefault(x => componentIds.Contains(x.Id))?.Id;
+                                                    }
+                                                }));
+
+                                                insideTasks.Add(Task.Run(async () =>
                                                 {
-                                                    component.Selected_Component_Id = component.Components.SingleOrDefault(x => componentIds.Contains(x.Id))?.Id;
-                                                }
+                                                    var componentNote = productComponents.SingleOrDefault(x => x.ComponentId == component.Id);
+                                                    if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
+                                                    {
+                                                        component.NoteObject = new ComponentNoteVM();
+
+                                                        if (!string.IsNullOrEmpty(componentNote.Note))
+                                                        {
+                                                            component.NoteObject.Note = componentNote.Note;
+                                                        }
+
+                                                        if (!string.IsNullOrEmpty(componentNote.NoteImage))
+                                                        {
+                                                            var listImageDTO = JsonConvert.DeserializeObject<List<string>>(componentNote.NoteImage);
+                                                            if (listImageDTO != null && listImageDTO.Any())
+                                                            {
+                                                                var listImageUrl = new List<string>();
+                                                                var insideTasks1 = new List<Task>();
+                                                                foreach (var img in listImageDTO)
+                                                                {
+                                                                    insideTasks1.Add(Task.Run(() =>
+                                                                    {
+                                                                        listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                    }));
+                                                                }
+                                                                await Task.WhenAll(insideTasks1);
+                                                                component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);
+                                                            }
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        component.NoteObject = null;
+                                                    }
+                                                }));
+
+                                                await Task.WhenAll(insideTasks);
                                             }));
                                         }
                                     }

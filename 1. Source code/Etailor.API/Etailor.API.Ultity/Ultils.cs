@@ -442,9 +442,16 @@ namespace Etailor.API.Ultity
             {
                 if (!string.IsNullOrEmpty(objectName))
                 {
-                    var file = JsonConvert.DeserializeObject<ImageFileDTO>(objectName);
+                    if(objectName.StartsWith("http") || objectName.StartsWith("https"))
+                    {
+                        return objectName;
+                    }
+                    else
+                    {
+                        var file = JsonConvert.DeserializeObject<ImageFileDTO>(objectName);
 
-                    return file.ObjectUrl;
+                        return file.ObjectUrl;
+                    }
                 }
                 else
                 {

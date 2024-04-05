@@ -13,4 +13,7 @@ namespace Etailor.API.Repository.Interface.Dashboard
     public interface IStaffWithTotalTaskRepository : IGenericRepository<StaffWithTotalTask>
     {
     }
+    public interface IFabricMaterialCommonUsedRepository : IGenericRepository<FabricMaterialCommonUsed>
+    {
+    }
 }

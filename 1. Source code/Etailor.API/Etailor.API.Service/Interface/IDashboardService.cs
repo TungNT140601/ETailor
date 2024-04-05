@@ -1,4 +1,5 @@
 ﻿using Etailor.API.Repository.EntityModels;
+using Etailor.API.Repository.StoreProcModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,5 +17,6 @@ namespace Etailor.API.Service.Interface
         double GetOrderRate(int? year, int? month);
         decimal GetTotalOrderPrice(int? year, int? month);
         double GetOrderTotalPriceRate(int? year, int? month);
+        Task<List<FabricMaterialCommonUsed>> GetFabricMaterialCommonUsedByMonth(int? year, int? month);
     }
 }
