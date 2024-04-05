@@ -34,7 +34,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost()]
-        public async Task<IActionResult> AddProfileBodyByStaff([FromBody] CreateProfileBodyVM createProfileBodyByStaffVM)
+        public async Task<IActionResult> AddProfileBody([FromBody] CreateProfileBodyVM createProfileBodyByStaffVM)
         {
             try
             {
@@ -73,11 +73,11 @@ namespace Etailor.API.WebAPI.Controllers
 
                             if (role == RoleName.STAFF || role == RoleName.MANAGER)
                             {
-                                return await profileBodyService.CreateProfileBodyByStaff(createProfileBodyByStaffVM.CustomerId, id, createProfileBodyByStaffVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                                return await profileBodyService.CreateProfileBody(createProfileBodyByStaffVM.CustomerId, id, createProfileBodyByStaffVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
                             }
                             else if (role == RoleName.CUSTOMER)
                             {
-                                return await profileBodyService.CreateProfileBodyByCustomer(id, createProfileBodyByStaffVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
+                                return await profileBodyService.CreateProfileBody(id, null, createProfileBodyByStaffVM.Name, list) ? Ok("Thêm Profile Body thành công") : BadRequest("Thêm Profile Body thất bại");
                             }
                             else
                             {
@@ -102,7 +102,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("customer/{profileBodyId}")]
-        public async Task<IActionResult> UpdateProfileBod(string profileBodyId, [FromBody] UpdateProfileBodyByStaffVM updateProfileBodyByStaffVM)
+        public async Task<IActionResult> UpdateProfileBody(string profileBodyId, [FromBody] UpdateProfileBodyByStaffVM updateProfileBodyByStaffVM)
         {
             try
             {
