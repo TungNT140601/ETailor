@@ -422,84 +422,84 @@ namespace Etailor.API.Service.Service
                 #region SetImage
                 //tasks.Add(Task.Run(async () =>
                 //{
-                    dbTemplate.Image = await Ultils.CheckExistImageAfterUpdate(dbTemplate.Image, existOldImages);
+                dbTemplate.Image = await Ultils.CheckExistImageAfterUpdate(dbTemplate.Image, existOldImages);
 
-                    if (images != null && images.Count > 0)
+                if (images != null && images.Count > 0)
+                {
+                    //var imageTasks = new List<Task>();
+                    var imageList = new List<string>();
+                    if (!string.IsNullOrEmpty(dbTemplate.Image))
                     {
-                        //var imageTasks = new List<Task>();
-                        var imageList = new List<string>();
                         if (!string.IsNullOrEmpty(dbTemplate.Image))
                         {
-                            if (!string.IsNullOrEmpty(dbTemplate.Image))
-                            {
-                                imageList.AddRange(JsonConvert.DeserializeObject<List<string>>(dbTemplate.Image));
-                            }
-                            if (images != null && images.Count > 0)
-                            {
-                                foreach (var image in images)
-                                {
-                                    imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/Images", image, null));
-                                }
-                            }
+                            imageList.AddRange(JsonConvert.DeserializeObject<List<string>>(dbTemplate.Image));
                         }
-                        else
+                        if (images != null && images.Count > 0)
                         {
-                            if (images != null && images.Count > 0)
+                            foreach (var image in images)
                             {
-                                foreach (var image in images)
-                                {
-                                    imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/Images", image, null));
-                                }
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/Images", image, null));
                             }
                         }
-                        //await Task.WhenAll(imageTasks);
-
-                        dbTemplate.Image = JsonConvert.SerializeObject(imageList);
                     }
-                    else if ((images == null || images.Count == 0) && string.IsNullOrEmpty(dbTemplate.Image) && (existOldImages == null || existOldImages.Count == 0))
+                    else
                     {
-                        throw new UserException("Vui lòng chọn ít nhất 1 hình ảnh cho mẫu sản phẩm");
+                        if (images != null && images.Count > 0)
+                        {
+                            foreach (var image in images)
+                            {
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/Images", image, null));
+                            }
+                        }
                     }
+                    //await Task.WhenAll(imageTasks);
+
+                    dbTemplate.Image = JsonConvert.SerializeObject(imageList);
+                }
+                else if ((images == null || images.Count == 0) && string.IsNullOrEmpty(dbTemplate.Image) && (existOldImages == null || existOldImages.Count == 0))
+                {
+                    throw new UserException("Vui lòng chọn ít nhất 1 hình ảnh cho mẫu sản phẩm");
+                }
                 //}));
                 #endregion
 
                 #region SetCollectionImage
                 //tasks.Add(Task.Run(async () =>
                 //{
-                    dbTemplate.CollectionImage = await Ultils.CheckExistImageAfterUpdate(dbTemplate.CollectionImage, existOldCollectionImages);
+                dbTemplate.CollectionImage = await Ultils.CheckExistImageAfterUpdate(dbTemplate.CollectionImage, existOldCollectionImages);
 
-                    if (images != null && images.Count > 0)
+                if (images != null && images.Count > 0)
+                {
+                    //var imageTasks = new List<Task>();
+                    var imageList = new List<string>();
+                    if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
                     {
-                        //var imageTasks = new List<Task>();
-                        var imageList = new List<string>();
                         if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
                         {
-                            if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
-                            {
-                                imageList.AddRange(JsonConvert.DeserializeObject<List<string>>(dbTemplate.CollectionImage));
-                            }
-                            if (images != null && images.Count > 0)
-                            {
-                                foreach (var image in images)
-                                {
-                                    imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/CollectionImages", image, null));
-                                }
-                            }
+                            imageList.AddRange(JsonConvert.DeserializeObject<List<string>>(dbTemplate.CollectionImage));
                         }
-                        else
+                        if (images != null && images.Count > 0)
                         {
-                            if (images != null && images.Count > 0)
+                            foreach (var image in images)
                             {
-                                foreach (var image in images)
-                                {
-                                    imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/CollectionImages", image, null));
-                                }
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/CollectionImages", image, null));
                             }
                         }
-                        //await Task.WhenAll(imageTasks);
-
-                        dbTemplate.CollectionImage = JsonConvert.SerializeObject(imageList);
                     }
+                    else
+                    {
+                        if (images != null && images.Count > 0)
+                        {
+                            foreach (var image in images)
+                            {
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/CollectionImages", image, null));
+                            }
+                        }
+                    }
+                    //await Task.WhenAll(imageTasks);
+
+                    dbTemplate.CollectionImage = JsonConvert.SerializeObject(imageList);
+                }
                 //}));
                 #endregion
 
@@ -651,48 +651,48 @@ namespace Etailor.API.Service.Service
             {
                 var tasks = new List<Task>();
 
-                tasks.Add(Task.Run(async () =>
+                //tasks.Add(Task.Run(async () =>
+                //{
+                if (!string.IsNullOrEmpty(template.ThumbnailImage))
                 {
-                    if (!string.IsNullOrEmpty(template.ThumbnailImage))
-                    {
-                        template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
-                    }
-                }));
-                tasks.Add(Task.Run(async () =>
+                    template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
+                }
+                //}));
+                //tasks.Add(Task.Run(async () =>
+                //{
+                if (!string.IsNullOrEmpty(template.Image))
                 {
-                    if (!string.IsNullOrEmpty(template.Image))
+                    var listImages = JsonConvert.DeserializeObject<List<string>>(template.Image);
+                    if (listImages != null && listImages.Count() > 0)
                     {
-                        var listImages = JsonConvert.DeserializeObject<List<string>>(template.Image);
-                        if (listImages != null && listImages.Count() > 0)
+                        var listUrls = new List<string>();
+
+                        foreach (var image in listImages)
                         {
-                            var listUrls = new List<string>();
-
-                            foreach (var image in listImages)
-                            {
-                                listUrls.Add(Ultils.GetUrlImage(image));
-                            }
-
-                            template.Image = JsonConvert.SerializeObject(listUrls);
+                            listUrls.Add(Ultils.GetUrlImage(image));
                         }
+
+                        template.Image = JsonConvert.SerializeObject(listUrls);
                     }
-                }));
-                tasks.Add(Task.Run(() =>
+                }
+                //}));
+                //tasks.Add(Task.Run(() =>
+                //{
+                template.Category = categoryRepository.Get(template.CategoryId);
+                //}));
+                //tasks.Add(Task.Run(async () =>
+                //{
+                if (!string.IsNullOrEmpty(template.CollectionImage))
                 {
-                    template.Category = categoryRepository.Get(template.CategoryId);
-                }));
-                tasks.Add(Task.Run(async () =>
-                {
-                    if (!string.IsNullOrEmpty(template.CollectionImage))
+                    var listImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
+                    if (listImages != null && listImages.Count() > 0)
                     {
-                        var listImages = JsonConvert.DeserializeObject<List<ImageFileDTO>>(template.CollectionImage);
-                        if (listImages != null && listImages.Count() > 0)
-                        {
-                            var listUrls = listImages.Select(c => c.ObjectUrl);
+                        var listUrls = listImages.Select(c => c.ObjectUrl);
 
-                            template.CollectionImage = JsonConvert.SerializeObject(listUrls);
-                        }
+                        template.CollectionImage = JsonConvert.SerializeObject(listUrls);
                     }
-                }));
+                }
+                //}));
 
                 await Task.WhenAll(tasks);
 
