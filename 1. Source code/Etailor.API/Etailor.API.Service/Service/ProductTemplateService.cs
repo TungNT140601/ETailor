@@ -651,48 +651,51 @@ namespace Etailor.API.Service.Service
             {
                 var tasks = new List<Task>();
 
-                //tasks.Add(Task.Run(async () =>
-                //{
-                if (!string.IsNullOrEmpty(template.ThumbnailImage))
+                tasks.Add(Task.Run(async () =>
                 {
-                    template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
-                }
-                //}));
-                //tasks.Add(Task.Run(async () =>
-                //{
-                if (!string.IsNullOrEmpty(template.Image))
-                {
-                    var listImages = JsonConvert.DeserializeObject<List<string>>(template.Image);
-                    if (listImages != null && listImages.Count() > 0)
+                    if (!string.IsNullOrEmpty(template.ThumbnailImage))
                     {
-                        var listUrls = new List<string>();
-
-                        foreach (var image in listImages)
+                        template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.Image))
+                    {
+                        var listImages = JsonConvert.DeserializeObject<List<string>>(template.Image);
+                        if (listImages != null && listImages.Count() > 0)
                         {
-                            listUrls.Add(Ultils.GetUrlImage(image));
+                            var listUrls = new List<string>();
+
+                            foreach (var image in listImages)
+                            {
+                                listUrls.Add(Ultils.GetUrlImage(image));
+                            }
+
+                            template.Image = JsonConvert.SerializeObject(listUrls);
                         }
-
-                        template.Image = JsonConvert.SerializeObject(listUrls);
                     }
-                }
-                //}));
-                //tasks.Add(Task.Run(() =>
-                //{
-                template.Category = categoryRepository.Get(template.CategoryId);
-                //}));
-                //tasks.Add(Task.Run(async () =>
-                //{
-                if (!string.IsNullOrEmpty(template.CollectionImage))
+                }));
+                tasks.Add(Task.Run(() =>
                 {
-                    var listImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
-                    if (listImages != null && listImages.Count() > 0)
+                    template.Category = categoryRepository.Get(template.CategoryId);
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.CollectionImage))
                     {
-                        var listUrls = listImages.Select(c => c.ObjectUrl);
-
-                        template.CollectionImage = JsonConvert.SerializeObject(listUrls);
+                        var listImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
+                        if (listImages != null && listImages.Count() > 0)
+                        {
+                            var listUrls = new List<string>();
+                            foreach (var image in listImages)
+                            {
+                                listUrls.Add(Ultils.GetUrlImage(image));
+                            }
+                            template.CollectionImage = JsonConvert.SerializeObject(listUrls);
+                        }
                     }
-                }
-                //}));
+                }));
 
                 await Task.WhenAll(tasks);
 
