@@ -358,10 +358,11 @@ namespace Etailor.API.Ultity
             // Clean up: delete the local file
             System.IO.File.Delete(filePath);
 
+            var objectUrl = await GetUrlImageFirebase(objectName);
             return JsonConvert.SerializeObject(new ImageFileDTO
             {
                 ObjectName = objectName,
-                ObjectUrl = await GetUrlImageFirebase(objectName)
+                ObjectUrl = objectUrl
             });
         }
         public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string base64Image, string fileName, string contentType, string? oldName) // Upload 1 image
@@ -397,11 +398,11 @@ namespace Etailor.API.Ultity
 
             // Clean up: delete the local file
             System.IO.File.Delete(filePath);
-
+            var objectUrl = await GetUrlImageFirebase(objectName);
             return JsonConvert.SerializeObject(new ImageFileDTO
             {
                 ObjectName = objectName,
-                ObjectUrl = await GetUrlImageFirebase(objectName)
+                ObjectUrl = objectUrl
             });
         }
 

@@ -627,10 +627,10 @@ namespace Etailor.API.Service.Service
                                                                 foreach (var item in listStringImage)
                                                                 {
                                                                     insideTask1s.Add(Task.Run(async () =>
-                                                                {
-                                                                    var image = JsonConvert.DeserializeObject<FileDTO>(item);
-                                                                    listImage.Add(await Ultils.UploadImageBase64(wwwroot, $"Product/{product.Id}/Component/{component.Id}", image.Base64String, image.FileName, image.ContentType, null));
-                                                                }));
+                                                                    {
+                                                                        var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                                        listImage.Add(await Ultils.UploadImageBase64(wwwroot, $"Product/{product.Id}/Component/{component.Id}", image.Base64String, image.FileName, image.ContentType, null));
+                                                                    }));
                                                                 }
                                                                 await Task.WhenAll(insideTask1s);
 
@@ -656,7 +656,7 @@ namespace Etailor.API.Service.Service
                                                 }));
                                             }
                                             await Task.WhenAll(insideTasks);
-                                        } while (saveOrderComponents.Count < templateComponentTypes.Count());
+                                        } while (saveOrderComponents.Count != templateComponentTypes.Count());
                                     }
                                     else
                                     {

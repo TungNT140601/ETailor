@@ -230,7 +230,7 @@ app.UseAuthentication();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API v1.00 Time:{time.ToString("yyyy/MM/dd - HH:mm:ss:ffff")}");
 });
 
 var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();
