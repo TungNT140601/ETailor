@@ -22,7 +22,6 @@ namespace Etailor.API.Service.Interface
         Task<bool> FinishTask(string wwwroot, string productId, string productStageId, string staffId, List<IFormFile>? images);
         bool PendingTask(string productId, string productStageId, string staffId);
         void AutoCreateEmptyTaskProduct();
-        Product GetProduct(string id);
         Task SwapTaskIndex(string productId, string? staffId, int? index);
         void ResetIndex(string? staffId);
         void ResetBlankIndex(string? staffId);

@@ -94,7 +94,7 @@ namespace Etailor.API.WebAPI.Controllers
                             await Task.WhenAll(tasks);
                         }
 
-                        var check = await productService.AddProduct(orderId, product, productComponents,
+                        var check = await productService.AddProduct(wwwrootPath, orderId, product, productComponents,
                             productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
                             productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
                         return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
@@ -157,10 +157,14 @@ namespace Etailor.API.WebAPI.Controllers
                                         var images = new List<string>();
                                         foreach (var image in component.NoteImageFiles)
                                         {
-                                            insideTasks.Add(Task.Run(async () =>
+                                            insideTasks.Add(Task.Run(() =>
                                             {
-                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.Base64String, image.FileName, image.Type, null);
-                                                images.Add(img);
+                                                images.Add(JsonConvert.SerializeObject(new FileDTO()
+                                                {
+                                                    Base64String = image.Base64String,
+                                                    FileName = image.FileName,
+                                                    ContentType = image.Type
+                                                }));
                                             }));
                                         }
                                         await Task.WhenAll(insideTasks);
@@ -172,7 +176,7 @@ namespace Etailor.API.WebAPI.Controllers
                             await Task.WhenAll(tasks);
                         }
 
-                        var check = await productService.UpdateProduct(orderId, product, productComponents,
+                        var check = await productService.UpdateProduct(wwwrootPath, orderId, product, productComponents,
                              productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
                              productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
                         return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
@@ -326,13 +330,13 @@ namespace Etailor.API.WebAPI.Controllers
                                                     }
                                                     else if (component.Components != null && component.Components.Any())
                                                     {
-                                                        component.Selected_Component_Id = component.Components.SingleOrDefault(x => componentIds.Contains(x.Id))?.Id;
+                                                        component.Selected_Component_Id = component.Components.FirstOrDefault(x => componentIds.Contains(x.Id))?.Id;
                                                     }
                                                 }));
 
                                                 insideTasks.Add(Task.Run(async () =>
                                                 {
-                                                    var componentNote = productComponents.SingleOrDefault(x => x.ComponentId == component.Id);
+                                                    var componentNote = productComponents.FirstOrDefault(x => x.ComponentId == component.Id);
                                                     if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
                                                     {
                                                         component.NoteObject = new ComponentNoteVM();

@@ -27,6 +27,12 @@ namespace Etailor.API.Ultity
         public string? ObjectName { get; set; }
         public string? ObjectUrl { get; set; }
     }
+    public class FileDTO
+    {
+        public string? Base64String { get; set; }
+        public string? FileName { get; set; }
+        public string? ContentType { get; set; }
+    }
     public static class Ultils
     {
         private static StorageClient _storage = StorageClient.Create(GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY)));
@@ -327,46 +333,35 @@ namespace Etailor.API.Ultity
             {
                 DeleteObject(oldName);
             }
-            //Check if file exist
-            if (!ObjectExistsInStorage($"Uploads/{generalPath}/{file.FileName}"))
+
+            var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
+
+            var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
-
-                var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // Upload to Firebase Storage
-                var bucketName = AppValue.BUCKET_NAME;
-                var objectName = $"Uploads/{generalPath}/{fileName}";
-
-                Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
-
-                using (var fileStream = System.IO.File.OpenRead(filePath))
-                {
-                    uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
-                }
-
-                // Clean up: delete the local file
-                System.IO.File.Delete(filePath);
-
-                return JsonConvert.SerializeObject(new ImageFileDTO
-                {
-                    ObjectName = objectName,
-                    ObjectUrl = await GetUrlImageFirebase(objectName)
-                });
+                await file.CopyToAsync(stream);
             }
-            else
+
+            // Upload to Firebase Storage
+            var bucketName = AppValue.BUCKET_NAME;
+            var objectName = $"Uploads/{generalPath}/{fileName}";
+
+            Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+            using (var fileStream = System.IO.File.OpenRead(filePath))
             {
-                return JsonConvert.SerializeObject(new ImageFileDTO
-                {
-                    ObjectName = $"Uploads/{generalPath}/{file.FileName}",
-                    ObjectUrl = await GetUrlImageFirebase($"Uploads/{generalPath}/{file.FileName}")
-                });
+                uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
             }
+
+            // Clean up: delete the local file
+            System.IO.File.Delete(filePath);
+
+            return JsonConvert.SerializeObject(new ImageFileDTO
+            {
+                ObjectName = objectName,
+                ObjectUrl = await GetUrlImageFirebase(objectName)
+            });
         }
         public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string base64Image, string fileName, string contentType, string? oldName) // Upload 1 image
         {
@@ -379,39 +374,34 @@ namespace Etailor.API.Ultity
             var newFileName = GenGuidString() + extension;
             var objectName = $"Uploads/{generalPath}/{newFileName}";
 
-            //Check if file exist
-            if (!ObjectExistsInStorage(objectName))
+            // Decode base64 to byte array
+            if (base64Image.StartsWith("data:"))
             {
-                // Decode base64 to byte array
-                if (base64Image.StartsWith("data:"))
-                {
-                    base64Image = base64Image.Split(",")[1];
-                }
-                var imageBytes = Convert.FromBase64String(base64Image);
-
-                // Upload to Firebase Storage
-                var bucketName = AppValue.BUCKET_NAME;
-                Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
-
-                using (var memoryStream = new MemoryStream(imageBytes))
-                {
-                    uploadFile = _storage.UploadObject(bucketName, objectName, contentType, memoryStream);
-                }
-
-                return JsonConvert.SerializeObject(new ImageFileDTO
-                {
-                    ObjectName = objectName,
-                    ObjectUrl = await GetUrlImageFirebase(objectName)
-                });
+                base64Image = base64Image.Split(",")[1];
             }
-            else
+            var imageBytes = Convert.FromBase64String(base64Image);
+
+            string filePath = Path.Combine(wwwrootPath, "Upload", fileName);
+            // Write the bytes to a file
+            File.WriteAllBytes(filePath, imageBytes);
+
+            // Upload to Firebase Storage
+            var bucketName = AppValue.BUCKET_NAME;
+            Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+            using (var fileStream = System.IO.File.OpenRead(filePath))
             {
-                return JsonConvert.SerializeObject(new ImageFileDTO
-                {
-                    ObjectName = objectName,
-                    ObjectUrl = await GetUrlImageFirebase(objectName)
-                });
+                uploadFile = _storage.UploadObject(bucketName, objectName, contentType, fileStream);
             }
+
+            // Clean up: delete the local file
+            System.IO.File.Delete(filePath);
+
+            return JsonConvert.SerializeObject(new ImageFileDTO
+            {
+                ObjectName = objectName,
+                ObjectUrl = await GetUrlImageFirebase(objectName)
+            });
         }
 
         private static async Task<string> GetUrlImageFirebase(string? objectName) // Get image url
@@ -442,7 +432,7 @@ namespace Etailor.API.Ultity
             {
                 if (!string.IsNullOrEmpty(objectName))
                 {
-                    if(objectName.StartsWith("http") || objectName.StartsWith("https"))
+                    if (objectName.StartsWith("http") || objectName.StartsWith("https"))
                     {
                         return objectName;
                     }

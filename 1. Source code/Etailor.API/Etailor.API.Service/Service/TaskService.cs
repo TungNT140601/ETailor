@@ -346,23 +346,7 @@ namespace Etailor.API.Service.Service
 
         public async Task<IEnumerable<Product>> GetTasksByStaffId(string? search)
         {
-            IEnumerable<Product> ListOfTask = productRepository.GetAll(x => (search == null || (search != null && x.StaffMakerId == search)) && x.IsActive == true);
-            //foreach (Blog blog in ListOfBlog)
-            //{
-            //    var setThumbnail = Task.Run(async () =>
-            //    {
-            //        if (string.IsNullOrEmpty(blog.Thumbnail))
-            //        {
-            //            blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
-            //        }
-            //        else
-            //        {
-            //            blog.Thumbnail = await Ultils.GetUrlImage(blog.Thumbnail);
-            //        }
-            //    });
-            //    await Task.WhenAll(setThumbnail);
-            //};
-            return ListOfTask;
+            return productRepository.GetAll(x => (search == null || (search != null && x.StaffMakerId == search)) && x.IsActive == true);
         }
 
         public void AutoCreateEmptyTaskProduct()
@@ -511,7 +495,7 @@ namespace Etailor.API.Service.Service
 
                 var endTime = DateTime.UtcNow.AddHours(7);
 
-                Ultils.SendMessageToDev($"Auto run function AutoCreateEmptyTaskProduct start time: {startTime}; end time: {endTime}");
+                //Ultils.SendMessageToDev($"Auto run function AutoCreateEmptyTaskProduct start time: {startTime}; end time: {endTime}");
 
                 AutoAssignTaskForStaff();
             }
@@ -654,19 +638,12 @@ namespace Etailor.API.Service.Service
 
                 var endTime = DateTime.UtcNow.AddHours(7);
 
-                Ultils.SendMessageToDev($"Run func AutoCreateEmptyTaskProduct start time: {startTime}; end time: {endTime}");
+                //Ultils.SendMessageToDev($"Run func AutoCreateEmptyTaskProduct start time: {startTime}; end time: {endTime}");
             }
             catch (Exception ex)
             {
                 throw new SystemsException(ex.Message, nameof(ProductService));
             }
-        }
-
-        public Product GetProduct(string id)
-        {
-            var product = productRepository.Get(id);
-
-            return product == null ? null : product.IsActive == true ? product : null;
         }
 
         public async Task<bool> AssignTaskToStaff(string productId, string staffId)
@@ -819,17 +796,38 @@ namespace Etailor.API.Service.Service
                                 {
                                     if (index <= minIndex)
                                     {
-                                        oldTask.Index = minIndex - 1;
-
-                                        listTasks = listTasks.OrderBy(x => x.Index).ToList();
-                                        for (int i = 0; i < listTasks.Count; i++)
+                                        var oldTaskMinIndex = listTasks.FirstOrDefault(x => x.Index == minIndex);
+                                        if (oldTaskMinIndex != null)
                                         {
-                                            listTasks[i].Index = minIndex + i;
-                                            listTasks[i].StaffMakerId = staffId;
-                                            listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
-                                        }
+                                            if (oldTaskMinIndex.Status == 2)
+                                            {
+                                                oldTask.Index = minIndex + 1;
 
-                                        await productRepository.UpdateRangeProduct(listTasks);
+                                                listTasks = listTasks.OrderBy(x => x.Index).ToList();
+                                                for (int i = 0; i < listTasks.Count; i++)
+                                                {
+                                                    listTasks[i].Index = minIndex + i;
+                                                    listTasks[i].StaffMakerId = staffId;
+                                                    listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
+                                                }
+
+                                                await productRepository.UpdateRangeProduct(listTasks);
+                                            }
+                                            else
+                                            {
+                                                oldTask.Index = minIndex;
+
+                                                listTasks = listTasks.OrderBy(x => x.Index).ToList();
+                                                for (int i = 0; i < listTasks.Count; i++)
+                                                {
+                                                    listTasks[i].Index = minIndex + 1 + i;
+                                                    listTasks[i].StaffMakerId = staffId;
+                                                    listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
+                                                }
+
+                                                await productRepository.UpdateRangeProduct(listTasks);
+                                            }
+                                        }
                                     }
                                     else if (index == maxIndex)
                                     {
