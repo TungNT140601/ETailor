@@ -452,6 +452,7 @@ namespace Etailor.API.WebAPI.Controllers
                 if (file == null || file.Length == 0)
                     return BadRequest("Invalid file");
 
+                //var viewLink = await Ultils.DemoUploadImage(_wwwrootPath, "TestUpdateImage", file, null);
                 var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestUpdateImage", file, null);
                 var url = Ultils.GetUrlImage(viewLink);
                 return Ok(new
@@ -559,27 +560,29 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var base64String = base64.Base64String.StartsWith("data:") ? base64.Base64String.Split(",")[1] : base64.Base64String;
-                // Convert Base64 string to byte array
-                byte[] bytes = Convert.FromBase64String(base64String);
+                //var base64String = base64.Base64String.StartsWith("data:") ? base64.Base64String.Split(",")[1] : base64.Base64String;
+                //// Convert Base64 string to byte array
+                //byte[] bytes = Convert.FromBase64String(base64String);
 
-                // Create a MemoryStream from the byte array
-                using (MemoryStream memoryStream = new MemoryStream(bytes))
-                {
-                    // Create an instance of IFormFile
-                    var formFile = new FormFile(memoryStream, 0, bytes.Length, null, base64.FileName)
-                    {
-                        Headers = new HeaderDictionary(),
-                        ContentType = "application/octet-stream" // Set the content type appropriately
-                    };
+                //// Create a MemoryStream from the byte array
+                //using (MemoryStream memoryStream = new MemoryStream(bytes))
+                //{
+                //    // Create an instance of IFormFile
+                //    var formFile = new FormFile(memoryStream, 0, bytes.Length, null, base64.FileName)
+                //    {
+                //        Headers = new HeaderDictionary(),
+                //        ContentType = "application/octet-stream" // Set the content type appropriately
+                //    };
 
-                    if (formFile == null || formFile.Length == 0)
-                    {
-                        return BadRequest("Invalid file");
-                    }
-                    var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", formFile, null);
-                    return Ok(Ultils.GetUrlImage(fileObject));
-                }
+                //    if (formFile == null || formFile.Length == 0)
+                //    {
+                //        return BadRequest("Invalid file");
+                //    }
+                //    var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", formFile, null);
+                //    return Ok(Ultils.GetUrlImage(fileObject));
+                //}
+
+                return Ok(await Ultils.UploadImageBase64(_wwwrootPath, "TestBase64", base64.Base64String, base64.FileName, base64.Type, null));
             }
             catch (Exception ex)
             {
@@ -1098,6 +1101,7 @@ namespace Etailor.API.WebAPI.Controllers
     {
         public string Base64String { get; set; }
         public string FileName { get; set; }
+        public string Type { get; set; }
     }
     public class CheckExistAndAddNewImage
     {
