@@ -410,72 +410,75 @@ namespace Etailor.API.Service.Service
                                                 order.Products = approveOrdersProducts.Where(x => x.OrderId == order.Id).ToList();
                                                 foreach (var product in order.Products)
                                                 {
-                                                    product.Index = greatestIndexDb;
-
-                                                    if (!string.IsNullOrWhiteSpace(product.SaveOrderComponents))
+                                                    if (product.Index == null)
                                                     {
-                                                        var productTemplate = templates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
-                                                        if (productTemplate != null)
+                                                        product.Index = greatestIndexDb;
+
+                                                        if (!string.IsNullOrWhiteSpace(product.SaveOrderComponents))
                                                         {
-                                                            var productTemplateStagees = templateStages.Where(x => x.ProductTemplateId == product.ProductTemplateId);
-                                                            if (productTemplateStagees != null && productTemplateStagees.Any())
+                                                            var productTemplate = templates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
+                                                            if (productTemplate != null)
                                                             {
-                                                                productTemplateStagees = productTemplateStagees.ToList();
-
-                                                                product.ProductStages = new List<ProductStage>();
-
-                                                                foreach (var stage in productTemplateStagees.OrderBy(x => x.StageNum))
+                                                                var productTemplateStagees = templateStages.Where(x => x.ProductTemplateId == product.ProductTemplateId);
+                                                                if (productTemplateStagees != null && productTemplateStagees.Any())
                                                                 {
-                                                                    var productStage = new ProductStage()
-                                                                    {
-                                                                        Id = Ultils.GenGuidString(),
-                                                                        Deadline = null,
-                                                                        StartTime = null,
-                                                                        FinishTime = null,
-                                                                        InactiveTime = null,
-                                                                        IsActive = true,
-                                                                        ProductId = product.Id,
-                                                                        StaffId = null,
-                                                                        StageNum = stage.StageNum,
-                                                                        TaskIndex = null,
-                                                                        Status = 1,
-                                                                        TemplateStageId = stage.Id,
-                                                                        ProductComponents = new List<ProductComponent>()
-                                                                    };
+                                                                    productTemplateStagees = productTemplateStagees.ToList();
 
-                                                                    var componentTypesInStage = stageComponents.Where(x => x.TemplateStageId == stage.Id);
-                                                                    if (componentTypesInStage != null && componentTypesInStage.Any())
-                                                                    {
-                                                                        componentTypesInStage = componentTypesInStage.ToList();
+                                                                    product.ProductStages = new List<ProductStage>();
 
-                                                                        var componentsInStage = components.Where(x => componentTypesInStage.Select(c => c.ComponentTypeId).Contains(x.ComponentTypeId));
-                                                                        if (componentsInStage != null && componentsInStage.Any())
+                                                                    foreach (var stage in productTemplateStagees.OrderBy(x => x.StageNum))
+                                                                    {
+                                                                        var productStage = new ProductStage()
                                                                         {
-                                                                            componentsInStage = componentsInStage.ToList();
+                                                                            Id = Ultils.GenGuidString(),
+                                                                            Deadline = null,
+                                                                            StartTime = null,
+                                                                            FinishTime = null,
+                                                                            InactiveTime = null,
+                                                                            IsActive = true,
+                                                                            ProductId = product.Id,
+                                                                            StaffId = null,
+                                                                            StageNum = stage.StageNum,
+                                                                            TaskIndex = null,
+                                                                            Status = 1,
+                                                                            TemplateStageId = stage.Id,
+                                                                            ProductComponents = new List<ProductComponent>()
+                                                                        };
 
-                                                                            var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(product.SaveOrderComponents);
-                                                                            if (productComponents != null && productComponents.Any())
+                                                                        var componentTypesInStage = stageComponents.Where(x => x.TemplateStageId == stage.Id);
+                                                                        if (componentTypesInStage != null && componentTypesInStage.Any())
+                                                                        {
+                                                                            componentTypesInStage = componentTypesInStage.ToList();
+
+                                                                            var componentsInStage = components.Where(x => componentTypesInStage.Select(c => c.ComponentTypeId).Contains(x.ComponentTypeId));
+                                                                            if (componentsInStage != null && componentsInStage.Any())
                                                                             {
-                                                                                var productComponent = productComponents.FirstOrDefault(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
-                                                                                if (productComponent != null)
-                                                                                {
-                                                                                    productComponent.LastestUpdatedTime = DateTime.Now;
-                                                                                    productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
-                                                                                    productComponent.ProductStageId = productStage.Id;
-                                                                                    productComponent.ProductComponentMaterials = null;
+                                                                                componentsInStage = componentsInStage.ToList();
 
-                                                                                    productStage.ProductComponents.Add(productComponent);
+                                                                                var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(product.SaveOrderComponents);
+                                                                                if (productComponents != null && productComponents.Any())
+                                                                                {
+                                                                                    var productComponent = productComponents.FirstOrDefault(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
+                                                                                    if (productComponent != null)
+                                                                                    {
+                                                                                        productComponent.LastestUpdatedTime = DateTime.Now;
+                                                                                        productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
+                                                                                        productComponent.ProductStageId = productStage.Id;
+                                                                                        productComponent.ProductComponentMaterials = null;
+
+                                                                                        productStage.ProductComponents.Add(productComponent);
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         }
-                                                                    }
 
-                                                                    product.ProductStages.Add(productStage);
+                                                                        product.ProductStages.Add(productStage);
+                                                                    }
                                                                 }
                                                             }
                                                         }
+                                                        greatestIndexDb++;
                                                     }
-                                                    greatestIndexDb++;
                                                 }
                                             }
                                             order.Status = 3;
