@@ -44,6 +44,15 @@ namespace Etailor.API.Ultity
             Guid guid = Guid.NewGuid();
             return guid.ToString().Substring(0, 30);
         }
+        public static string GenOrderId()
+        {
+            var date = DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd.HHmmssffff");
+            const string characters = "0123456789";
+            Random random = new Random();
+            var randomString = new string(Enumerable.Repeat(characters, 10)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+            return date + "." + randomString;
+        }
         public static string GenerateRandomOTP()
         {
             Random random = new Random();

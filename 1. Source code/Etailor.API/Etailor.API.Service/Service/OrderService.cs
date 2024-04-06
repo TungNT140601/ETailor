@@ -69,7 +69,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    order.Id = Ultils.GenGuidString();
+                    order.Id = Ultils.GenOrderId();
                     order.CreatedTime = DateTime.UtcNow.AddHours(7);
                     order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     order.InactiveTime = null;
