@@ -79,10 +79,14 @@ namespace Etailor.API.WebAPI.Controllers
                                         var images = new List<string>();
                                         foreach (var image in component.NoteImageFiles)
                                         {
-                                            insideTasks.Add(Task.Run(async () =>
+                                            insideTasks.Add(Task.Run(() =>
                                             {
-                                                var img = await Ultils.UploadImageBase64(wwwrootPath, "Product/Note/Image", image.Base64String, image.FileName, image.Type, null);
-                                                images.Add(img);
+                                                images.Add(JsonConvert.SerializeObject(new FileDTO()
+                                                {
+                                                    Base64String = image.Base64String,
+                                                    FileName = image.FileName,
+                                                    ContentType = image.Type
+                                                }));
                                             }));
                                         }
                                         await Task.WhenAll(insideTasks);

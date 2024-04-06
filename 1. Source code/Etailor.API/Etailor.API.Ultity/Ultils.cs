@@ -383,7 +383,7 @@ namespace Etailor.API.Ultity
             }
             var imageBytes = Convert.FromBase64String(base64Image);
 
-            string filePath = Path.Combine(wwwrootPath, "Upload", fileName);
+            string filePath = Path.Combine(wwwrootPath, "Upload", newFileName);
             // Write the bytes to a file
             File.WriteAllBytes(filePath, imageBytes);
 
