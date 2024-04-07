@@ -355,7 +355,7 @@ namespace Etailor.API.Service.Service
             {
                 var startTime = DateTime.UtcNow.AddHours(7);
 
-                var approveOrders = orderRepository.GetAll(x => x.Status == 2 && x.IsActive == true);
+                var approveOrders = orderRepository.GetAll(x => (x.Status == 2 || x.Status == 3) && x.IsActive == true);
                 if (approveOrders != null && approveOrders.Any())
                 {
                     approveOrders = approveOrders.OrderBy(x => x.CreatedTime).ToList();
@@ -392,6 +392,7 @@ namespace Etailor.API.Service.Service
                                         {
                                             greatestIndexDb = productAllDbs.OrderByDescending(x => x.Index).FirstOrDefault()?.Index;
                                         }
+
                                         if (greatestIndexDb == null)
                                         {
                                             greatestIndexDb = 1;
@@ -399,6 +400,14 @@ namespace Etailor.API.Service.Service
                                         else
                                         {
                                             greatestIndexDb++;
+                                        }
+
+
+                                        var existProductStages = productStageRepository.GetAll(x => approveOrdersProducts.Select(c => c.Id).Contains(x.ProductId) && x.IsActive == true);
+
+                                        if (existProductStages != null && existProductStages.Any())
+                                        {
+                                            existProductStages = existProductStages.ToList();
                                         }
 
                                         var check = new List<bool>();
@@ -410,7 +419,9 @@ namespace Etailor.API.Service.Service
                                                 order.Products = approveOrdersProducts.Where(x => x.OrderId == order.Id).ToList();
                                                 foreach (var product in order.Products)
                                                 {
-                                                    if (product.Index == null)
+                                                    var dbProductStages = existProductStages?.Where(x => x.ProductId == product.Id);
+
+                                                    if (dbProductStages == null || !dbProductStages.Any())
                                                     {
                                                         product.Index = greatestIndexDb;
 
@@ -487,7 +498,7 @@ namespace Etailor.API.Service.Service
 
                                         if (check.Any(x => x == false))
                                         {
-                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tự động tạo task", nameof(ProductService));
+                                            throw new SystemsException($"Error in {nameof(TaskService.AutoCreateEmptyTaskProduct)}: Lỗi trong quá trình tự động tạo task", nameof(TaskService.AutoCreateEmptyTaskProduct));
                                         }
                                     }
                                 }
@@ -504,7 +515,7 @@ namespace Etailor.API.Service.Service
             }
             catch (Exception ex)
             {
-                throw new SystemsException($"Error in {nameof(ProductService)}: {ex.Message}", nameof(ProductService));
+                throw new SystemsException($"Error in {nameof(TaskService.AutoCreateEmptyTaskProduct)}: {ex.Message}", nameof(TaskService.AutoCreateEmptyTaskProduct));
             }
         }
 
@@ -617,7 +628,7 @@ namespace Etailor.API.Service.Service
                                                     {
                                                         if (!productRepository.Update(product.Id, product))
                                                         {
-                                                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(ProductService));
+                                                            throw new SystemsException($"Error in {nameof(TaskService.AutoAssignTaskForStaff)}: Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(TaskService.AutoAssignTaskForStaff));
                                                         }
                                                     }
                                                     catch (SystemsException)
@@ -636,7 +647,7 @@ namespace Etailor.API.Service.Service
 
                 if (checkException)
                 {
-                    throw new SystemsException("Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(ProductService));
+                    throw new SystemsException("Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(TaskService.AutoAssignTaskForStaff));
                 }
 
                 var endTime = DateTime.UtcNow.AddHours(7);
@@ -645,7 +656,7 @@ namespace Etailor.API.Service.Service
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(ProductService));
+                throw new SystemsException(ex.Message, nameof(TaskService.AutoAssignTaskForStaff));
             }
         }
 
@@ -804,14 +815,23 @@ namespace Etailor.API.Service.Service
                                         {
                                             if (oldTaskMinIndex.Status == 2)
                                             {
-                                                oldTask.Index = minIndex + 1;
-
                                                 listTasks = listTasks.OrderBy(x => x.Index).ToList();
+
                                                 for (int i = 0; i < listTasks.Count; i++)
                                                 {
-                                                    listTasks[i].Index = minIndex + i;
-                                                    listTasks[i].StaffMakerId = staffId;
-                                                    listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
+                                                    if (i > 0)
+                                                    {
+                                                        if (listTasks[i].Id == productId)
+                                                        {
+                                                            listTasks[i].Index = minIndex + 1;
+                                                        }
+                                                        else
+                                                        {
+                                                            listTasks[i].Index = minIndex + 1 + i;
+                                                        }
+                                                        listTasks[i].StaffMakerId = staffId;
+                                                        listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
+                                                    }
                                                 }
 
                                                 await productRepository.UpdateRangeProduct(listTasks);
@@ -910,17 +930,35 @@ namespace Etailor.API.Service.Service
                             {
                                 if (index <= minIndex)
                                 {
-                                    product.Index = minIndex - 1;
-
-                                    listTasks.Insert(0, product);
-                                    listTasks = listTasks.OrderBy(x => x.Index).ToList();
-                                    for (int i = 0; i < listTasks.Count; i++)
+                                    var oldTaskMinIndex = listTasks.FirstOrDefault(x => x.Index == minIndex);
+                                    if (oldTaskMinIndex.Status == 2)
                                     {
-                                        listTasks[i].Index = minIndex + i;
-                                        listTasks[i].StaffMakerId = staffId;
-                                    }
+                                        product.Index = minIndex + 1;
 
-                                    await productRepository.UpdateRangeProduct(listTasks);
+                                        listTasks.Insert(1, product);
+                                        listTasks = listTasks.OrderBy(x => x.Index).ToList();
+                                        for (int i = 2; i < listTasks.Count; i++)
+                                        {
+                                            listTasks[i].Index = minIndex + i - 1;
+                                            listTasks[i].StaffMakerId = staffId;
+                                        }
+
+                                        await productRepository.UpdateRangeProduct(listTasks);
+                                    }
+                                    else
+                                    {
+                                        product.Index = minIndex - 1;
+
+                                        listTasks.Insert(0, product);
+                                        listTasks = listTasks.OrderBy(x => x.Index).ToList();
+                                        for (int i = 0; i < listTasks.Count; i++)
+                                        {
+                                            listTasks[i].Index = minIndex + i;
+                                            listTasks[i].StaffMakerId = staffId;
+                                        }
+
+                                        await productRepository.UpdateRangeProduct(listTasks);
+                                    }
                                 }
                                 else if (index == maxIndex)
                                 {
@@ -1278,7 +1316,7 @@ namespace Etailor.API.Service.Service
                                         {
                                             tasks2.Add(Task.Run(async () =>
                                             {
-                                                var imageObjectName = await Ultils.UploadImage(wwwroot, "ProductStageEvidences", image, null);
+                                                var imageObjectName = await Ultils.UploadImage(wwwroot, $"Product/{product.Id}/StageEvidences", image, null);
                                                 imageUrls.Add(imageObjectName);
                                             }));
                                         }
@@ -1595,12 +1633,12 @@ namespace Etailor.API.Service.Service
                                                     }
                                                     else
                                                     {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService));
+                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
                                                 }
                                             }
                                             else
@@ -1624,7 +1662,7 @@ namespace Etailor.API.Service.Service
                                             }
                                             else
                                             {
-                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
                                             }
                                         }
                                     }
@@ -1652,7 +1690,7 @@ namespace Etailor.API.Service.Service
                                                     }
                                                     else
                                                     {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService));
+                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
                                                     }
                                                 }
                                                 else
@@ -1683,12 +1721,12 @@ namespace Etailor.API.Service.Service
                                                     }
                                                     else
                                                     {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService));
+                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
                                                     }
                                                 }
                                                 else
                                                 {
-                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
                                                 }
                                             }
                                             else
@@ -1712,7 +1750,7 @@ namespace Etailor.API.Service.Service
                                             }
                                             else
                                             {
-                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService));
+                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
                                             }
                                         }
                                     }
