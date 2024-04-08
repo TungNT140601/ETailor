@@ -321,6 +321,7 @@ namespace Etailor.API.WebAPI.Controllers
                                                 insideTasks.Add(Task.Run(() =>
                                                 {
                                                     component.Component_Id = $"component_{component.Id}";
+                                                    component.Note_Id = $"productComponent_{component.Id}";
                                                 }));
 
                                                 insideTasks.Add(Task.Run(() =>
