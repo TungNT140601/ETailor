@@ -56,7 +56,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         var cus = mapper.Map<Customer>(customerVM);
                         cus.Id = customerId;
-                        return (await customerService.UpdatePersonalProfileCustomer(cus, customerVM.AvatarImage, _wwwrootPath)) ? Ok() : BadRequest();
+                        return (await customerService.UpdatePersonalProfileCustomer(cus, customerVM.AvatarImage, _wwwrootPath)) ? Ok("Cập nhật thông tin thành công") : BadRequest("Cập nhật thông tin thất bại");
                     }
                 }
             }
@@ -125,7 +125,7 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 tasks.Add(Task.Run(async () =>
                                 {
-                                    customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                                    customer.Avatar = Ultils.GetUrlImage(customer.Avatar);
                                 }));
                             }
                             await Task.WhenAll(tasks);
@@ -152,33 +152,33 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER && role != RoleName.STAFF)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (string.IsNullOrEmpty(customerId) || !staffService.CheckSecerctKey(customerId, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var customer = mapper.Map<CustomerAllVM>(customerService.FindById(id));
-                if (customer != null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                    return Unauthorized("Chưa đăng nhập");
                 }
-                return Ok(customer);
-                //    }
-                //}
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (string.IsNullOrEmpty(customerId) || !staffService.CheckSecrectKey(customerId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var customer = mapper.Map<CustomerAllVM>(customerService.FindById(id));
+                        if (customer != null)
+                        {
+                            customer.Avatar = Ultils.GetUrlImage(customer.Avatar);
+                        }
+                        return Ok(customer);
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -220,7 +220,7 @@ namespace Etailor.API.WebAPI.Controllers
                         var customer = mapper.Map<CustomerAllVM>(customerService.FindById(customerId));
                         if (customer != null)
                         {
-                            customer.Avatar = await Ultils.GetUrlImage(customer.Avatar);
+                            customer.Avatar = Ultils.GetUrlImage(customer.Avatar);
                         }
                         return Ok(customer);
                     }

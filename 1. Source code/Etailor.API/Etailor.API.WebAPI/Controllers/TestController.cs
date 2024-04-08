@@ -31,6 +31,7 @@ using System.IO.Compression;
 using System.IO;
 using Serilog;
 using Etailor.API.WebAPI.ViewModels;
+using Etailor.API.Repository.DataAccess;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -47,11 +48,13 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ISignalRService signalRService;
         private readonly IBackgroundService backgroundService;
         private readonly INotificationService notificationService;
+        private readonly ETailor_DBContext dBContext;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
-            , ITaskService taskService, INotificationService notificationService)
+            , ITaskService taskService, INotificationService notificationService
+            , ETailor_DBContext dBContext)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -64,6 +67,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.backgroundService = backgroundService;
             this.taskService = taskService;
             this.notificationService = notificationService;
+            this.dBContext = dBContext;
         }
 
         #region SendMail
@@ -448,8 +452,9 @@ namespace Etailor.API.WebAPI.Controllers
                 if (file == null || file.Length == 0)
                     return BadRequest("Invalid file");
 
+                //var viewLink = await Ultils.DemoUploadImage(_wwwrootPath, "TestUpdateImage", file, null);
                 var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestUpdateImage", file, null);
-                var url = await Ultils.GetUrlImage(viewLink);
+                var url = Ultils.GetUrlImage(viewLink);
                 return Ok(new
                 {
                     Name = viewLink,
@@ -555,17 +560,29 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                // Read the content of the file into a byte array
-                using (MemoryStream ms = new MemoryStream())
-                {
+                //var base64String = base64.Base64String.StartsWith("data:") ? base64.Base64String.Split(",")[1] : base64.Base64String;
+                //// Convert Base64 string to byte array
+                //byte[] bytes = Convert.FromBase64String(base64String);
 
-                    // Convert the base64-encoded string to a byte array
-                    byte[] fileBytes2 = Convert.FromBase64String(base64.Base64String);
+                //// Create a MemoryStream from the byte array
+                //using (MemoryStream memoryStream = new MemoryStream(bytes))
+                //{
+                //    // Create an instance of IFormFile
+                //    var formFile = new FormFile(memoryStream, 0, bytes.Length, null, base64.FileName)
+                //    {
+                //        Headers = new HeaderDictionary(),
+                //        ContentType = "application/octet-stream" // Set the content type appropriately
+                //    };
 
-                    string filePath = base64.FileName.Split(".").Last();
-                    // Return the file in the response
-                    return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
-                }
+                //    if (formFile == null || formFile.Length == 0)
+                //    {
+                //        return BadRequest("Invalid file");
+                //    }
+                //    var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", formFile, null);
+                //    return Ok(Ultils.GetUrlImage(fileObject));
+                //}
+
+                return Ok(await Ultils.UploadImageBase64(_wwwrootPath, "TestBase64", base64.Base64String, base64.FileName, base64.Type, null));
             }
             catch (Exception ex)
             {
@@ -1084,6 +1101,7 @@ namespace Etailor.API.WebAPI.Controllers
     {
         public string Base64String { get; set; }
         public string FileName { get; set; }
+        public string Type { get; set; }
     }
     public class CheckExistAndAddNewImage
     {

@@ -18,6 +18,8 @@ namespace Etailor.API.Service.Interface
 
         Task<Blog> GetBlog(string id);
 
-        Task <IEnumerable<Blog>> GetBlogs(string? search);
+        Task<IEnumerable<Blog>> GetBlogs(string? search);
+
+        Task<IEnumerable<Blog>> GetRelativeBlog(string? hastag);
     }
 }

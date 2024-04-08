@@ -203,11 +203,11 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (role == RoleName.CUSTOMER)
                         {
-                            order = mapper.Map<OrderDetailVM>(orderService.GetOrderByCustomer(staffid, id));
+                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrderByCustomer(staffid, id));
                         }
                         else
                         {
-                            order = mapper.Map<OrderDetailVM>(orderService.GetOrder(id));
+                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrder(id));
                         }
 
                         if (order != null)
@@ -220,7 +220,7 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 order.Customer = mapper.Map<CustomerAllVM>(customerService.FindById(order.CustomerId));
 
-                                order.Customer.Avatar = await Ultils.GetUrlImage(order.Customer.Avatar);
+                                order.Customer.Avatar = Ultils.GetUrlImage(order.Customer.Avatar);
                             }
 
                             var listProducts = await productService.GetProductsByOrderId(order.Id);
@@ -310,23 +310,23 @@ namespace Etailor.API.WebAPI.Controllers
                                 var tasks = new List<Task>();
                                 foreach (var order in orders.ToList())
                                 {
-                                    tasks.Add(Task.Run(async () =>
+                                    //tasks.Add(Task.Run(async () =>
+                                    //{
+                                    var realOrder = mapper.Map<GetOrderVM>(order);
+                                    var firstProductOrder = listProducts.FirstOrDefault(x => x.OrderId == order.Id);
+                                    if (firstProductOrder != null)
                                     {
-                                        var realOrder = mapper.Map<GetOrderVM>(order);
-                                        var firstProductOrder = listProducts.FirstOrDefault(x => x.OrderId == order.Id);
-                                        if (firstProductOrder != null)
+                                        if (firstProductOrder.ProductTemplate == null)
                                         {
-                                            if (firstProductOrder.ProductTemplate == null)
-                                            {
-                                                firstProductOrder.ProductTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
-                                            }
-
-                                            realOrder.ThumbnailImage = firstProductOrder.ProductTemplate.ThumbnailImage;
+                                            firstProductOrder.ProductTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
                                         }
-                                        realOrder.CreatedTime = order.CreatedTime;
 
-                                        getOrderVMs.Add(realOrder);
-                                    }));
+                                        realOrder.ThumbnailImage = firstProductOrder.ProductTemplate.ThumbnailImage;
+                                    }
+                                    realOrder.CreatedTime = order.CreatedTime;
+
+                                    getOrderVMs.Add(realOrder);
+                                    //}));
                                 }
                                 await Task.WhenAll(tasks);
                             }

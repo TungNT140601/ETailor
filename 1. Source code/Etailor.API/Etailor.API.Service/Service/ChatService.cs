@@ -1,10 +1,12 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
+using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -191,93 +193,60 @@ namespace Etailor.API.Service.Service
                     return null;
                 }
 
+                var orderParam = new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar);
+                orderParam.Value = orderId;
+                var roleParam = new SqlParameter("@Role", System.Data.SqlDbType.Int);
+                if (role == RoleName.CUSTOMER)
+                {
+                    roleParam.Value = 3;
+                }
+                else
+                {
+                    roleParam.Value = 2;
+                }
                 var chats = chatRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+
                 if (chats != null && chats.Any())
                 {
                     var chat = chats.First();
 
-                    if (chat.ChatLists == null || chat.ChatLists.Count == 0)
+                    var chatLists = chatListRepository.GetStoreProcedure(StoreProcName.Get_Order_Chat_List, orderParam, roleParam);
+
+                    var tasks = new List<Task>();
+                    foreach (var chatList in chatLists)
                     {
-                        var chatLists = chatListRepository.GetAll(x => x.ChatId == chat.Id);
-
-                        if (chatLists != null && chatLists.Any())
+                        tasks.Add(Task.Run(async () =>
                         {
-                            chat.ChatLists = chatLists.OrderBy(x => x.SendTime).ToList();
-
-                            if (role == RoleName.CUSTOMER)
+                            if (!string.IsNullOrEmpty(chatList.Images))
                             {
-                                var unreadChats = chat.ChatLists.Where(x => x.FromCus == true && x.IsRead == false && x.IsActive == true);
-                                if (unreadChats != null && unreadChats.Any())
+                                var listUrl = new List<string>();
+                                var listImage = JsonConvert.DeserializeObject<List<string>>(chatList.Images);
+
+                                if (listImage != null && listImage.Any())
                                 {
-                                    var task1s = new List<Task>();
-                                    foreach (var chatList in unreadChats)
+                                    var getImageUrlTasks = new List<Task>();
+                                    foreach (var image in listImage)
                                     {
-                                        task1s.Add(Task.Run(() =>
+                                        getImageUrlTasks.Add(Task.Run(async () =>
                                         {
-                                            chatList.IsRead = true;
+                                            listUrl.Add(Ultils.GetUrlImage(image));
                                         }));
                                     }
-                                    await Task.WhenAll(task1s);
-
-                                    chatListRepository.UpdateRange(unreadChats.ToList());
+                                    await Task.WhenAll(getImageUrlTasks);
                                 }
 
+                                chatList.Images = JsonConvert.SerializeObject(listUrl);
                             }
-                            else
-                            {
-                                var unreadChats = chat.ChatLists.Where(x => x.FromCus == false && x.IsRead == false && x.IsActive == true);
-                                if (unreadChats != null && unreadChats.Any())
-                                {
-                                    var task1s = new List<Task>();
-                                    foreach (var chatList in unreadChats)
-                                    {
-                                        task1s.Add(Task.Run(() =>
-                                        {
-                                            chatList.IsRead = true;
-                                        }));
-                                    }
-                                    await Task.WhenAll(task1s);
-
-                                    chatListRepository.UpdateRange(unreadChats.ToList());
-                                }
-                            }
-                        }
-
-                        var tasks = new List<Task>();
-                        foreach (var chatList in chatLists)
-                        {
-                            tasks.Add(Task.Run(async () =>
-                            {
-                                if (!string.IsNullOrEmpty(chatList.Images))
-                                {
-                                    var listUrl = new List<string>();
-                                    var listImage = JsonConvert.DeserializeObject<List<string>>(chatList.Images);
-
-                                    if (listImage != null && listImage.Any())
-                                    {
-                                        var getImageUrlTasks = new List<Task>();
-                                        foreach (var image in listImage)
-                                        {
-                                            getImageUrlTasks.Add(Task.Run(async () =>
-                                            {
-                                                listUrl.Add(await Ultils.GetUrlImage(image));
-                                            }));
-                                        }
-                                        await Task.WhenAll(getImageUrlTasks);
-                                    }
-
-                                    chatList.Images = JsonConvert.SerializeObject(listUrl);
-                                }
-                            }));
-                        }
-
-                        await Task.WhenAll(tasks);
+                        }));
                     }
+
+                    await Task.WhenAll(tasks);
+
+                    chat.ChatLists = chatLists.ToList();
 
                     return chat;
                 }
             }
-
             return null;
         }
     }

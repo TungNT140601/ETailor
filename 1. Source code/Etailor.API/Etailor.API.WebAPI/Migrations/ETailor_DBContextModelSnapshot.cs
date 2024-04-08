@@ -844,6 +844,11 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("decimal(18,3)")
                         .HasDefaultValueSql("((0))");
 
+                    b.Property<decimal?>("ValueUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,3)")
+                        .HasDefaultValueSql("((0))");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MaterialId");
@@ -967,7 +972,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("SaveOrderComponents")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StaffMakerId")
                         .HasMaxLength(30)
@@ -1402,6 +1407,68 @@ namespace Etailor.API.WebAPI.Migrations
                     b.HasIndex("TemplateStageId");
 
                     b.ToTable("TemplateStage", (string)null);
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.FabricMaterialCommonUsed", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Image")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TotalOrders")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TotalProducts")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FabricMaterialCommonUsed");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.OrderDashboard", b =>
+                {
+                    b.Property<int?>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Total")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable("OrderDashboard");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.StaffWithTotalTask", b =>
+                {
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Avatar")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Fullname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TotalTask")
+                        .HasColumnType("int");
+
+                    b.ToTable("StaffWithTotalTask");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Blog", b =>

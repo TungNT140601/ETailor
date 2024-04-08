@@ -82,6 +82,28 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpGet("relative")]
+        public async Task<IActionResult> GetAllRelative(string? hastag)
+        {
+            try
+            {
+                var blogs = await blogService.GetRelativeBlog(hastag);
+                return Ok(mapper.Map<IEnumerable<ListOfBlogVM>>(blogs));
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateBlog([FromForm] CreateBlogVM blogVM)
         {
