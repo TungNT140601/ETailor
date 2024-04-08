@@ -46,12 +46,8 @@ namespace Etailor.API.Ultity
         }
         public static string GenOrderId()
         {
-            var date = DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd.HHmmssffff");
-            const string characters = "0123456789";
-            Random random = new Random();
-            var randomString = new string(Enumerable.Repeat(characters, 10)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
-            return date + "." + randomString;
+            var date = DateTime.UtcNow.AddHours(7).ToString("yyMMdd.HHmm.ssffff");
+            return date;
         }
         public static string GenerateRandomOTP()
         {

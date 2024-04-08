@@ -340,7 +340,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                                                 insideTasks.Add(Task.Run(async () =>
                                                 {
-                                                    var componentNote = productComponents.FirstOrDefault(x => x.ComponentId == component.Id);
+                                                    var componentNote = productComponents.FirstOrDefault(x => component.Components.Select(c => c.Id).Contains(x.ComponentId));
                                                     if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
                                                     {
                                                         component.NoteObject = new ComponentNoteVM();
@@ -360,9 +360,9 @@ namespace Etailor.API.WebAPI.Controllers
                                                                 foreach (var img in listImageDTO)
                                                                 {
                                                                     insideTasks1.Add(Task.Run(() =>
-                                                                    {
-                                                                        listImageUrl.Add(Ultils.GetUrlImage(img));
-                                                                    }));
+                                                                {
+                                                                    listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                }));
                                                                 }
                                                                 await Task.WhenAll(insideTasks1);
                                                                 component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);

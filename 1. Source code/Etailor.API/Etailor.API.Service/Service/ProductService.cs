@@ -713,37 +713,62 @@ namespace Etailor.API.Service.Service
             var dbProduct = productRepository.Get(id);
             if (dbProduct != null && dbProduct.IsActive == true)
             {
-                var checkChild = Task.Run(() =>
+                var order = orderRepository.Get(dbProduct.OrderId);
+                if (order != null)
                 {
-                    //if (productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any() || componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).Any())
-                    //{
-                    //    throw new UserException("Không thể xóa danh mục sản phầm này do vẫn còn các mẫu sản phẩm và các loại thành phần sản phẩm vẫn còn thuộc danh mục này");
-                    //}
-                });
-                var setValue = Task.Run(() =>
-                {
-                    dbProduct.CreatedTime = null;
-                    dbProduct.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                    dbProduct.IsActive = false;
-                    dbProduct.InactiveTime = DateTime.UtcNow.AddHours(7);
-                });
-
-                await Task.WhenAll(checkChild, setValue);
-
-                if (productRepository.Update(dbProduct.Id, dbProduct))
-                {
-                    if (await orderService.CheckOrderPaid(dbProduct.OrderId))
+                    if (order.Status >= 2)
                     {
-                        return true;
+                        switch (order.Status)
+                        {
+                            case 0:
+                                throw new UserException("Đơn hàng đã hủy. Không thể xóa sản phẩm");
+                            case 2:
+                                throw new UserException("Đơn hàng đã duyệt. Không thể xóa sản phẩm");
+                            case 3:
+                                throw new UserException("Đơn hàng đã vào giai đoạn thực hiện. Không thể xóa sản phẩm");
+                            case 4:
+                                throw new UserException("Đơn hàng đang trong giai đoạn thực hiện. Không thể xóa sản phẩm");
+                            case 5:
+                                throw new UserException("Đơn hàng đã vào giai đoạn hoàn thiện. Không thể xóa sản phẩm");
+                            case 6:
+                                throw new UserException("Đơn hàng đang chờ khách hàng kiểm thử. Không thể xóa sản phẩm");
+                            case 7:
+                                throw new UserException("Đơn hàng đã bàn giao cho khách. Không thể xóa sản phẩm");
+                            default:
+                                throw new UserException("Đơn hàng đã hủy. Không thể xóa sản phẩm");
+                        }
+                    }
+                    else if (order.PaidMoney > 0 || order.Deposit > 0)
+                    {
+                        throw new UserException("Đơn hàng đã thanh toán. Không thể xóa sản phẩm");
                     }
                     else
                     {
-                        throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn", nameof(ProductService));
+                        dbProduct.CreatedTime = null;
+                        dbProduct.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                        dbProduct.IsActive = false;
+                        dbProduct.InactiveTime = DateTime.UtcNow.AddHours(7);
+
+                        if (productRepository.Update(dbProduct.Id, dbProduct))
+                        {
+                            if (await orderService.CheckOrderPaid(dbProduct.OrderId))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn", nameof(ProductService));
+                            }
+                        }
+                        else
+                        {
+                            throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm", nameof(ProductService));
+                        }
                     }
                 }
                 else
                 {
-                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm", nameof(ProductService));
+                    throw new UserException("Không tìm thấy hóa đơn");
                 }
             }
             else

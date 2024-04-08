@@ -76,10 +76,16 @@ namespace Etailor.API.Service.Service
             {
                 componentNames = componentNames.ToList();
             }
+            else
+            {
+                componentNames = new List<Component>();
+            }
 
             var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == component.ProductTemplateId && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true);
-
-            var templateComponentsList = templateComponents?.ToList();
+            if (templateComponents != null && templateComponents.Any())
+            {
+                templateComponents = templateComponents.ToList();
+            }
 
             var changeDefaultComponent = new Component();
 
@@ -143,16 +149,16 @@ namespace Etailor.API.Service.Service
                 {
                     if (component.Default.Value)
                     {
-                        if (templateComponentsList != null && templateComponentsList.Any(c => c.Default == true))
+                        if (templateComponents != null && templateComponents.Any(c => c.Default == true))
                         {
-                            changeDefaultComponent = templateComponentsList.Single(x => x.Default.Value == true);
+                            changeDefaultComponent = templateComponents.First(x => x.Default.Value == true);
                             changeDefaultComponent.Default = false;
                             componentRepository.Update(changeDefaultComponent.Id, changeDefaultComponent);
                         }
                     }
                     else
                     {
-                        if (templateComponentsList == null || !templateComponentsList.Any(c => c.Default == true))
+                        if (templateComponents == null || !templateComponents.Any(c => c.Default == true))
                         {
                             component.Default = true;
                         }
@@ -160,7 +166,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    if (templateComponentsList != null && templateComponentsList.Any(c => c.Default == true))
+                    if (templateComponents != null && templateComponents.Any(c => c.Default == true))
                     {
                         component.Default = false;
                     }

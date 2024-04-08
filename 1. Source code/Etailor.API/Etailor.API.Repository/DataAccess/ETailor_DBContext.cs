@@ -678,7 +678,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.EvidenceImage).HasColumnType("text");
 
-                entity.Property(e => e.SaveOrderComponents).HasColumnType("text");
+                entity.Property(e => e.SaveOrderComponents).HasColumnType("nvarchar(max)");
 
                 entity.Property(e => e.FinishTime).HasColumnType("datetime");
 

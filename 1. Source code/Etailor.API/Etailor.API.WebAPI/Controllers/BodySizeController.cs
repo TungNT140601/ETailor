@@ -30,7 +30,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var bodySize = await bodySizeService.GetBodySize(id);
+                var bodySize = bodySizeService.GetBodySize(id);
                 if (bodySize == null)
                 {
                     return NotFound("không tìm thấy thuật ngữ số đo cơ thể này");
@@ -55,7 +55,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpGet]
-        public async  Task<IActionResult> GetAll(string? search)
+        public async Task<IActionResult> GetAll(string? search)
         {
             try
             {
@@ -100,14 +100,14 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                        if (string.IsNullOrWhiteSpace(bodySizeVM.Name))
-                        {
-                            throw new UserException("Nhập tên thuật ngữ số đo cơ thể");
-                        }
-                        else
-                        {
-                            return (await bodySizeService.CreateBodySize(mapper.Map<BodySize>(bodySizeVM), _wwwrootPath, bodySizeVM.Image)) ? Ok("Tạo mới thuật ngữ số đo cơ thể thành công") : BadRequest("Tạo mới thuật ngữ số đo cơ thể thất bại");
-                        }
+                if (string.IsNullOrWhiteSpace(bodySizeVM.Name))
+                {
+                    throw new UserException("Nhập tên thuật ngữ số đo cơ thể");
+                }
+                else
+                {
+                    return (await bodySizeService.CreateBodySize(mapper.Map<BodySize>(bodySizeVM), _wwwrootPath, bodySizeVM.Image)) ? Ok("Tạo mới thuật ngữ số đo cơ thể thành công") : BadRequest("Tạo mới thuật ngữ số đo cơ thể thất bại");
+                }
                 //    }
                 //}
             }
@@ -155,14 +155,14 @@ namespace Etailor.API.WebAPI.Controllers
                 //        }
                 //        else
                 //        {
-                            if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(bodySizeVM.Id) || id != bodySizeVM.Id)
-                            {
-                                return NotFound("Không tìm thấy thuật ngữ số đo cơ thể");
-                            }
-                            else
-                            {
-                                return await bodySizeService.UpdateBodySize(mapper.Map<BodySize>(bodySizeVM), _wwwrootPath, bodySizeVM.Image) ? Ok("Cập nhật thuật ngữ số đo cơ thể thành công") : BadRequest("Cập nhật thuật ngữ số đo cơ thể thất bại");
-                            }
+                if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(bodySizeVM.Id) || id != bodySizeVM.Id)
+                {
+                    return NotFound("Không tìm thấy thuật ngữ số đo cơ thể");
+                }
+                else
+                {
+                    return await bodySizeService.UpdateBodySize(mapper.Map<BodySize>(bodySizeVM), _wwwrootPath, bodySizeVM.Image) ? Ok("Cập nhật thuật ngữ số đo cơ thể thành công") : BadRequest("Cập nhật thuật ngữ số đo cơ thể thất bại");
+                }
                 //        }
                 //    }
                 //}
@@ -205,14 +205,14 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                        if (string.IsNullOrEmpty(id))
-                        {
-                            return NotFound("Không tìm thấy thuật ngữ số đo cơ thể");
-                        }
-                        else
-                        {
-                            return bodySizeService.DeleteBodySize(id) ? Ok("Xóa thuật ngữ số đo cơ thể thành công") : BadRequest("Xóa thuật ngữ số đo cơ thể thất bại");
-                        }
+                if (string.IsNullOrEmpty(id))
+                {
+                    return NotFound("Không tìm thấy thuật ngữ số đo cơ thể");
+                }
+                else
+                {
+                    return bodySizeService.DeleteBodySize(id) ? Ok("Xóa thuật ngữ số đo cơ thể thành công") : BadRequest("Xóa thuật ngữ số đo cơ thể thất bại");
+                }
                 //    }
                 //}
             }
