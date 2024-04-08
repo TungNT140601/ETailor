@@ -23,14 +23,17 @@ namespace Etailor.API.Service.Service
         private readonly IStaffRepository staffRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IMasteryRepository masteryRepository;
+        private readonly IProductRepository productRepository;
         private IConfiguration configuration;
 
-        public StaffService(IStaffRepository staffRepository, IConfiguration configuration, ICategoryRepository categoryRepository, IMasteryRepository masteryRepository)
+        public StaffService(IStaffRepository staffRepository, IConfiguration configuration, ICategoryRepository categoryRepository
+            , IMasteryRepository masteryRepository, IProductRepository productRepository)
         {
             this.staffRepository = staffRepository;
             this.configuration = configuration;
             this.categoryRepository = categoryRepository;
             this.masteryRepository = masteryRepository;
+            this.productRepository = productRepository;
         }
 
         public Staff CheckLogin(string username, string password)
@@ -97,7 +100,7 @@ namespace Etailor.API.Service.Service
             });
             var setCreateTime = Task.Run(() =>
             {
-                staff.CreatedTime = DateTime.Now;
+                staff.CreatedTime = DateTime.UtcNow.AddHours(7);
             });
             var setIsActive = Task.Run(() =>
             {
@@ -178,7 +181,7 @@ namespace Etailor.API.Service.Service
         {
             var bkStaff = new Staff();
             var bkMastery = new List<string>();
-            var dbStaff = GetStaff(staff.Id);
+            var dbStaff = await GetStaff(staff.Id);
             if (dbStaff != null)
             {
                 bkMastery = masteryRepository.GetAll(x => x.StaffId == dbStaff.Id)?.Select(c => c.CategoryId).ToList();
@@ -218,7 +221,7 @@ namespace Etailor.API.Service.Service
 
                 var updateUpdateTimeTask = Task.Run(() =>
                 {
-                    dbStaff.LastestUpdatedTime = DateTime.Now;
+                    dbStaff.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 });
 
                 await Task.WhenAll(setBkStaff, checkPhoneTask, checkAvatarTask, updateFullnameTask, updateAddressTask, updateUpdateTimeTask);
@@ -311,11 +314,11 @@ namespace Etailor.API.Service.Service
         }
 
 
-        public bool ChangePass(string id, string? oldPassword, string newPassword, string role)
+        public async Task<bool> ChangePass(string id, string? oldPassword, string newPassword, string role)
         {
             try
             {
-                var dbStaff = GetStaff(id);
+                var dbStaff = await GetStaff(id);
                 if (dbStaff != null)
                 {
                     if (role == RoleName.MANAGER)
@@ -333,7 +336,7 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Mật khẩu không chính xác");
                         }
                     }
-                    dbStaff.LastestUpdatedTime = DateTime.Now;
+                    dbStaff.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                     return staffRepository.Update(dbStaff.Id, dbStaff);
                 }
@@ -404,11 +407,19 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Staff GetStaff(string id)
+        public async Task<Staff> GetStaff(string id)
         {
             try
             {
-                return staffRepository.Get(id);
+                var staff = staffRepository.Get(id);
+                if (staff != null)
+                {
+                    if (!string.IsNullOrEmpty(staff.Avatar))
+                    {
+                        staff.Avatar = await Ultils.GetUrlImage(staff.Avatar);
+                    }
+                }
+                return staff;
             }
             catch (UserException ex)
             {
@@ -506,6 +517,97 @@ namespace Etailor.API.Service.Service
             catch (Exception ex)
             {
                 throw new SystemsException(ex.Message, nameof(StaffService));
+            }
+        }
+        public IEnumerable<Staff> GetAllWithPagination(string? search, int? pageIndex, int? itemPerPage)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(search))
+                {
+                    var totalData = staffRepository.Count(x => x.IsActive == true && (x.Role == 1 || x.Role == 2));
+                    if (totalData == 0)
+                    {
+                        return new List<Staff>();
+                    }
+                    else
+                    {
+                        if (itemPerPage == null)
+                        {
+                            itemPerPage = 10;
+                        }
+                        if (pageIndex == null || pageIndex == 0)
+                        {
+                            pageIndex = 1;
+                        }
+                        var totalPage = (int)Math.Ceiling((double)totalData / (double)itemPerPage);
+                        if (pageIndex > totalPage || pageIndex < 1)
+                        {
+                            pageIndex = 1;
+                        }
+                        return staffRepository.GetAllPagination(x => x.IsActive == true && (x.Role == 1 || x.Role == 2), pageIndex, itemPerPage);
+                    }
+                }
+                else
+                {
+                    var totalData = staffRepository.Count(x => ((x.Fullname != null && x.Fullname.Trim().ToLower().Contains(search.Trim().ToLower())) || (x.Phone != null && x.Phone.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true && (x.Role == 1 || x.Role == 2));
+                    if (totalData == 0)
+                    {
+                        return new List<Staff>();
+                    }
+                    else
+                    {
+                        if (itemPerPage == null)
+                        {
+                            itemPerPage = 10;
+                        }
+                        if (pageIndex == null || pageIndex == 0)
+                        {
+                            pageIndex = 1;
+                        }
+                        var totalPage = (int)Math.Ceiling((double)totalData / (double)itemPerPage);
+                        if (pageIndex > totalPage || pageIndex < 1)
+                        {
+                            pageIndex = 1;
+                        }
+                        return staffRepository.GetAllPagination(x => ((x.Fullname != null && x.Fullname.Trim().ToLower().Contains(search.Trim().ToLower())) || (x.Phone != null && x.Phone.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true && (x.Role == 1 || x.Role == 2), pageIndex, itemPerPage);
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                throw new SystemsException(ex.Message, nameof(StaffService));
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(StaffService));
+            }
+        }
+
+        public bool RemoveStaff(string staffId)
+        {
+            var staff = staffRepository.Get(staffId);
+            if (staff != null && staff.IsActive == true)
+            {
+                var staffTasks = productRepository.GetAll(x => x.StaffMakerId == staffId && x.Status > 0 && x.Status < 4 && x.IsActive == true);
+                if (staffTasks != null && staffTasks.Any())
+                {
+                    throw new UserException("Nhân viên đang có công việc chưa hoàn thành. Vui lòng bàn giao hết các công việc của nhân viên sang nhân viên khác.");
+                }
+                else
+                {
+                    staff.InactiveTime = DateTime.UtcNow.AddHours(7);
+                    staff.IsActive = false;
+                    return staffRepository.Update(staffId, staff);
+                }
+            }
+            else
+            {
+                throw new UserException("Nhân viên không tồn tại");
             }
         }
     }

@@ -199,10 +199,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<DateTime?>("CreatedTime")
                         .HasColumnType("datetime");
 
-                    b.Property<string>("CustomerId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
                     b.Property<DateTime?>("InactiveTime")
                         .HasColumnType("datetime");
 
@@ -211,14 +207,18 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValueSql("((1))");
 
+                    b.Property<string>("OrderId")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("OrderId");
 
                     b.ToTable("Chat", (string)null);
                 });
 
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ChatHistory", b =>
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ChatList", b =>
                 {
                     b.Property<string>("Id")
                         .HasMaxLength(30)
@@ -232,6 +232,9 @@ namespace Etailor.API.WebAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValueSql("((1))");
+
+                    b.Property<string>("Images")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("InactiveTime")
                         .HasColumnType("datetime");
@@ -266,7 +269,7 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.HasIndex("ReplierId");
 
-                    b.ToTable("ChatHistory", (string)null);
+                    b.ToTable("ChatList", (string)null);
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Component", b =>
@@ -460,34 +463,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Customer", (string)null);
-                });
-
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.CustomerClient", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("ClientToken")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("CustomerId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("datetime");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CustomerId");
-
-                    b.ToTable("CustomerClient", (string)null);
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Discount", b =>
@@ -747,8 +722,23 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("CusAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("CusEmail")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("CusName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CusPhone")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<string>("CustomerId")
-                        .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("Deposit")
@@ -1063,6 +1053,12 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("Note")
+                        .HasColumnType("nvarchar(2550)");
+
+                    b.Property<string>("NoteImage")
+                        .HasColumnType("text");
+
                     b.Property<string>("ProductStageId")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
@@ -1110,6 +1106,9 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.Property<DateTime?>("Deadline")
                         .HasColumnType("datetime");
+
+                    b.Property<string>("EvidenceImage")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("FinishTime")
                         .HasColumnType("datetime");
@@ -1434,23 +1433,23 @@ namespace Etailor.API.WebAPI.Migrations
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Chat", b =>
                 {
-                    b.HasOne("Etailor.API.Repository.EntityModels.Customer", "Customer")
+                    b.HasOne("Etailor.API.Repository.EntityModels.Order", "Order")
                         .WithMany("Chats")
-                        .HasForeignKey("CustomerId")
-                        .HasConstraintName("FK__Chat__CustomerId__125EB334");
+                        .HasForeignKey("OrderId")
+                        .HasConstraintName("FK__Chat__OrderId__125EB334");
 
-                    b.Navigation("Customer");
+                    b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ChatHistory", b =>
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ChatList", b =>
                 {
                     b.HasOne("Etailor.API.Repository.EntityModels.Chat", "Chat")
-                        .WithMany("ChatHistories")
+                        .WithMany("ChatLists")
                         .HasForeignKey("ChatId")
                         .HasConstraintName("FK__ChatHisto__ChatI__162F4418");
 
                     b.HasOne("Etailor.API.Repository.EntityModels.Staff", "Replier")
-                        .WithMany("ChatHistories")
+                        .WithMany("ChatLists")
                         .HasForeignKey("ReplierId")
                         .HasConstraintName("FK__ChatHisto__Repli__17236851");
 
@@ -1501,16 +1500,6 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasConstraintName("FK__Component__Categ__52793849");
 
                     b.Navigation("Category");
-                });
-
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.CustomerClient", b =>
-                {
-                    b.HasOne("Etailor.API.Repository.EntityModels.Customer", "Customer")
-                        .WithMany("CustomerClients")
-                        .HasForeignKey("CustomerId")
-                        .HasConstraintName("FK__CustomerC__Custo__2B2A60FE");
-
-                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Mastery", b =>
@@ -1827,7 +1816,7 @@ namespace Etailor.API.WebAPI.Migrations
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Chat", b =>
                 {
-                    b.Navigation("ChatHistories");
+                    b.Navigation("ChatLists");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Component", b =>
@@ -1844,10 +1833,6 @@ namespace Etailor.API.WebAPI.Migrations
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Customer", b =>
                 {
-                    b.Navigation("Chats");
-
-                    b.Navigation("CustomerClients");
-
                     b.Navigation("Notifications");
 
                     b.Navigation("Orders");
@@ -1881,6 +1866,8 @@ namespace Etailor.API.WebAPI.Migrations
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Order", b =>
                 {
+                    b.Navigation("Chats");
+
                     b.Navigation("OrderMaterials");
 
                     b.Navigation("Payments");
@@ -1932,7 +1919,7 @@ namespace Etailor.API.WebAPI.Migrations
                 {
                     b.Navigation("Blogs");
 
-                    b.Navigation("ChatHistories");
+                    b.Navigation("ChatLists");
 
                     b.Navigation("Masteries");
 

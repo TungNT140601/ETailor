@@ -1,4 +1,6 @@
-﻿namespace Etailor.API.WebAPI.ViewModels
+﻿using Etailor.API.Repository.EntityModels;
+
+namespace Etailor.API.WebAPI.ViewModels
 {
     public class ProductVM
     {
@@ -10,6 +12,21 @@
         public int? Status { get; set; }
         public string? EvidenceImage { get; set; }
         public DateTime? FinishTime { get; set; }
+    }
+    public class ProductAllTaskVM
+    {
+        public string? Id { get; set; }
+        public string? OrderId { get; set; }
+        public string? ProductTemplateId { get; set; }
+        public string? Name { get; set; }
+        public string? Note { get; set; }
+        public decimal? Price { get; set; }
+        public int? CurrentStage { get; set; }
+        public int? Status { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? CreatedTime { get; set; }
+        public virtual StaffTaskVM? StaffMaker { get; set; }
+        public virtual ICollection<ProductStagesNeedForTask>? ProductStages { get; set; }
     }
     public class ProductOrderVM
     {
@@ -64,7 +81,9 @@
         public int? Status { get; set; }
         public string? ReferenceProfileBodyId { get; set; }
         public string? FabricMaterialId { get; set; }
+        public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public string? StaffMakerId { get; set; }
+        public StaffTaskVM? StaffMaker { get; set; }
         public int? Index { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
@@ -78,6 +97,7 @@
         public string? Name { get; set; }
         public int? Status { get; set; }
         public string? FabricMaterialId { get; set; }
+        public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public DateTime? Deadline { get; set; }
         public int? Index { get; set; }
     }
@@ -87,57 +107,18 @@
         public string? Id { get; set; }
         public string? OrderId { get; set; }
         public string? ProductTemplateId { get; set; }
-        public string? ProductTemplateName { get; set; }
-        public string? ThumbnailProductTemplate { get; set; }
         public string? Name { get; set; }
         public string? Note { get; set; }
-        public string? ReferenceProfileBodyId { get; set; }
-        public string? ProfileBodyName { get; set; }
-        public List<ProfileBodyDetailVM> ProfileBodyValue { get; set; }
-        public string? FabricMaterialId { get; set; }
-        public string? MaterialName { get; set; }
-        public string? MaterialImage {  get; set; }
-        public decimal? MaterialQuantity {  get; set; }
-        public DateTime? CreatedTime { get; set; }
-
-        public List<ProductStageDetailVM> ProductStages { get; set; }
-
-        public List<ProductComponentDetailVM> ProductComponents { get; set; }  
-    }
-
-    public class ProductComponentDetailVM
-    {
-        public string ProductComponentId { get; set; }
-        public string? ComponentId { get; set; }
-        public string? ProductStageId { get; set; }
-        public string? ProductComponentName { get; set; }
-        public string? Image { get; set; }
-        public ComponentDetailVM Component {  get; set; }
-
-    }
-
-    public class ComponentDetailVM
-    {
-        public string Id { get; set; }
-        public string? ComponentTypeId { get; set; }
-        public string? ProductTemplateId { get; set; }
-        public string? Name { get; set; }
-        public string? Image { get; set; }
-        public int? Index { get; set; }
-        public bool? Default { get; set; }
-        
-    }
-
-    public class ProductStageDetailVM
-    {
-        public string ProductStageId { get; set; }
-        public string? StaffId { get; set; }
-        public string? TemplateStageId { get; set; }
-        public string? TemplateStageName { get; set; }
-        public int? TaskIndex { get; set; }
-        public int? StageNum { get; set; }
-        public DateTime? Deadline { get; set; }
         public int? Status { get; set; }
+        public string? EvidenceImage { get; set; }
+        public string? ReferenceProfileBodyId { get; set; }
+        public string? FabricMaterialId { get; set; }
+        public int? Index { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public FabricMaterialVM? FabricMaterial { get; set; }
+        public ProductTemplateTaskDetailVM? ProductTemplate { get; set; }
+        public ICollection<ProductBodySizeTaskDetailVM>? ProductBodySizes { get; set; }
+        public ICollection<ProductStageTaskDetailVM>? ProductStages { get; set; }
     }
 
     public class ProfileBodyDetailVM

@@ -165,7 +165,7 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                component.CreatedTime = DateTime.Now;
+                component.CreatedTime = DateTime.UtcNow.AddHours(7);
                 component.InactiveTime = null;
                 component.IsActive = true;
             }));
@@ -186,7 +186,7 @@ namespace Etailor.API.Service.Service
                 tasks.Add(Task.Run(() =>
                 {
                     dbComponent.IsActive = false;
-                    dbComponent.InactiveTime = DateTime.Now;
+                    dbComponent.InactiveTime = DateTime.UtcNow.AddHours(7);
                     componentRepository.Update(dbComponent.Id, dbComponent);
                 }));
 
@@ -226,7 +226,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    dbComponent.CreatedTime = DateTime.Now;
+                    dbComponent.CreatedTime = DateTime.UtcNow.AddHours(7);
                 }));
 
                 tasks.Add(Task.Run(() =>
@@ -255,7 +255,7 @@ namespace Etailor.API.Service.Service
 
             if (dbComponent != null)
             {
-                dbComponent.InactiveTime = DateTime.Now;
+                dbComponent.InactiveTime = DateTime.UtcNow.AddHours(7);
                 dbComponent.IsActive = false;
 
                 return componentRepository.Update(dbComponent.Id, dbComponent);
@@ -269,10 +269,10 @@ namespace Etailor.API.Service.Service
         public async Task<IEnumerable<Component>> GetAllByComponentType(string componentTypeId, string templateId)
         {
             var components = componentRepository.GetAll(x => x.ComponentTypeId == componentTypeId && x.ProductTemplateId == templateId && x.IsActive == true);
-            if (components.Any())
+            if (components != null && components.Any())
             {
                 var tasks = new List<Task>();
-                foreach (var component in components)
+                foreach (var component in components.ToList())
                 {
                     tasks.Add(Task.Run(async () =>
                     {

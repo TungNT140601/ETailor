@@ -37,6 +37,13 @@
         public string? Phone { get; set; }
         public string? Username { get; set; }
     }
+    public class StaffTaskVM
+    {
+        public string? Id { get; set; }
+        public string? Avatar { get; set; }
+        public string? Fullname { get; set; }
+        public string? Phone { get; set; }
+    }
     public class StaffChangePassVM
     {
         public string? OldPassword { get; set; }

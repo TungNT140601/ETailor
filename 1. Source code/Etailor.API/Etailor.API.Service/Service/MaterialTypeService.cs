@@ -60,8 +60,8 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                materialType.LastestUpdatedTime = DateTime.Now;
-                materialType.CreatedTime = DateTime.Now;
+                materialType.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                materialType.CreatedTime = DateTime.UtcNow.AddHours(7);
             }));
 
             tasks.Add(Task.Run(() =>
@@ -118,7 +118,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    dbMaterialType.LastestUpdatedTime = DateTime.Now;
+                    dbMaterialType.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbMaterialType.InactiveTime = null;
                     dbMaterialType.IsActive = true;
                 }));
@@ -153,8 +153,8 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    existMaterial.LastestUpdatedTime = DateTime.Now;
-                    existMaterial.InactiveTime = DateTime.Now;
+                    existMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                    existMaterial.InactiveTime = DateTime.UtcNow.AddHours(7);
                     existMaterial.IsActive = false;
 
                     return materialTypeRepository.Update(existMaterial.Id, existMaterial);

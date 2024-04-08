@@ -16,4 +16,10 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Name { get; set; }
         public string? Unit { get; set; }
     }
+    public class MaterialTypeTaskDetailVM
+    {
+        public string? Id { get; set; }
+        public string? Name { get; set; }
+        public string? Unit { get; set; }
+    }
 }

@@ -57,7 +57,7 @@ namespace Etailor.API.Service.Service
 
             await Task.WhenAll(tasks);
 
-            materialCategory.CreatedTime = DateTime.Now;
+            materialCategory.CreatedTime = DateTime.UtcNow.AddHours(7);
             materialCategory.InactiveTime = null;
             materialCategory.IsActive = true;
 
@@ -104,8 +104,8 @@ namespace Etailor.API.Service.Service
             var existMaterialCategory = materialCategoryRepository.Get(id);
             if (existMaterialCategory != null)
             {
-                existMaterialCategory.LastestUpdatedTime = DateTime.Now;
-                existMaterialCategory.InactiveTime = DateTime.Now;
+                existMaterialCategory.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                existMaterialCategory.InactiveTime = DateTime.UtcNow.AddHours(7);
                 existMaterialCategory.IsActive = false;
                 return materialCategoryRepository.Update(existMaterialCategory.Id, existMaterialCategory);
             }

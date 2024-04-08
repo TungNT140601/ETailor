@@ -39,7 +39,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var categories = mapper.Map<IEnumerable<CategoryAllTemplateVM>>(categoryService.GetCategorys(null));
+                var categories = mapper.Map<IEnumerable<CategoryAllTemplateVM>>(await categoryService.GetCategorys(null));
                 var returnData = new List<CategoryAllTemplateVM>();
                 if (categories != null && categories.Any())
                 {
@@ -130,12 +130,13 @@ namespace Etailor.API.WebAPI.Controllers
                     var category = mapper.Map<CategoryAllTemplateVM>(categoryService.GetCategory(id));
 
                     var templates = await productTemplateService.GetByCategory(category.Id);
-
-                    foreach (var template in templates)
+                    if (templates != null && templates.Any())
                     {
-                        var templateVM = mapper.Map<ProductTemplateALLVM>(template);
-
-                        category.ProductTemplates.Add(templateVM);
+                        templates = templates.ToList();
+                        foreach (var template in templates)
+                        {
+                            category.ProductTemplates.Add(mapper.Map<ProductTemplateALLVM>(template));
+                        }
                     }
 
                     return Ok(category);
@@ -346,7 +347,7 @@ namespace Etailor.API.WebAPI.Controllers
                 //    }
                 //    else
                 //    {
-                return Ok(await productTemplateService.UpdateDraftTemplate(mapper.Map<ProductTemplate>(templateCreateVM), _wwwroot, templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
+                return Ok(await productTemplateService.UpdateTemplate(_wwwroot, mapper.Map<ProductTemplate>(templateCreateVM), templateCreateVM.ThumbnailImageFile, templateCreateVM.ImageFiles, templateCreateVM.CollectionImageFiles));
                 //    }
                 //}
             }

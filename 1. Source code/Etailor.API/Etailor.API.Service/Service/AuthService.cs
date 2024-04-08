@@ -120,8 +120,8 @@ namespace Etailor.API.Service.Service
             tasks.Add(Task.Run(() =>
             {
                 customer.Id = Ultils.GenGuidString();
-                customer.CreatedTime = DateTime.UtcNow;
-                customer.LastestUpdatedTime = DateTime.UtcNow;
+                customer.CreatedTime = DateTime.UtcNow.AddHours(7);
+                customer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 customer.InactiveTime = null;
                 customer.IsActive = true;
             }));
@@ -133,26 +133,57 @@ namespace Etailor.API.Service.Service
 
         public Customer CheckLoginCus(string? usernameOrEmail, string? password)
         {
-            var customer = customerRepository.GetAll(x => (x.Username == usernameOrEmail || x.Email == usernameOrEmail) && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true).FirstOrDefault();
-
-            if (customer != null)
+            if (usernameOrEmail.Contains("@"))
             {
-                if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
-                {
-                    customer.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
-                    customerRepository.Update(customer.Id, customer);
-                }
-            }
+                var customer = customerRepository.FirstOrDefault(x => x.Email == usernameOrEmail && x.IsActive == true);
 
-            return customer;
+                if (customer != null)
+                {
+                    if (!Ultils.VerifyPassword(password, customer.Password))
+                    {
+                        return null;
+                    }
+                    else if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
+                    {
+                        customer.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
+                        customerRepository.Update(customer.Id, customer);
+                    }
+                }
+
+                return customer;
+            }
+            else
+            {
+                var customer = customerRepository.FirstOrDefault(x => x.Username == usernameOrEmail && x.IsActive == true);
+
+                if (customer != null)
+                {
+                    if (!Ultils.VerifyPassword(password, customer.Password))
+                    {
+                        return null;
+                    }
+                    else if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
+                    {
+                        customer.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
+                        customerRepository.Update(customer.Id, customer);
+                    }
+                }
+
+                return customer;
+            }
         }
+
         public Staff CheckLoginStaff(string? usernameOrEmail, string? password)
         {
-            var staff = staffRepository.GetAll(x => x.Username == usernameOrEmail && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true).FirstOrDefault();
+            var staff = staffRepository.FirstOrDefault(x => x.Username == usernameOrEmail && x.IsActive == true);
 
             if (staff != null)
             {
-                if (string.IsNullOrEmpty(staff.SecrectKeyLogin))
+                if (!Ultils.VerifyPassword(password, staff.Password))
+                {
+                    return null;
+                }
+                else if (string.IsNullOrEmpty(staff.SecrectKeyLogin))
                 {
                     staff.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
                     staffRepository.Update(staff.Id, staff);

@@ -70,7 +70,7 @@ namespace Etailor.API.Service.Service
                 {
                     Id = Ultils.GenGuidString(),
                     OrderId = orderId,
-                    CreatedTime = DateTime.Now,
+                    CreatedTime = DateTime.UtcNow.AddHours(7),
                     Amount = (decimal)Math.Round(amount.Value, 2),
                     AmountAfterRefund = (decimal)Math.Round(amount.Value, 2),
                     PaymentRefundId = null,
@@ -109,7 +109,7 @@ namespace Etailor.API.Service.Service
             if (payment != null)
             {
                 payment.Status = status;
-                payment.PayTime = DateTime.Now;
+                payment.PayTime = DateTime.UtcNow.AddHours(7);
 
                 if (paymentRepository.Update(paymentId, payment))
                 {
@@ -201,7 +201,7 @@ namespace Etailor.API.Service.Service
                 {
                     Id = Ultils.GenGuidString(),
                     OrderId = payment.OrderId,
-                    CreatedTime = DateTime.Now,
+                    CreatedTime = DateTime.UtcNow.AddHours(7),
                     Amount = (decimal)Math.Round(transactionType == 3 ? 0 - amount.Value : 0 - Math.Abs(payment.Amount.Value), 2),
                     PaymentRefundId = payment.Id,
                     Platform = PlatformName.VN_PAY,
@@ -234,7 +234,7 @@ namespace Etailor.API.Service.Service
                     //    if (json["vnp_ResponseCode"] == "00")
                     //    {
                     //        paymentRefund.Status = 0;
-                    //        paymentRefund.PayTime = DateTime.Now;
+                    //        paymentRefund.PayTime = DateTime.UtcNow.AddHours(7);
 
                     //        return paymentRepository.Update(payment.Id, payment) && paymentRepository.Update(paymentRefund.Id, paymentRefund);
                     //    }
@@ -301,7 +301,7 @@ namespace Etailor.API.Service.Service
             vnpay.AddRequestData("vnp_Amount", (amout * 100).ToString()); //Số tiền thanh toán. Số tiền không mang các ký tự phân tách thập phân, phần nghìn, ký tự tiền tệ. Để gửi số tiền thanh toán là 100,000 VND (một trăm nghìn VNĐ) thì merchant cần nhân thêm 100 lần (khử phần thập phân), sau đó gửi sang VNPAY là: 10000000
             vnpay.AddRequestData("vnp_BankCode", "");
 
-            vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            vnpay.AddRequestData("vnp_CreateDate", DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"));
             vnpay.AddRequestData("vnp_CurrCode", "VND");
             vnpay.AddRequestData("vnp_IpAddr", ip);
 
@@ -374,11 +374,11 @@ namespace Etailor.API.Service.Service
 
             vnLib.AddRequestData("vnp_OrderInfo", transactionType == 2 ? $"Giao dich hoan tra toan phan cua giao dich: {paymentRefuntId}" : transactionType == 3 ? $"Giao dich hoan tra mot phan cua giao dich: {paymentRefuntId}" : "Loi");
 
-            vnLib.AddRequestData("vnp_TransactionDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            vnLib.AddRequestData("vnp_TransactionDate", DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"));
 
             vnLib.AddRequestData("vnp_CreateBy", "ETailor");
 
-            vnLib.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+            vnLib.AddRequestData("vnp_CreateDate", DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"));
 
             //vnLib.AddRequestData("vnp_IpAddr", "125.235.238.233");
             vnLib.AddRequestData("vnp_IpAddr", "20.212.64.6");
@@ -411,8 +411,8 @@ namespace Etailor.API.Service.Service
             var vnp_TxnRef = paymentRefuntId; // Mã giao dịch thanh toán tham chiếu
             var vnp_OrderInfo = "Hoan tien giao dich:" + paymentRefuntId;
             var vnp_TransactionNo = ""; //Giả sử giá trị của vnp_TransactionNo không được ghi nhận tại hệ thống của merchant.
-            var vnp_TransactionDate = DateTime.Now.ToString("yyyyMMddHHmmss");
-            var vnp_CreateDate = DateTime.Now.ToString("yyyyMMddHHmmss");
+            var vnp_TransactionDate = DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss");
+            var vnp_CreateDate = DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss");
             var vnp_CreateBy = "ETailor";
             var vnp_IpAddr = GetServerIpAddress();
 

@@ -18,50 +18,26 @@ namespace Etailor.API.Service.Service
             this.hubContext = hubContext;
         }
 
-        public async Task SendMessageToUser(string userId, string message, string role)
+        public async Task SendNotificationToUser(string userId, string Notification)
         {
-            if (role == RoleName.CUSTOMER)
+            await hubContext.Clients.Group(userId).SendAsync("Notification", Notification);
+        }
+
+        public async Task SendVNPayResult(string Notification)
+        {
+            await hubContext.Clients.Group("AllStaff").SendAsync("VNPayResult", Notification);
+        }
+
+        public async Task CheckMessage(string? id)
+        {
+            if (string.IsNullOrEmpty(id))
             {
-                //_customerConnections.TryGetValue(userId, out string customerConnectionId);
-                //await hubContext.Clients.Client(customerConnectionId).SendAsync("CustomerReceiveMessage", message);
-                await hubContext.Clients.Group(userId).SendAsync("CustomerReceiveMessage", message);
+                await hubContext.Clients.Group("AllStaff").SendAsync("ChatWithUs", "Have message");
             }
             else
             {
-                SignalRHub.StaffConnections.TryGetValue(userId, out string staffConnectionId);
-                //await hubContext.Clients.Client(staffConnectionId).SendAsync("ReceiveMessage", message);
-                await hubContext.Clients.Group(userId).SendAsync("StaffReceiveMessage", message);
+                await hubContext.Clients.Group(id).SendAsync("ChatWithUs", "Have message");
             }
-        }
-
-        public async Task SendMessageToAllStaff(string message)
-        {
-            await hubContext.Clients.Group("AllStaff").SendAsync("AllStaffReceiveMessage", message);
-        }
-
-        public async Task SendMessageToManager(string message)
-        {
-            await hubContext.Clients.Group(RoleName.MANAGER).SendAsync("ManagersfReceiveMessage", message);
-        }
-
-        public async Task SendMessageToStaff(string message)
-        {
-            await hubContext.Clients.Group(RoleName.STAFF).SendAsync("StaffsReceiveMessage", message);
-        }
-
-        public async Task SendMessageToAdmin(string message)
-        {
-            await hubContext.Clients.Group(RoleName.ADMIN).SendAsync("AdminsReceiveMessage", message);
-        }
-
-        public async Task SendMessageToCustomer(string message)
-        {
-            await hubContext.Clients.Group(RoleName.CUSTOMER).SendAsync("CustomersReceiveMessage", message);
-        }
-
-        public async Task SendVNPayResult(string message)
-        {
-            await hubContext.Clients.Group("AllStaff").SendAsync("VNPayResult", message);
         }
     }
 }

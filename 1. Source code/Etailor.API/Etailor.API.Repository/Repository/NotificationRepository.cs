@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 
 namespace Etailor.API.Repository.Repository
 {
-    public class CustomerClientRepository : GenericRepository<CustomerClient>, ICustomerClientRepository
+    public class NotificationRepository : GenericRepository<Notification>, INotificationRepository
     {
-        public CustomerClientRepository(ETailor_DBContext dBContext) : base(dBContext)
+        public NotificationRepository(ETailor_DBContext dBContext) : base(dBContext)
         {
         }
     }

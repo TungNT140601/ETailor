@@ -64,7 +64,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            List<(string id, decimal value)> list = new List<(string id, decimal value)>();
+                            List<(string id, decimal? value)> list = new List<(string id, decimal? value)>();
                             var listBodyAttribute = createProfileBodyByStaffVM.valueBodyAttribute;
                             foreach (var item in listBodyAttribute)
                             {
@@ -166,7 +166,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var accountId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
 
-                    if ((!staffService.CheckSecrectKey(accountId, secrectKey) && (role == RoleName.STAFF || role == RoleName.MANAGER)) || (!customerService.CheckSecerctKey(accountId, secrectKey) && role == RoleName.CUSTOMER))
+                    if ((role == RoleName.STAFF || role == RoleName.MANAGER) && (!staffService.CheckSecrectKey(accountId, secrectKey)) || (role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(accountId, secrectKey)))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
@@ -178,7 +178,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            List<(string id, decimal value)> list = new List<(string id, decimal value)>();
+                            List<(string id, decimal? value)> list = new List<(string id, decimal? value)>();
                             var listBodyAttribute = updateProfileBodyByStaffVM.valueBodyAttribute;
                             foreach (var item in listBodyAttribute)
                             {
@@ -187,12 +187,12 @@ namespace Etailor.API.WebAPI.Controllers
 
                             if (role == RoleName.STAFF || role == RoleName.MANAGER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByStaff(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM))) 
+                                return (await profileBodyService.UpdateProfileBodyByStaff(updateProfileBodyByStaffVM.CustomerId, accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else if (role == RoleName.CUSTOMER)
                             {
-                                return (await profileBodyService.UpdateProfileBodyByCustomer(accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM))) 
+                                return (await profileBodyService.UpdateProfileBodyByCustomer(accountId, updateProfileBodyByStaffVM.Name, profileBodyId, list, mapper.Map<ProfileBody>(updateProfileBodyByStaffVM)))
                                     ? Ok("Cập nhật Profile Body thành công") : BadRequest("Cập nhật Profile Body thất bại");
                             }
                             else
@@ -273,7 +273,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (!(role == RoleName.CUSTOMER))
+                else if (role == RoleName.ADMIN)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -281,7 +281,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!customerService.CheckSecerctKey(customerId, secrectKey))
+                    if ((role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(customerId, secrectKey)) || (role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(customerId, secrectKey)))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
@@ -293,38 +293,19 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            var pB = profileBodyService.GetProfileBody(id);
-                            if (pB != null && pB.CustomerId == customerId )
+                            var pB = await profileBodyService.GetProfileBody(id);
+
+                            if (pB != null && ((role == RoleName.CUSTOMER && pB.CustomerId == customerId) || role != RoleName.CUSTOMER))
                             {
                                 var profileBody = mapper.Map<GetDetailProfileBodyVM>(pB);
-
-                                var bodyAttributeList = bodyAttributeService.GetBodyAttributesByProfileBodyId(id).Select(x => new { x.Value, x.BodySize, x.BodySizeId }).ToList();
-
-                                BodySize bodySize;
-                                //var bodySizeList = bodySizeService.GetBodySize("");
-
-                                ////var bodySizeList = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
-                                profileBody.valueBodyAttribute = new List<DetailProfileBody>();
-
-                                foreach (var bodyAttribute in bodyAttributeList)
-                                {
-                                    bodySize = await bodySizeService.GetBodySize(bodyAttribute.BodySizeId);
-
-                                    DetailProfileBody detailProfileBody = new DetailProfileBody();
-                                    detailProfileBody.Id = bodyAttribute.BodySizeId;
-                                    detailProfileBody.Name = bodySize.Name;
-                                    detailProfileBody.Value = (decimal)bodyAttribute.Value;
-                                    detailProfileBody.Image = bodySize.Image;
-                                    profileBody.valueBodyAttribute.Add(detailProfileBody);
-                                }
 
                                 return pB != null ? Ok(profileBody) : NotFound(id);
                             }
                             else
                             {
-                                throw new UserException("ID Hồ sơ sô đo cơ thể này không phải của bạn. Vui lòng nhập lại");
+                                return NotFound("Không tìm thấy hồ sơ số đo");
                             }
-                            
+
                         }
                     }
                 }
@@ -393,7 +374,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             if (staffService.GetStaff(profileBody.StaffId) != null)
                             {
-                                profileBody.StaffName = staffService.GetStaff(profileBody.StaffId).Fullname;
+                                profileBody.StaffName = (await staffService.GetStaff(profileBody.StaffId))?.Fullname;
                             }
                             else
                             {
@@ -407,7 +388,7 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 profileBody.CustomerName = null;
                             }
-                            
+
                         }
                         return Ok(profileBodyList);
                     }
@@ -450,8 +431,8 @@ namespace Etailor.API.WebAPI.Controllers
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
-                    {                      
-                        return Ok(mapper.Map<IEnumerable<ProfileBodyVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
+                    {
+                        return Ok(mapper.Map<IEnumerable<GetAllProfileBodyOfCustomerVM>>(profileBodyService.GetProfileBodysByCustomerId(customerId)));
                     }
                 }
             }

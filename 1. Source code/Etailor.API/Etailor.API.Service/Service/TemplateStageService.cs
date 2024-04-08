@@ -68,95 +68,175 @@ namespace Etailor.API.Service.Service
             {
                 var result = false;
 
-                var activeComponentTypeIds = componentTypeRepository.GetAll(x => x.IsActive == true && x.CategoryId == template.CategoryId).Select(c => c.Id).ToList();
-
-                if (templateStages != null && templateStages.Count > 0 && templateStages.Any(c => c.ComponentStages.Any(x => x.ComponentTypeId != null && !activeComponentTypeIds.Contains(x.ComponentTypeId))))
+                var activeComponentTypes = componentTypeRepository.GetAll(x => x.IsActive == true && x.CategoryId == template.CategoryId);
+                if (activeComponentTypes != null && activeComponentTypes.Any())
                 {
-
+                    activeComponentTypes = activeComponentTypes.ToList();
                 }
+                if (templateStages != null && templateStages.Count > 0)
+                {
+                    var existStageNumIds = new List<string>();
+                    var componentOfStages = new List<ComponentStage>();
+                    var existStageNums = templateStateRepository.GetAll(x => x.ProductTemplateId == template.Id && x.IsActive == true);
 
-                var existStageNums = templateStateRepository.GetAll(x => x.ProductTemplateId == template.Id && x.IsActive == true).Select(c => new
-                {
-                    c.Id,
-                    c.StageNum
-                }).ToList();
-
-                if (existStageNums != null && existStageNums.Count > 0)
-                {
-                    var stageIds = existStageNums.Select(x => x.Id);
-                    var componentStages = componentStageRepository.GetAll(x => stageIds.Contains(x.TemplateStageId)).ToList();
-                }
-                var existStageNumIds = new List<string>();
-                var componentOfStages = new List<ComponentStage>();
-                foreach (var templateStage in templateStages)
-                {
-                    if (string.IsNullOrWhiteSpace(templateStage.Name))
+                    if (existStageNums != null && existStageNums.Count() > 0)
                     {
-                        throw new UserException("Tên giai đoạn không được để trống");
+                        foreach (var templateStage in templateStages)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                templateStage.Id = Ultils.GenGuidString();
+
+                                var insideTasks = new List<Task>();
+
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    if (existStageNums.Select(c => c.StageNum).Contains(templateStage.StageNum))
+                                    {
+                                        existStageNumIds.Add(existStageNums.Where(c => c.StageNum == templateStage.StageNum).Select(c => c.Id).FirstOrDefault());
+                                    }
+                                }));
+
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    if (string.IsNullOrWhiteSpace(templateStage.Name))
+                                    {
+                                        throw new UserException("Tên giai đoạn không được để trống");
+                                    }
+                                }));
+
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.IsActive = true;
+                                }));
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.CreatedTime = DateTime.UtcNow.AddHours(7);
+                                }));
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                }));
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.InactiveTime = null;
+                                }));
+                                insideTasks.Add(Task.Run(async () =>
+                                {
+                                    if (templateStage.ComponentStages != null && templateStage.ComponentStages.Count > 0)
+                                    {
+                                        var insideTasks1 = new List<Task>();
+                                        foreach (var componentTypeStage in templateStage.ComponentStages)
+                                        {
+                                            insideTasks1.Add(Task.Run(() =>
+                                            {
+                                                componentOfStages.Add(new ComponentStage()
+                                                {
+                                                    ComponentTypeId = componentTypeStage.ComponentTypeId,
+                                                    TemplateStageId = templateStage.Id,
+                                                    Id = Ultils.GenGuidString()
+                                                });
+                                            }));
+                                        }
+                                        await Task.WhenAll(insideTasks1);
+
+                                        templateStage.ComponentStages = null;
+                                    }
+                                }));
+
+                                await Task.WhenAll(insideTasks);
+                            }));
+                        }
                     }
                     else
                     {
-                        if (existStageNums.Select(c => c.StageNum).Contains(templateStage.StageNum))
+                        foreach (var templateStage in templateStages)
                         {
-                            existStageNumIds.Add(existStageNums.Where(c => c.StageNum == templateStage.StageNum).Select(c => c.Id).FirstOrDefault());
-                        }
-
-                        tasks.Add(Task.Run(() =>
-                        {
-                            templateStage.Id = Ultils.GenGuidString();
-                        }));
-                        tasks.Add(Task.Run(() =>
-                        {
-                            templateStage.IsActive = true;
-                        }));
-                        tasks.Add(Task.Run(() =>
-                        {
-                            templateStage.CreatedTime = DateTime.Now;
-                        }));
-                        tasks.Add(Task.Run(() =>
-                        {
-                            templateStage.LastestUpdatedTime = DateTime.Now;
-                        }));
-                        tasks.Add(Task.Run(() =>
-                        {
-                            templateStage.InactiveTime = null;
-                        }));
-
-                        foreach (var componentTypeStage in templateStage.ComponentStages)
-                        {
-                            tasks.Add(Task.Run(() =>
+                            tasks.Add(Task.Run(async () =>
                             {
-                                componentOfStages.Add(new ComponentStage()
+                                templateStage.Id = Ultils.GenGuidString();
+
+                                var insideTasks = new List<Task>();
+
+                                insideTasks.Add(Task.Run(() =>
                                 {
-                                    ComponentTypeId = componentTypeStage.ComponentTypeId,
-                                    TemplateStageId = templateStage.Id,
-                                    Id = Ultils.GenGuidString()
-                                });
+                                    if (string.IsNullOrWhiteSpace(templateStage.Name))
+                                    {
+                                        throw new UserException("Tên giai đoạn không được để trống");
+                                    }
+                                }));
+
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.IsActive = true;
+                                }));
+
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.CreatedTime = DateTime.UtcNow.AddHours(7);
+                                }));
+
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                }));
+
+                                insideTasks.Add(Task.Run(() =>
+                                {
+                                    templateStage.InactiveTime = null;
+                                }));
+
+                                insideTasks.Add(Task.Run(async () =>
+                                {
+                                    if (templateStage.ComponentStages != null && templateStage.ComponentStages.Count > 0)
+                                    {
+                                        var insideTasks1 = new List<Task>();
+                                        foreach (var componentTypeStage in templateStage.ComponentStages)
+                                        {
+                                            insideTasks1.Add(Task.Run(() =>
+                                            {
+                                                componentOfStages.Add(new ComponentStage()
+                                                {
+                                                    ComponentTypeId = componentTypeStage.ComponentTypeId,
+                                                    TemplateStageId = templateStage.Id,
+                                                    Id = Ultils.GenGuidString()
+                                                });
+                                            }));
+                                        }
+                                        await Task.WhenAll(insideTasks1);
+                                        templateStage.ComponentStages = null;
+                                    }
+                                }));
+
+                                await Task.WhenAll(insideTasks);
                             }));
                         }
-                        templateStage.ComponentStages = null;
                     }
-                }
-                await Task.WhenAll(tasks);
+                    await Task.WhenAll(tasks);
 
-                if (templateStateRepository.CreateRange(templateStages) && componentStageRepository.CreateRange(componentOfStages))
-                {
-                    foreach (var id in existStageNumIds)
+                    if (templateStateRepository.CreateRange(templateStages) && componentStageRepository.CreateRange(componentOfStages))
                     {
-                        var existStage = templateStateRepository.Get(id);
-                        if (existStage != null)
+                        foreach (var id in existStageNumIds)
                         {
-                            existStage.IsActive = false;
-                            existStage.InactiveTime = DateTime.Now;
+                            var existStage = templateStateRepository.Get(id);
+                            if (existStage != null)
+                            {
+                                existStage.IsActive = false;
+                                existStage.InactiveTime = DateTime.UtcNow.AddHours(7);
 
-                            templateStateRepository.Update(id, existStage);
+                                templateStateRepository.Update(id, existStage);
+                            }
                         }
+                        return true;
                     }
-                    return true;
+                    else
+                    {
+                        return false;
+                    }
                 }
                 else
                 {
-                    return false;
+                    throw new UserException("Phải có ít nhất 1 quy trình cho bản mẫu");
                 }
             }
         }
@@ -171,14 +251,6 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                #region UpdateTemplateDraft
-                var checkUpdateTemplateDraft = await productTemplateService.UpdateTemplate(templateId, wwwroot);
-                if (checkUpdateTemplateDraft == null)
-                {
-                    throw new UserException("Đã xảy ra lỗi khi cập nhật mẫu sản phẩm từ bản nháp");
-                }
-                #endregion
-
                 #region GetDataFromDB
                 var activeComponent = componentTypeRepository.GetAll(x => x.IsActive == true && x.CategoryId == template.CategoryId).Select(c => c.Id).ToList();
                 var currentStages = templateStateRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true).ToList();
@@ -358,8 +430,8 @@ namespace Etailor.API.Service.Service
                                 ProductTemplateId = inputStage.ProductTemplateId,
                                 TemplateStageId = inputStage.TemplateStageId,
                                 StageNum = inputStage.StageNum,
-                                LastestUpdatedTime = DateTime.Now,
-                                CreatedTime = DateTime.Now,
+                                LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                CreatedTime = DateTime.UtcNow.AddHours(7),
                                 InactiveTime = null,
                                 IsActive = true,
                                 ComponentStages = null,
@@ -370,7 +442,7 @@ namespace Etailor.API.Service.Service
                         }
                         if (currentStage != null)
                         {
-                            currentStage.InactiveTime = DateTime.Now;
+                            currentStage.InactiveTime = DateTime.UtcNow.AddHours(7);
                             currentStage.IsActive = false;
 
                             inactiveStages.Add(currentStage);

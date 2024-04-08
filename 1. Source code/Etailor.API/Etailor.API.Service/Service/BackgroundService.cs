@@ -81,7 +81,7 @@ namespace Etailor.API.Service.Service
         {
             if (startOrStop)
             {
-                RecurringJob.AddOrUpdate<IProductService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
+                RecurringJob.AddOrUpdate<ITaskService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
             }
             else
             {

@@ -30,6 +30,7 @@ using Hangfire.MemoryStorage;
 using System.IO.Compression;
 using System.IO;
 using Serilog;
+using Etailor.API.WebAPI.ViewModels;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -42,10 +43,15 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly string _wwwrootPath;
         private readonly IProductStageService productStageService;
         private readonly IProductService productService;
+        private readonly ITaskService taskService;
         private readonly ISignalRService signalRService;
         private readonly IBackgroundService backgroundService;
+        private readonly INotificationService notificationService;
 
-        public TestController(IConfiguration configuration, IWebHostEnvironment webHost, IProductStageService productStageService, ISignalRService signalRService, IProductService productService, IBackgroundService backgroundService)
+        public TestController(IConfiguration configuration, IWebHostEnvironment webHost
+            , IProductStageService productStageService, ISignalRService signalRService
+            , IProductService productService, IBackgroundService backgroundService
+            , ITaskService taskService, INotificationService notificationService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -56,6 +62,8 @@ namespace Etailor.API.WebAPI.Controllers
             this.productService = productService;
             this.signalRService = signalRService;
             this.backgroundService = backgroundService;
+            this.taskService = taskService;
+            this.notificationService = notificationService;
         }
 
         #region SendMail
@@ -496,6 +504,11 @@ namespace Etailor.API.WebAPI.Controllers
                     string filePath = file.FileName.Split(".").Last();
 
                     // Return the file in the response
+                    return Ok(new
+                    {
+                        fileName = file.FileName,
+                        base64String = binaryString
+                    });
                     return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
                 }
             }
@@ -507,14 +520,27 @@ namespace Etailor.API.WebAPI.Controllers
 
         }
 
-        [HttpPost("upload-base64")]
-        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 imageBase64)
+        [HttpPost("change-image-base64")]
+        public async Task<IActionResult> ChangeImageBase64(IFormFile file)
         {
             try
             {
-                var file = Ultils.ConvertBase64ToIFormFile(imageBase64.Base64String, imageBase64.FileName);
-                var objectName = await Ultils.UploadImage(_wwwrootPath, "TestImage", file, null);
-                return Ok(Ultils.GetUrlImage(objectName));
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+
+                // Read the content of the file into a byte array
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    await file.CopyToAsync(ms);
+                    byte[] fileBytes1 = ms.ToArray();
+
+                    // Convert the byte array to a base64-encoded string
+                    string binaryString = Convert.ToBase64String(fileBytes1);
+
+                    return Ok(binaryString);
+                }
             }
             catch (Exception ex)
             {
@@ -522,6 +548,30 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
 
+        }
+
+        [HttpPost("upload-base64")]
+        public async Task<IActionResult> UploadBase64([FromBody] ImageBase64 base64)
+        {
+            try
+            {
+                // Read the content of the file into a byte array
+                using (MemoryStream ms = new MemoryStream())
+                {
+
+                    // Convert the base64-encoded string to a byte array
+                    byte[] fileBytes2 = Convert.FromBase64String(base64.Base64String);
+
+                    string filePath = base64.FileName.Split(".").Last();
+                    // Return the file in the response
+                    return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions appropriately
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet("get-object-name")]
@@ -758,54 +808,15 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("/demo-signalR-new")]
-        public async Task<IActionResult> DemoSignalR(string id, string role, string message)
+        public async Task<IActionResult> DemoSignalR(string id, string message)
         {
             try
             {
-                await signalRService.SendMessageToUser(id, message, role);
+                await signalRService.SendNotificationToUser(id, message);
 
                 return Ok(new
                 {
                     UserId = id,
-                    Role = role,
-                    Message = message
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
-        }
-
-        [HttpPost("/demo-signalR-new/all")]
-        public async Task<IActionResult> DemoSignalRManager(string role, string message)
-        {
-            try
-            {
-                if (role == RoleName.CUSTOMER)
-                {
-                    await signalRService.SendMessageToCustomer(message);
-                }
-                else if (role == RoleName.MANAGER)
-                {
-                    await signalRService.SendMessageToManager(message);
-                }
-                else if (role == RoleName.STAFF)
-                {
-                    await signalRService.SendMessageToStaff(message);
-                }
-                else if (role == RoleName.ADMIN)
-                {
-                    await signalRService.SendMessageToAdmin(message);
-                }
-                else
-                {
-                    await signalRService.SendMessageToAllStaff(message);
-                }
-
-                return Ok(new
-                {
-                    Role = role,
                     Message = message
                 });
             }
@@ -881,7 +892,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                productService.AutoCreateEmptyTaskProduct();
+                taskService.AutoCreateEmptyTaskProduct();
                 return Ok("Run successfully");
             }
             catch (Exception ex)
@@ -955,7 +966,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await productService.SwapTaskIndex(productId, staffId, index);
+                await taskService.SwapTaskIndex(productId, staffId, index);
                 return Ok();
             }
             catch (Exception ex)
@@ -969,7 +980,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await productService.AssignTaskToStaff(productId, staffId);
+                await taskService.AssignTaskToStaff(productId, staffId);
                 return Ok();
             }
             catch (Exception ex)
@@ -983,7 +994,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                await productService.UnAssignStaffTask(productId, staffId);
+                await taskService.UnAssignStaffTask(productId, staffId);
                 return Ok();
             }
             catch (Exception ex)
@@ -997,7 +1008,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                productService.ResetIndex(staffId);
+                taskService.ResetIndex(staffId);
 
                 return Ok();
             }
@@ -1012,7 +1023,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                productService.ResetBlankIndex(staffId);
+                taskService.ResetBlankIndex(staffId);
 
                 return Ok();
             }
@@ -1020,6 +1031,42 @@ namespace Etailor.API.WebAPI.Controllers
             {
                 return StatusCode(500, ex.Message);
             }
+        }
+
+        [HttpPost("chat")]
+        public async Task<IActionResult> SendChat(string? id)
+        {
+            try
+            {
+                await signalRService.CheckMessage(id);
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("notification/{id}")]
+        public async Task<IActionResult> SendNotification(string id, string title, string message)
+        {
+            try
+            {
+                var check = await notificationService.AddNotification(title, message, id, RoleName.CUSTOMER);
+
+                return check ? Ok() : BadRequest();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("recieve-form-data")]
+        public async Task<IActionResult> RecieveData([FromForm] List<ProductComponentOrderVM> componentOrderVMs)
+        {
+            return Ok();
         }
     }
     public class Notify

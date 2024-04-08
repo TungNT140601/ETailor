@@ -1,4 +1,5 @@
 ﻿using Etailor.API.Repository.EntityModels;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,5 +18,16 @@ namespace Etailor.API.Service.Interface
         Task<Product> GetTask(string id);
         Task<IEnumerable<Product>> GetTasks();
         Task<IEnumerable<Product>> GetTasksByStaffId(string? search);
+        Task<bool> StartTask(string productId, string productStageId, string staffId);
+        Task<bool> FinishTask(string wwwroot, string productId, string productStageId, string staffId, List<IFormFile>? images);
+        bool PendingTask(string productId, string productStageId, string staffId);
+        void AutoCreateEmptyTaskProduct();
+        Product GetProduct(string id);
+        Task SwapTaskIndex(string productId, string? staffId, int? index);
+        void ResetIndex(string? staffId);
+        void ResetBlankIndex(string? staffId);
+        Task<bool> AssignTaskToStaff(string productId, string staffId);
+        Task<bool> UnAssignStaffTask(string productId, string staffId);
+        Task<IEnumerable<Category>> GetTaskByCategories();
     }
 }
