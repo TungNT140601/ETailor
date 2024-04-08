@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Service.Service;
 using System.Reflection.Metadata;
+using Newtonsoft.Json;
 
 namespace Etailor.API.Service.Service
 {
@@ -26,10 +27,14 @@ namespace Etailor.API.Service.Service
         private readonly IProductTemplateRepository productTemplaTeRepository;
         private readonly IProductTemplateService productTemplateService;
         private readonly IProductStageRepository productStageRepository;
+        private readonly IOrderMaterialRepository orderMaterialRepository;
+        private readonly IMaterialRepository materialRepository;
 
         public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository,
             IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository,
-            IProductTemplateRepository productTemplaTeRepository, IProductTemplateService productTemplateService, IProductStageRepository productStageRepository)
+            IProductTemplateRepository productTemplaTeRepository, IProductTemplateService productTemplateService,
+            IProductStageRepository productStageRepository, IOrderMaterialRepository orderMaterialRepository,
+            IMaterialRepository materialRepository)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
@@ -40,6 +45,8 @@ namespace Etailor.API.Service.Service
             this.productTemplaTeRepository = productTemplaTeRepository;
             this.productTemplateService = productTemplateService;
             this.productStageRepository = productStageRepository;
+            this.orderMaterialRepository = orderMaterialRepository;
+            this.materialRepository = materialRepository;
         }
 
         public async Task<string> CreateOrder(Order order, string? role)
@@ -62,7 +69,7 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    order.Id = Ultils.GenGuidString();
+                    order.Id = Ultils.GenOrderId();
                     order.CreatedTime = DateTime.UtcNow.AddHours(7);
                     order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     order.InactiveTime = null;
@@ -108,6 +115,14 @@ namespace Etailor.API.Service.Service
                             }
                         }));
                     }
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        dbOrder.CusAddress = order.CusAddress;
+                        dbOrder.CusEmail = order.CusEmail;
+                        dbOrder.CusName = order.CusName;
+                        dbOrder.CusPhone = order.CusPhone;
+                    }));
 
                     tasks.Add(Task.Run(() =>
                     {
@@ -185,6 +200,16 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     dbOrder.Status = role == RoleName.STAFF ? 1 : role == RoleName.MANAGER ? 2 : 0;
+
+                    if (dbOrder.TotalProduct == 0)
+                    {
+                        throw new UserException("Không thể hoàn thành hóa đơn không có sản phẩm");
+                    }
+
+                    if (dbOrder.PaidMoney == 0)
+                    {
+                        throw new UserException("Không thể hoàn thành hóa đơn chưa thanh toán hoặc chưa đặt cọc");
+                    }
 
                     dbOrder.IsActive = true;
 
@@ -741,20 +766,84 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public Order GetOrder(string id)
+        public async Task<Order> GetOrder(string id)
         {
             var order = orderRepository.Get(id);
-            return order == null ? null : order.Status >= 1 ? order : null;
+            if (order != null && order.Status >= 1)
+            {
+                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                if (orderMaterials != null && orderMaterials.Any())
+                {
+                    order.OrderMaterials = orderMaterials.ToList();
+                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    if (materials != null && materials.Any())
+                    {
+                        materials = materials.ToList();
+                        var tasks = new List<Task>();
+                        foreach (var orderMaterial in order.OrderMaterials)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                orderMaterial.Material = materials.FirstOrDefault(x => x.Id == orderMaterial.MaterialId);
+                                if (orderMaterial.Material != null)
+                                {
+                                    orderMaterial.Material.Image = Ultils.GetUrlImage(orderMaterial.Material.Image);
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+                    }
+                }
+                else
+                {
+                    order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                return order;
+            }
+            return null;
         }
 
         public IEnumerable<Order> GetOrdersByCustomer(string cusId)
         {
             return orderRepository.GetAll(x => x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true);
         }
-        public Order GetOrderByCustomer(string cusId, string orderId)
+        public async Task<Order> GetOrderByCustomer(string cusId, string orderId)
         {
             var order = orderRepository.Get(orderId);
-            return order == null ? null : order.CustomerId == cusId && order.Status > 1 && order.IsActive == true ? order : null;
+            if (order != null && order.IsActive == true && order.Status >= 1 && order.CustomerId == cusId)
+            {
+                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                if (orderMaterials != null && orderMaterials.Any())
+                {
+                    order.OrderMaterials = orderMaterials.ToList();
+                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    if (materials != null && materials.Any())
+                    {
+                        materials = materials.ToList();
+                        var tasks = new List<Task>();
+                        foreach (var orderMaterial in order.OrderMaterials)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                orderMaterial.Material = materials.FirstOrDefault(x => x.Id == orderMaterial.MaterialId);
+                                if (orderMaterial.Material != null)
+                                {
+                                    orderMaterial.Material.Image = Ultils.GetUrlImage(orderMaterial.Material.Image);
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+                    }
+                }
+                else
+                {
+                    order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                return order;
+            }
+            return null;
         }
         public IEnumerable<Order> GetOrders()
         {
@@ -765,6 +854,115 @@ namespace Etailor.API.Service.Service
                 return orders.OrderByDescending(x => x.CreatedTime);
             }
             return new List<Order>();
+        }
+        public async Task<bool> UpdateOrderMaterial(List<OrderMaterial> orderMaterials)
+        {
+            var dbOrder = orderRepository.Get(orderMaterials.FirstOrDefault().OrderId);
+
+            if (dbOrder != null && dbOrder.Status > 0)
+            {
+                switch (dbOrder.Status)
+                {
+                    case 0:
+                        throw new UserException("Hóa đơn đã bị hủy. Không thể cập nhật nguyên liệu");
+                    case 3:
+                        throw new UserException("Hóa đơn đang trong quá trình chờ thực hiện. Không thể cập nhật nguyên liệu");
+                    case 4:
+                        throw new UserException("Hóa đơn đang trong quá trình thực hiện. Không thể cập nhật nguyên liệu");
+                    case 5:
+                        throw new UserException("Hóa đơn đã hoàn thiện. Không thể cập nhật nguyên liệu");
+                    case 6:
+                        throw new UserException("Hóa đơn trong quá trình chờ kiểm thử. Không thể cập nhật nguyên liệu");
+                    case 7:
+                        throw new UserException("Hóa đơn đã hoàn thành. Không thể cập nhật nguyên liệu");
+                }
+
+                var dbOrderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true);
+                if (dbOrderMaterials != null && dbOrderMaterials.Any())
+                {
+                    dbOrderMaterials = dbOrderMaterials.ToList();
+
+                    if (orderMaterials == null || dbOrderMaterials.Count() != orderMaterials.Count)
+                    {
+                        throw new UserException("Số lượng nguyên liệu không đúng");
+                    }
+                    else
+                    {
+                        var tasks = new List<Task>();
+                        var updateOrderMaterials = new List<OrderMaterial>();
+                        foreach (var dbOrderMaterial in dbOrderMaterials)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                var orderMaterial = orderMaterials.SingleOrDefault(x => x.Id == dbOrderMaterial.Id);
+                                if (orderMaterial != null)
+                                {
+                                    if (orderMaterial.IsCusMaterial.HasValue && orderMaterial.IsCusMaterial.Value)
+                                    {
+                                        var insideTasks = new List<Task>();
+
+                                        insideTasks.Add(Task.Run(() =>
+                                        {
+                                            if (dbOrderMaterial.IsCusMaterial != orderMaterial.IsCusMaterial)
+                                            {
+                                                dbOrderMaterial.IsCusMaterial = orderMaterial.IsCusMaterial;
+                                            }
+                                        }));
+
+                                        insideTasks.Add(Task.Run(() =>
+                                        {
+                                            if (string.IsNullOrEmpty(dbOrderMaterial.Image) && string.IsNullOrEmpty(orderMaterial.Image))
+                                            {
+                                                throw new UserException("Vui lòng chụp ảnh nguyên liệu của khách để xác nhận");
+                                            }
+                                            else if (string.IsNullOrEmpty(dbOrderMaterial.Image) && !string.IsNullOrEmpty(orderMaterial.Image))
+                                            {
+                                                dbOrderMaterial.Image = orderMaterial.Image;
+                                            }
+                                            else
+                                            {
+                                                Ultils.DeleteObject(dbOrderMaterial.Image);
+                                                dbOrderMaterial.Image = orderMaterial.Image;
+                                            }
+                                        }));
+
+                                        insideTasks.Add(Task.Run(() =>
+                                        {
+                                            if (!orderMaterial.Value.HasValue || orderMaterial.Value <= 0)
+                                            {
+                                                throw new UserException("Vui lòng nhập số lượng nguyên liệu nhận");
+                                            }
+                                            else
+                                            {
+                                                dbOrderMaterial.Value = orderMaterial.Value;
+                                            }
+                                            dbOrderMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                        }));
+
+                                        await Task.WhenAll(insideTasks);
+
+                                        updateOrderMaterials.Add(dbOrderMaterial);
+                                    }
+                                }
+                            }));
+                        }
+
+                        await Task.WhenAll(tasks);
+
+                        return orderMaterialRepository.UpdateRange(updateOrderMaterials);
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy nguyên liệu hóa đơn");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+
+            throw new SystemsException("Lỗi trong quá trình cập nhật nguyên liệu hóa đơn", nameof(OrderService));
         }
     }
 }

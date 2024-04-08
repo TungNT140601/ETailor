@@ -61,7 +61,7 @@ namespace Etailor.API.Service.Service
                                 {
                                     if (activeBodySizes.Select(x => x.Id).Contains(id))
                                     {
-                                        if (!currentTemplateBodySizes.Select(x => x.Id).Contains(id))
+                                        if (!currentTemplateBodySizes.Select(x => x.BodySizeId).Contains(id))
                                         {
                                             listBodySizeTemplates.Add(new TemplateBodySize()
                                             {
@@ -74,12 +74,47 @@ namespace Etailor.API.Service.Service
                                         }
                                         else
                                         {
-                                            var currentTemplateBodySize = currentTemplateBodySizes.SingleOrDefault(x => x.BodySizeId == id);
-                                            if (currentTemplateBodySize != null)
+                                            var currentTemplateBodySize = currentTemplateBodySizes.Where(x => x.BodySizeId == id);
+                                            if (currentTemplateBodySize != null && currentTemplateBodySize.Any())
                                             {
-                                                currentTemplateBodySize.IsActive = true;
-                                                currentTemplateBodySize.InactiveTime = null;
-                                                listUpdateBodySizeTemplates.Add(currentTemplateBodySize);
+                                                if (currentTemplateBodySize.Where(x => x.IsActive == true).Count() >= 1)
+                                                {
+                                                    for (int i = 0; i < currentTemplateBodySize.Count(); i++)
+                                                    {
+                                                        if (i == 0)
+                                                        {
+                                                            currentTemplateBodySize.ElementAt(i).IsActive = true;
+                                                            currentTemplateBodySize.ElementAt(i).InactiveTime = null;
+                                                            listUpdateBodySizeTemplates.Add(currentTemplateBodySize.ElementAt(i));
+                                                        }
+                                                        else
+                                                        {
+                                                            if (currentTemplateBodySize.ElementAt(i).IsActive == true)
+                                                            {
+                                                                currentTemplateBodySize.ElementAt(i).IsActive = false;
+                                                                currentTemplateBodySize.ElementAt(i).InactiveTime = DateTime.UtcNow.AddHours(7);
+                                                                listUpdateBodySizeTemplates.Add(currentTemplateBodySize.ElementAt(i));
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    currentTemplateBodySize.ElementAt(0).IsActive = true;
+                                                    currentTemplateBodySize.ElementAt(0).InactiveTime = null;
+                                                    listUpdateBodySizeTemplates.Add(currentTemplateBodySize.ElementAt(0));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                listBodySizeTemplates.Add(new TemplateBodySize()
+                                                {
+                                                    Id = Ultils.GenGuidString(),
+                                                    BodySizeId = id,
+                                                    InactiveTime = null,
+                                                    IsActive = true,
+                                                    ProductTemplateId = templateId
+                                                });
                                             }
                                         }
                                     }
@@ -92,15 +127,15 @@ namespace Etailor.API.Service.Service
 
                             foreach (var current in currentTemplateBodySizes)
                             {
-                                if (!ids.Contains(current.BodySizeId))
+                                tasks.Add(Task.Run(() =>
                                 {
-                                    tasks.Add(Task.Run(() =>
+                                    if (!ids.Contains(current.BodySizeId))
                                     {
                                         current.IsActive = false;
                                         current.InactiveTime = DateTime.UtcNow.AddHours(7);
                                         listUpdateBodySizeTemplates.Add(current);
-                                    }));
-                                }
+                                    }
+                                }));
                             }
                         }
 
@@ -108,7 +143,18 @@ namespace Etailor.API.Service.Service
 
                         if (templateBodySizeRepository.CreateRange(listBodySizeTemplates))
                         {
-                            return templateBodySizeRepository.UpdateRange(listUpdateBodySizeTemplates);
+                            if (templateBodySizeRepository.UpdateRange(listUpdateBodySizeTemplates))
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                throw new UserException("Đã xảy ra lỗi trong quá trình cập nhật các số đo");
+                            }
+                        }
+                        else
+                        {
+                            throw new UserException("Đã xảy ra lỗi trong quá trình thêm mới các số đo");
                         }
                     }
                     else
@@ -149,11 +195,12 @@ namespace Etailor.API.Service.Service
                         return templateBodySizeRepository.CreateRange(listBodySizeTemplates);
                     }
                 }
-
-                return false;
+                else
+                {
+                    throw new UserException("Không tìm thấy số đo nào trong hệ thống");
+                }
             }
         }
-
         public async Task<bool> UpdateTemplateBodySize(List<string> ids, string templateId)
         {
             var template = productTemplateRepository.Get(templateId);
@@ -173,77 +220,104 @@ namespace Etailor.API.Service.Service
                     {
                         currentTemplateBodySizes = currentTemplateBodySizes.ToList();
 
-                        var addNewBodySizes = new List<TemplateBodySize>();
-                        var updateOldBodySizes = new List<TemplateBodySize>();
-
+                        var listBodySizeTemplates = new List<TemplateBodySize>();
+                        var listUpdateBodySizeTemplates = new List<TemplateBodySize>();
                         var tasks = new List<Task>();
-
-                        foreach (string id in ids)
+                        if (ids == null || ids.Count == 0)
                         {
-                            tasks.Add(Task.Run(() =>
+                            throw new UserException("Danh sách số đo không được để trống");
+                        }
+                        else
+                        {
+                            foreach (string id in ids)
                             {
-                                if (currentTemplateBodySizes.Select(c => c.Id).Contains(id)) // check body size already in template
+                                tasks.Add(Task.Run(() =>
                                 {
-                                    if (activeBodySizes.Select(c => c.Id).Contains(id)) // check id exist or active
+                                    if (activeBodySizes.Select(x => x.Id).Contains(id))
                                     {
-                                        var currentTemplateBodySize = currentTemplateBodySizes.Single(x => x.BodySizeId == id);
-                                        if (currentTemplateBodySize.IsActive == false)
+                                        if (!currentTemplateBodySizes.Select(x => x.BodySizeId).Contains(id))
                                         {
-                                            currentTemplateBodySize.InactiveTime = null;
-                                            currentTemplateBodySize.IsActive = true;
+                                            listBodySizeTemplates.Add(new TemplateBodySize()
+                                            {
+                                                Id = Ultils.GenGuidString(),
+                                                BodySizeId = id,
+                                                InactiveTime = null,
+                                                IsActive = true,
+                                                ProductTemplateId = templateId
+                                            });
                                         }
-                                        updateOldBodySizes.Add(currentTemplateBodySize);
-                                    }
-                                    else
-                                    {
-                                        throw new UserException("Số đo không tồn tại trong hệ thống");
-                                    }
-                                }
-                                else
-                                {
-                                    if (activeBodySizes.Select(c => c.Id).Contains(id)) // check id exist or active
-                                    {
-                                        addNewBodySizes.Add(new TemplateBodySize()
+                                        else
                                         {
-                                            Id = Ultils.GenGuidString(),
-                                            BodySizeId = id,
-                                            InactiveTime = null,
-                                            IsActive = true,
-                                            ProductTemplateId = templateId
-                                        });
+                                            var currentTemplateBodySize = currentTemplateBodySizes.Where(x => x.BodySizeId == id);
+                                            if (currentTemplateBodySize != null && currentTemplateBodySize.Any())
+                                            {
+                                                if (currentTemplateBodySize.Where(x => x.IsActive == true).Count() >= 1)
+                                                {
+                                                    for (int i = 0; i < currentTemplateBodySize.Count(); i++)
+                                                    {
+                                                        if (i == 0)
+                                                        {
+                                                            currentTemplateBodySize.ElementAt(i).IsActive = true;
+                                                            currentTemplateBodySize.ElementAt(i).InactiveTime = null;
+                                                            listUpdateBodySizeTemplates.Add(currentTemplateBodySize.ElementAt(i));
+                                                        }
+                                                        else
+                                                        {
+                                                            if (currentTemplateBodySize.ElementAt(i).IsActive == true)
+                                                            {
+                                                                currentTemplateBodySize.ElementAt(i).IsActive = false;
+                                                                currentTemplateBodySize.ElementAt(i).InactiveTime = DateTime.UtcNow.AddHours(7);
+                                                                listUpdateBodySizeTemplates.Add(currentTemplateBodySize.ElementAt(i));
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    currentTemplateBodySize.ElementAt(0).IsActive = true;
+                                                    currentTemplateBodySize.ElementAt(0).InactiveTime = null;
+                                                    listUpdateBodySizeTemplates.Add(currentTemplateBodySize.ElementAt(0));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                listBodySizeTemplates.Add(new TemplateBodySize()
+                                                {
+                                                    Id = Ultils.GenGuidString(),
+                                                    BodySizeId = id,
+                                                    InactiveTime = null,
+                                                    IsActive = true,
+                                                    ProductTemplateId = templateId
+                                                });
+                                            }
+                                        }
                                     }
                                     else
                                     {
                                         throw new UserException("Số đo không tồn tại trong hệ thống");
                                     }
-                                }
-                            }));
-                        }
+                                }));
+                            }
 
-                        await Task.WhenAll(tasks);
-
-                        foreach (var id in currentTemplateBodySizes.Select(c => c.Id))
-                        {
-                            tasks.Add(Task.Run(() =>
+                            foreach (var current in currentTemplateBodySizes)
                             {
-                                if (!ids.Contains(id))
+                                tasks.Add(Task.Run(() =>
                                 {
-                                    var currentTemplateBodySize = currentTemplateBodySizes.Single(x => x.BodySizeId == id);
-                                    if (currentTemplateBodySize.IsActive == true)
+                                    if (!ids.Contains(current.BodySizeId))
                                     {
-                                        currentTemplateBodySize.InactiveTime = DateTime.UtcNow.AddHours(7);
-                                        currentTemplateBodySize.IsActive = false;
-                                        updateOldBodySizes.Add(currentTemplateBodySize);
+                                        current.IsActive = false;
+                                        current.InactiveTime = DateTime.UtcNow.AddHours(7);
+                                        listUpdateBodySizeTemplates.Add(current);
                                     }
-                                }
-                            }));
+                                }));
+                            }
                         }
 
                         await Task.WhenAll(tasks);
 
-                        if (await templateBodySizeRepository.CreateRangeAsync(addNewBodySizes))
+                        if (templateBodySizeRepository.CreateRange(listBodySizeTemplates))
                         {
-                            if (await templateBodySizeRepository.UpdateRangeAsync(updateOldBodySizes))
+                            if (templateBodySizeRepository.UpdateRange(listUpdateBodySizeTemplates))
                             {
                                 return true;
                             }
@@ -257,8 +331,48 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Đã xảy ra lỗi trong quá trình thêm mới các số đo");
                         }
                     }
+                    else
+                    {
+                        var listBodySizeTemplates = new List<TemplateBodySize>();
+                        var tasks = new List<Task>();
+                        if (ids == null || ids.Count == 0)
+                        {
+                            throw new UserException("Danh sách số đo không được để trống");
+                        }
+                        else
+                        {
+                            foreach (string id in ids)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    if (activeBodySizes.Select(x => x.Id).Contains(id))
+                                    {
+                                        listBodySizeTemplates.Add(new TemplateBodySize()
+                                        {
+                                            Id = Ultils.GenGuidString(),
+                                            BodySizeId = id,
+                                            InactiveTime = null,
+                                            IsActive = true,
+                                            ProductTemplateId = templateId
+                                        });
+                                    }
+                                    else
+                                    {
+                                        throw new UserException("Số đo không tồn tại trong hệ thống");
+                                    }
+                                }));
+                            }
+                        }
+
+                        await Task.WhenAll(tasks);
+
+                        return templateBodySizeRepository.CreateRange(listBodySizeTemplates);
+                    }
                 }
-                return false;
+                else
+                {
+                    throw new UserException("Không tìm thấy số đo nào trong hệ thống");
+                }
             }
         }
 

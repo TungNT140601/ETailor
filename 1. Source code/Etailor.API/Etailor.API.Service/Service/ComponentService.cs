@@ -37,7 +37,7 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    component.Image = await Ultils.GetUrlImage(component.Image);
+                    component.Image = Ultils.GetUrlImage(component.Image);
                 }
             });
             await Task.WhenAll(setImage);
@@ -58,7 +58,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        component.Image = await Ultils.GetUrlImage(component.Image);
+                        component.Image = Ultils.GetUrlImage(component.Image);
                     }
                 });
                 await Task.WhenAll(setImage);
@@ -70,8 +70,22 @@ namespace Etailor.API.Service.Service
         {
             var componentType = componentTypeRepository.Get(component.ComponentTypeId);
             var template = productTemplateRepository.Get(component.ProductTemplateId);
-            var componentNames = componentRepository.GetAll(x => x.ProductTemplateId == component.ProductTemplateId && x.Name == component.Name && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true).ToList();
-            var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == component.ProductTemplateId && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true).ToList();
+
+            var componentNames = componentRepository.GetAll(x => x.ProductTemplateId == component.ProductTemplateId && x.Name == component.Name && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true);
+            if (componentNames != null && componentNames.Any())
+            {
+                componentNames = componentNames.ToList();
+            }
+            else
+            {
+                componentNames = new List<Component>();
+            }
+
+            var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == component.ProductTemplateId && x.ComponentTypeId == component.ComponentTypeId && x.IsActive == true);
+            if (templateComponents != null && templateComponents.Any())
+            {
+                templateComponents = templateComponents.ToList();
+            }
 
             var changeDefaultComponent = new Component();
 
@@ -135,16 +149,24 @@ namespace Etailor.API.Service.Service
                 {
                     if (component.Default.Value)
                     {
-                        if (templateComponents.Any(c => c.Default == true))
+                        if (templateComponents != null && templateComponents.Any(c => c.Default == true))
                         {
-                            changeDefaultComponent = templateComponents.Single(x => x.Default.Value == true);
+                            changeDefaultComponent = templateComponents.First(x => x.Default.Value == true);
                             changeDefaultComponent.Default = false;
+                            componentRepository.Update(changeDefaultComponent.Id, changeDefaultComponent);
+                        }
+                    }
+                    else
+                    {
+                        if (templateComponents == null || !templateComponents.Any(c => c.Default == true))
+                        {
+                            component.Default = true;
                         }
                     }
                 }
                 else
                 {
-                    if (templateComponents.Any(c => c.Default == true))
+                    if (templateComponents != null && templateComponents.Any(c => c.Default == true))
                     {
                         component.Default = false;
                     }
@@ -276,7 +298,7 @@ namespace Etailor.API.Service.Service
                 {
                     tasks.Add(Task.Run(async () =>
                     {
-                        component.Image = await Ultils.GetUrlImage(component.Image);
+                        component.Image = Ultils.GetUrlImage(component.Image);
                     }));
                 }
                 await Task.WhenAll(tasks);

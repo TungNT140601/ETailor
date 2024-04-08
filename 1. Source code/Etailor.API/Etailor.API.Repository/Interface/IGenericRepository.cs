@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,6 +28,6 @@ namespace Etailor.API.Repository.Interface
         void Detach(string id);
         void SaveChange();
         Task SaveChangeAsync();
-        IEnumerable<T> GetStoreProcedure(string storeProcedure);
+        IEnumerable<T> GetStoreProcedure(string storeProcedure,params SqlParameter[]? parameters);
     }
 }

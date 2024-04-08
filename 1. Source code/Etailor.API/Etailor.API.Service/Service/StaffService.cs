@@ -416,7 +416,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (!string.IsNullOrEmpty(staff.Avatar))
                     {
-                        staff.Avatar = await Ultils.GetUrlImage(staff.Avatar);
+                        staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
                     }
                 }
                 return staff;
@@ -448,7 +448,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        staff.Avatar = await Ultils.GetUrlImage(staff.Avatar);
+                        staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
                     }
                 });
                 await Task.WhenAll(setAvatar);

@@ -227,8 +227,8 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    customer.PhoneVerified = true;
-                    customer.EmailVerified = true;
+                    customer.PhoneVerified = false;
+                    customer.EmailVerified = false;
                     customer.IsActive = true;
                 }));
 
@@ -285,22 +285,6 @@ namespace Etailor.API.Service.Service
                     }
                 });
 
-                var checkUsername = Task.Run(() =>
-                {
-                    if (string.IsNullOrWhiteSpace(customer.Username))
-                    {
-                        throw new UserException("Vui lòng nhập tên đăng nhập");
-                    }
-                    else
-                    {
-                        if (customerRepository.GetAll(x => x.Id != dbCustomer.Id && (x.Username != null && x.Username.Trim().ToLower() == customer.Username.Trim().ToLower()) && x.IsActive == true).Any())
-                        {
-                            throw new UserException("Tên đăng nhập đã được sử dụng");
-                        }
-                        dbCustomer.Username = customer.Username;
-                    }
-                });
-
                 var checkEmail = Task.Run(() =>
                 {
                     if (string.IsNullOrWhiteSpace(customer.Email))
@@ -326,7 +310,7 @@ namespace Etailor.API.Service.Service
                     dbCustomer.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                 });
 
-                await Task.WhenAll(checkAddress, checkEmail, checkFullname, checkUsername, setUpdateTime, addAvatar);
+                await Task.WhenAll(checkAddress, checkEmail, checkFullname, setUpdateTime, addAvatar);
 
                 return customerRepository.Update(dbCustomer.Id, dbCustomer);
             }

@@ -7,7 +7,13 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Id { get; set; }
         public string? ComponentId { get; set; }
         public string? Note { get; set; }
-        public List<IFormFile>? NoteImageFiles { get; set; }
+        public List<ImageFile>? NoteImageFiles { get; set; }
+    }
+    public class ImageFile
+    {
+        public string? FileName { get; set; }
+        public string? Base64String { get; set; }
+        public string? Type { get; set; }
     }
     public class ProductComponentTaskDetailVM
     {
