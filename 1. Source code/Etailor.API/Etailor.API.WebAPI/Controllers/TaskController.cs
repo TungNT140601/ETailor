@@ -411,7 +411,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                         DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-                        DateTime date = epoch.AddMilliseconds(milliseconds);
+                        DateTime date = epoch.AddMilliseconds(milliseconds).AddHours(7);
 
                         if (date < DateTime.UtcNow.AddHours(7))
                         {

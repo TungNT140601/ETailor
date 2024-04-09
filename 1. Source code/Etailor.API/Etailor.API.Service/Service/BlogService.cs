@@ -230,6 +230,28 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
+        public async Task<Blog> GetBlogUrl(string urlPath)
+        {
+            var blog = blogRepository.FirstOrDefault(x => x.UrlPath == urlPath && x.IsActive == true);
+            if (blog != null && blog.IsActive == true)
+            {
+                var setThumbnail = Task.Run(async () =>
+                {
+                    if (string.IsNullOrEmpty(blog.Thumbnail))
+                    {
+                        blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                    }
+                    else
+                    {
+                        blog.Thumbnail = Ultils.GetUrlImage(blog.Thumbnail);
+                    }
+                });
+                await Task.WhenAll(setThumbnail);
+
+                return blog;
+            }
+            return null;
+        }
 
         public async Task<IEnumerable<Blog>> GetBlogs(string? search)
         {
