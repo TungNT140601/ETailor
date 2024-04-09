@@ -902,8 +902,8 @@ namespace Etailor.API.Service.Service
             {
                 orders = orders.ToList();
                 var orderIds = string.Join(",", orders.Select(x => x.Id).ToList());
-                //var ordersProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders_Products, new Microsoft.Data.SqlClient.SqlParameter { DbType = System.Data.DbType.String, Value = orderIds, ParameterName = "@OrderIds" });
-                var ordersProducts = productRepository.GetAll(x => orderIds.Contains(x.OrderId) && x.IsActive == true && x.Status > 0);
+                var ordersProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders_Products, new Microsoft.Data.SqlClient.SqlParameter { DbType = System.Data.DbType.String, Value = orderIds, ParameterName = "@OrderIds" });
+                //var ordersProducts = productRepository.GetAll(x => orderIds.Contains(x.OrderId) && x.IsActive == true && x.Status > 0);
                 if (ordersProducts != null && ordersProducts.Any())
                 {
                     ordersProducts = ordersProducts.ToList();

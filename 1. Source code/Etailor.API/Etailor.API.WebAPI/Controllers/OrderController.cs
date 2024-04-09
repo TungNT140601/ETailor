@@ -296,8 +296,20 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             orders = await orderService.GetOrders();
                         }
-
-                        return Ok(mapper.Map<IEnumerable<GetOrderVM>>(orders));
+                        var orderVMs = new List<GetOrderVM>();
+                        if (orders != null && orders.Any())
+                        {
+                            foreach (var order in orders)
+                            {
+                                var orderVM = mapper.Map<GetOrderVM>(order);
+                                if (order.Products != null && order.Products.Any())
+                                {
+                                    orderVM.ThumbnailImage = order.Products.First().ProductTemplate.ThumbnailImage;
+                                }
+                                orderVMs.Add(orderVM);
+                            }
+                        }
+                        return Ok(orderVMs);
                     }
                 }
             }
