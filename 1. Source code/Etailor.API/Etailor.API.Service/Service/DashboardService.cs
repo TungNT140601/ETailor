@@ -20,14 +20,17 @@ namespace Etailor.API.Service.Service
         private readonly IOrderDashboardRepository orderDashboardRepository;
         private readonly IStaffWithTotalTaskRepository staffWithTotalTaskRepository;
         private readonly IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository;
+        private readonly ITemplateDashboardRepository templateDashboardRepository;
 
         public DashboardService(IOrderDashboardRepository orderDashboardRepository
             , IStaffWithTotalTaskRepository staffWithTotalTaskRepository
-            , IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository)
+            , IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository
+            , ITemplateDashboardRepository templateDashboardRepository)
         {
             this.orderDashboardRepository = orderDashboardRepository;
             this.staffWithTotalTaskRepository = staffWithTotalTaskRepository;
             this.fabricMaterialCommonUsedRepository = fabricMaterialCommonUsedRepository;
+            this.templateDashboardRepository = templateDashboardRepository;
         }
 
         public object GetOrderDashboard(int? year, int? month)
@@ -347,6 +350,42 @@ namespace Etailor.API.Service.Service
                     tasks.Add(Task.Run(() =>
                     {
                         item.Image = Ultils.GetUrlImage(item.Image);
+                    }));
+                }
+                await Task.WhenAll(tasks);
+
+                return monthData.ToList();
+            }
+
+            return null;
+        }
+        public async Task<List<TemplateDashboard>> GetTemplateCommonUsedByMonth(int? year, int? month)
+        {
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
+            {
+                month = DateTime.UtcNow.AddHours(7).Month;
+            }
+            var date = new DateTime(year.Value, month.Value, 1);
+
+            var monthData = templateDashboardRepository.GetStoreProcedure(StoreProcName.Get_Template_Dashboard, new SqlParameter("@Date", date));
+
+            if (monthData != null && monthData.Any())
+            {
+                monthData = monthData.ToList();
+                var tasks = new List<Task>();
+                foreach (var item in monthData)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        item.ThumbnailImage = Ultils.GetUrlImage(item.ThumbnailImage);
+                        if (item.Total == null)
+                        {
+                            item.Total = 0;
+                        }
                     }));
                 }
                 await Task.WhenAll(tasks);

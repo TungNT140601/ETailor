@@ -290,48 +290,14 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (role == RoleName.CUSTOMER)
                         {
-                            orders = orderService.GetOrdersByCustomer(staffid);
+                            orders = await orderService.GetOrdersByCustomer(staffid);
                         }
                         else
                         {
-                            orders = orderService.GetOrders();
+                            orders = await orderService.GetOrders();
                         }
 
-                        var getOrderVMs = new List<GetOrderVM>();
-
-                        if (orders != null && orders.Any() && orders.Count() > 0)
-                        {
-                            orders = orders.ToList();
-
-                            var listProducts = await productService.GetProductsByOrderIds(orders.Select(x => x.Id).ToList());
-                            if (listProducts != null && listProducts.Any())
-                            {
-                                listProducts = listProducts.ToList();
-                                var tasks = new List<Task>();
-                                foreach (var order in orders.ToList())
-                                {
-                                    //tasks.Add(Task.Run(async () =>
-                                    //{
-                                    var realOrder = mapper.Map<GetOrderVM>(order);
-                                    var firstProductOrder = listProducts.FirstOrDefault(x => x.OrderId == order.Id);
-                                    if (firstProductOrder != null)
-                                    {
-                                        if (firstProductOrder.ProductTemplate == null)
-                                        {
-                                            firstProductOrder.ProductTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
-                                        }
-
-                                        realOrder.ThumbnailImage = firstProductOrder.ProductTemplate.ThumbnailImage;
-                                    }
-                                    realOrder.CreatedTime = order.CreatedTime;
-
-                                    getOrderVMs.Add(realOrder);
-                                    //}));
-                                }
-                                await Task.WhenAll(tasks);
-                            }
-                        }
-                        return Ok(getOrderVMs);
+                        return Ok(mapper.Map<IEnumerable<GetOrderVM>>(orders));
                     }
                 }
             }

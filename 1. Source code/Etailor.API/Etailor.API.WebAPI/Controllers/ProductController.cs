@@ -155,10 +155,19 @@ namespace Etailor.API.WebAPI.Controllers
                                 tasks.Add(Task.Run(async () =>
                                 {
                                     var productComponent = mapper.Map<ProductComponent>(component);
+
+                                    var images = new List<string>();
+
+                                    if (component.NoteImageObjects != null && component.NoteImageObjects.Any())
+                                    {
+                                        foreach (var img in component.NoteImageObjects)
+                                        {
+                                            images.Add(img);
+                                        }
+                                    }
                                     if (component.NoteImageFiles != null && component.NoteImageFiles.Any())
                                     {
                                         var insideTasks = new List<Task>();
-                                        var images = new List<string>();
                                         foreach (var image in component.NoteImageFiles)
                                         {
                                             insideTasks.Add(Task.Run(() =>
@@ -361,9 +370,9 @@ namespace Etailor.API.WebAPI.Controllers
                                                                 foreach (var img in listImageDTO)
                                                                 {
                                                                     insideTasks1.Add(Task.Run(() =>
-                                                                {
-                                                                    listImageUrl.Add(Ultils.GetUrlImage(img));
-                                                                }));
+                                                                    {
+                                                                        listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                    }));
                                                                 }
                                                                 await Task.WhenAll(insideTasks1);
                                                                 component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);

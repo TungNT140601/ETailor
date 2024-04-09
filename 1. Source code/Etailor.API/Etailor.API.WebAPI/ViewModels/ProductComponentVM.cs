@@ -8,6 +8,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? ComponentId { get; set; }
         public string? Note { get; set; }
         public List<ImageFile>? NoteImageFiles { get; set; }
+        public List<string>? NoteImageObjects { get; set; }
     }
     public class ImageFile
     {

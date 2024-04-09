@@ -18,5 +18,6 @@ namespace Etailor.API.Service.Interface
         decimal GetTotalOrderPrice(int? year, int? month);
         double GetOrderTotalPriceRate(int? year, int? month);
         Task<List<FabricMaterialCommonUsed>> GetFabricMaterialCommonUsedByMonth(int? year, int? month);
+        Task<List<TemplateDashboard>> GetTemplateCommonUsedByMonth(int? year, int? month);
     }
 }

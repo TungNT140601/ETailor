@@ -13,6 +13,7 @@ using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Service.Service;
 using System.Reflection.Metadata;
 using Newtonsoft.Json;
+using Etailor.API.Repository.StoreProcModels;
 
 namespace Etailor.API.Service.Service
 {
@@ -804,9 +805,58 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public IEnumerable<Order> GetOrdersByCustomer(string cusId)
+        public async Task<IEnumerable<Order>> GetOrdersByCustomer(string cusId)
         {
-            return orderRepository.GetAll(x => x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true);
+            var orders = orderRepository.GetAll(x => x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true);
+            if (orders != null && orders.Any())
+            {
+                orders = orders.ToList();
+                var orderIds = string.Join(",", orders.Select(x => x.Id).ToList());
+                //var ordersProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders_Products, new Microsoft.Data.SqlClient.SqlParameter { DbType = System.Data.DbType.String, Value = orderIds, ParameterName = "@OrderIds" });
+                var ordersProducts = productRepository.GetAll(x => orderIds.Contains(x.OrderId) && x.IsActive == true && x.Status > 0);
+                if (ordersProducts != null && ordersProducts.Any())
+                {
+                    ordersProducts = ordersProducts.ToList();
+                    var templateIds = string.Join(",", ordersProducts.Select(x => x.ProductTemplateId).ToList());
+
+                    var productTemplates = productTemplaTeRepository.GetAll(x => templateIds.Contains(x.Id));
+                    if (productTemplates != null && productTemplates.Any())
+                    {
+                        productTemplates = productTemplates.ToList();
+                        var tasks = new List<Task>();
+                        foreach (var order in orders)
+                        {
+                            tasks.Add(Task.Run(() =>
+                            {
+                                order.Products = new List<Product>();
+                                var orderProducts = ordersProducts.Where(x => x.OrderId == order.Id);
+                                if (orderProducts != null && orderProducts.Any())
+                                {
+                                    orderProducts = orderProducts.ToList();
+
+                                    var firstProduct = orderProducts.First();
+                                    if (firstProduct.ProductTemplate == null)
+                                    {
+                                        firstProduct.ProductTemplate = productTemplates.FirstOrDefault(x => x.Id == firstProduct.ProductTemplateId);
+                                    }
+
+                                    if (firstProduct.ProductTemplate != null && !string.IsNullOrEmpty(firstProduct.ProductTemplate.ThumbnailImage))
+                                    {
+                                        firstProduct.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(firstProduct.ProductTemplate.ThumbnailImage);
+                                    }
+
+                                    order.Products.Add(firstProduct);
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+
+                        return orders;
+                    }
+                }
+                return orders;
+            }
+            return new List<Order>();
         }
         public async Task<Order> GetOrderByCustomer(string cusId, string orderId)
         {
@@ -845,13 +895,56 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
-        public IEnumerable<Order> GetOrders()
+        public async Task<IEnumerable<Order>> GetOrders()
         {
-            var orders = orderRepository.GetAll(x => x.Status >= 1 && x.IsActive == true);
-            //var orders = orderRepository.GetStoreProcedure("GetActiveOrders");
+            var orders = orderRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders);
             if (orders != null && orders.Any())
             {
-                return orders.OrderByDescending(x => x.CreatedTime);
+                orders = orders.ToList();
+                var orderIds = string.Join(",", orders.Select(x => x.Id).ToList());
+                //var ordersProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders_Products, new Microsoft.Data.SqlClient.SqlParameter { DbType = System.Data.DbType.String, Value = orderIds, ParameterName = "@OrderIds" });
+                var ordersProducts = productRepository.GetAll(x => orderIds.Contains(x.OrderId) && x.IsActive == true && x.Status > 0);
+                if (ordersProducts != null && ordersProducts.Any())
+                {
+                    ordersProducts = ordersProducts.ToList();
+                    var templateIds = string.Join(",", ordersProducts.Select(x => x.ProductTemplateId).ToList());
+
+                    var productTemplates = productTemplaTeRepository.GetAll(x => templateIds.Contains(x.Id));
+                    if (productTemplates != null && productTemplates.Any())
+                    {
+                        productTemplates = productTemplates.ToList();
+                        var tasks = new List<Task>();
+                        foreach (var order in orders)
+                        {
+                            tasks.Add(Task.Run(() =>
+                            {
+                                order.Products = new List<Product>();
+                                var orderProducts = ordersProducts.Where(x => x.OrderId == order.Id);
+                                if (orderProducts != null && orderProducts.Any())
+                                {
+                                    orderProducts = orderProducts.ToList();
+
+                                    var firstProduct = orderProducts.First();
+                                    if (firstProduct.ProductTemplate == null)
+                                    {
+                                        firstProduct.ProductTemplate = productTemplates.FirstOrDefault(x => x.Id == firstProduct.ProductTemplateId);
+                                    }
+
+                                    if (firstProduct.ProductTemplate != null && !string.IsNullOrEmpty(firstProduct.ProductTemplate.ThumbnailImage))
+                                    {
+                                        firstProduct.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(firstProduct.ProductTemplate.ThumbnailImage);
+                                    }
+
+                                    order.Products.Add(firstProduct);
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+
+                        return orders;
+                    }
+                }
+                return orders;
             }
             return new List<Order>();
         }

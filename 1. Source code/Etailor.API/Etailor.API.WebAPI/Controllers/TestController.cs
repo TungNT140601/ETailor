@@ -905,11 +905,24 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut]
-        public IActionResult RunAutoAssignTask()
+        public async Task<IActionResult> RunAutoAssignTask()
         {
             try
             {
-                taskService.AutoCreateEmptyTaskProduct();
+                await taskService.AutoCreateEmptyTaskProduct();
+                return Ok("Run successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpPut]
+        public async Task<IActionResult> AutoAssignTaskForStaff()
+        {
+            try
+            {
+                taskService.AutoAssignTaskForStaff();
                 return Ok("Run successfully");
             }
             catch (Exception ex)

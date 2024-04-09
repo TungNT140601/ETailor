@@ -200,6 +200,7 @@ builder.Services.AddScoped<IProductComponentMaterialRepository, ProductComponent
 builder.Services.AddScoped<IOrderDashboardRepository, OrderDashoardRepository>();
 builder.Services.AddScoped<IStaffWithTotalTaskRepository, StaffWithTotalTaskRepository>();
 builder.Services.AddScoped<IFabricMaterialCommonUsedRepository, FabricMaterialCommonUsedRepository>();
+builder.Services.AddScoped<ITemplateDashboardRepository, TemplateDashboardRepository>();
 #endregion
 
 

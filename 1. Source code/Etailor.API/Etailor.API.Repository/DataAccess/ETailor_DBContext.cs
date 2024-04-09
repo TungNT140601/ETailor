@@ -54,6 +54,7 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<OrderDashboard> OrderDashboard { get; set; } = null!;
         public virtual DbSet<StaffWithTotalTask> StaffWithTotalTask { get; set; } = null!;
         public virtual DbSet<FabricMaterialCommonUsed> FabricMaterialCommonUsed { get; set; } = null!;
+        public virtual DbSet<TemplateDashboard> TemplateDashboard { get; set; } = null!;
         #endregion
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

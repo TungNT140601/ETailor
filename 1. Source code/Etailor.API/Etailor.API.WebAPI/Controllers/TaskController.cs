@@ -379,6 +379,63 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        [HttpPut("task/{productId}/deadline")]
+        public async Task<IActionResult> SetDeadlineForTask(string productId, string? deadlineTickString)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (string.IsNullOrWhiteSpace(deadlineTickString))
+                        {
+                            return BadRequest("Thời hạn không hợp lệ: null");
+                        }
+                        long.TryParse(deadlineTickString, out long milliseconds);
+
+                        DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+                        DateTime date = epoch.AddMilliseconds(milliseconds);
+
+                        if (date < DateTime.UtcNow.AddHours(7))
+                        {
+                            return BadRequest($"Thời hạn không hợp lệ :{date.ToString("yyyy/MM/dd - HH:mm:ss:ffff")}");
+                        }
+                        var check = await taskService.SetDeadlineForTask(productId, date);
+                        return check ? Ok("Giao việc thành công") : BadRequest("Giao việc thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPut("staff/{staffId}/assign/{productId}")]
         public async Task<IActionResult> AssignTaskToStaff(string productId, string staffId)
         {
