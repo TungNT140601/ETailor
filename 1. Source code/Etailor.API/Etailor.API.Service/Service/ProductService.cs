@@ -174,56 +174,22 @@ namespace Etailor.API.Service.Service
                                 orderMaterials = orderMaterials.ToList();
                                 if (orderMaterials.Any(x => x.MaterialId == materialId))
                                 {
-                                    var orderMaterial = orderMaterials.First(x =>
-                                        x.MaterialId == materialId
-                                    );
-                                    if (
-                                        orderMaterial.IsCusMaterial.HasValue
-                                        && orderMaterial.IsCusMaterial.Value
-                                    )
-                                    {
-                                        insideTasks.Add(
-                                            Task.Run(() =>
+                                    var orderMaterial = orderMaterials.First(x => x.MaterialId == materialId);
+                                    insideTasks.Add(Task.Run(() =>
+                                        {
+                                            if (orderMaterial.Value != null)
                                             {
-                                                addOrderMaterial = new OrderMaterial()
-                                                {
-                                                    Id = Ultils.GenGuidString(),
-                                                    MaterialId = materialId,
-                                                    OrderId = orderId,
-                                                    Value = (decimal)materialQuantity,
-                                                    IsActive = true,
-                                                    CreatedTime = DateTime.UtcNow.AddHours(7),
-                                                    LastestUpdatedTime = DateTime.UtcNow.AddHours(
-                                                        7
-                                                    ),
-                                                    IsCusMaterial = false,
-                                                    Image = null,
-                                                    InactiveTime = null
-                                                };
-                                                updateOrderMaterial = null;
-                                            })
-                                        );
-                                    }
-                                    else
-                                    {
-                                        insideTasks.Add(
-                                            Task.Run(() =>
+                                                orderMaterial.Value +=
+                                                    (decimal)materialQuantity;
+                                            }
+                                            else
                                             {
-                                                if (orderMaterial.Value != null)
-                                                {
-                                                    orderMaterial.Value +=
-                                                        (decimal)materialQuantity;
-                                                }
-                                                else
-                                                {
-                                                    orderMaterial.Value = (decimal)materialQuantity;
-                                                }
+                                                orderMaterial.Value = (decimal)materialQuantity;
+                                            }
 
-                                                updateOrderMaterial = orderMaterial;
-                                                addOrderMaterial = null;
-                                            })
-                                        );
-                                    }
+                                            updateOrderMaterial = orderMaterial;
+                                            addOrderMaterial = null;
+                                        }));
                                 }
                                 else
                                 {
@@ -312,16 +278,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            product.Price =
-                                template.Price
-                                + Math.Abs(
-                                    Math.Round(
-                                        (decimal)(
-                                            (double)materialCategory.PricePerUnit * materialQuantity
-                                        ),
-                                        2
-                                    )
-                                );
+                            product.Price = template.Price + Math.Abs(Math.Round((decimal)((double)materialCategory.PricePerUnit * materialQuantity), 2));
                         }
                     })
                 );

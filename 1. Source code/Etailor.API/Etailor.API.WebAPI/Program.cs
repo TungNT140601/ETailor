@@ -179,6 +179,7 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
+builder.Services.AddScoped<IOrderMaterialService, OrderMaterialService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 

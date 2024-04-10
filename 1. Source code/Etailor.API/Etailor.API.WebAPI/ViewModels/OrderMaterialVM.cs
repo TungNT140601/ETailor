@@ -14,4 +14,12 @@ namespace Etailor.API.WebAPI.ViewModels
 
         public virtual FabricMaterialTaskVM? Material { get; set; }
     }
+    public class OrderMaterialUpdateVM
+    {
+        public string? Id { get; set; }
+        public string? MaterialId { get; set; }
+        public string? OrderId { get; set; }
+        public decimal? Value { get; set; }
+        public bool? IsCusMaterial { get; set; }
+    }
 }
