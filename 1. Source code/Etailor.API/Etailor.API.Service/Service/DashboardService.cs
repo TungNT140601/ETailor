@@ -350,11 +350,19 @@ namespace Etailor.API.Service.Service
                     tasks.Add(Task.Run(() =>
                     {
                         item.Image = Ultils.GetUrlImage(item.Image);
+                        if(item.TotalProducts == null)
+                        {
+                            item.TotalProducts = 0;
+                        }
+                        if(item.TotalOrders == null)
+                        {
+                            item.TotalOrders = 0;
+                        }
                     }));
                 }
                 await Task.WhenAll(tasks);
 
-                return monthData.ToList();
+                return monthData.OrderByDescending(x => x.TotalProducts).ToList();
             }
 
             return null;
@@ -390,7 +398,7 @@ namespace Etailor.API.Service.Service
                 }
                 await Task.WhenAll(tasks);
 
-                return monthData.ToList();
+                return monthData.OrderByDescending(x => x.Total).ToList();
             }
 
             return null;

@@ -202,7 +202,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }

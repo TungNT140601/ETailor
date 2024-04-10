@@ -798,11 +798,15 @@ namespace Etailor.API.Service.Service
         public async Task<bool> AssignTaskToStaff(string productId, string staffId)
         {
             var product = productRepository.Get(productId);
-            if (product != null && product.Status > 0 && product.IsActive == true)
+            if (product != null && product.Status > 0 && product.Status < 4 && product.IsActive == true)
             {
                 var order = orderRepository.Get(product.OrderId);
                 if (order != null && order.Status > 0 && order.IsActive == true)
                 {
+                    if (product.Status == 2 && product.StaffMakerId != null)
+                    {
+                        throw new UserException("Sản phẩm đang được thực hiện. Vui lòng tạm dừng trước khi chuyển giao cho nhân viên khác");
+                    }
                     var staff = staffRepository.Get(staffId);
                     if (staff != null && staff.IsActive == true)
                     {
@@ -832,7 +836,7 @@ namespace Etailor.API.Service.Service
             if (staff != null && staff.IsActive == true)
             {
                 var product = productRepository.Get(productId);
-                if (product != null && product.Status > 0 && product.IsActive == true)
+                if (product != null && product.Status > 0 && product.Status < 4 && product.IsActive == true)
                 {
                     var order = orderRepository.Get(product.OrderId);
                     if (order != null && order.Status > 0 && order.IsActive == true)
@@ -848,13 +852,51 @@ namespace Etailor.API.Service.Service
 
                                 if (task != null)
                                 {
-                                    task.StaffMakerId = null;
-                                    task.StaffMaker = null;
-                                    task.Index = null;
-                                    if (productRepository.Update(task.Id, task))
+                                    var currentTaskStages = productStageRepository.GetAll(x => x.ProductId == productId && x.Status > 0 && x.Status < 4 && x.IsActive == true);
+                                    if (currentTaskStages != null && currentTaskStages.Any())
                                     {
-                                        await SwapTaskIndex(task.Id, null, null);
+                                        currentTaskStages = currentTaskStages.OrderBy(x => x.StageNum).ToList();
 
+                                        var minStage = currentTaskStages.First();
+                                        minStage.Status = 3;
+                                        minStage.StaffId = null;
+
+                                        task.StaffMakerId = null;
+                                        task.StaffMaker = null;
+                                        task.Index = null;
+                                        task.Status = 3;
+                                        if (productRepository.Update(task.Id, task))
+                                        {
+                                            if (productStageRepository.Update(minStage.Id, minStage))
+                                            {
+                                                await SwapTaskIndex(task.Id, null, null);
+                                                return true;
+                                            }
+                                            else
+                                            {
+                                                throw new SystemsException("Lỗi trong quá trình hủy phân công công việc cho nhân viên", nameof(TaskService.UnAssignStaffTask));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            throw new SystemsException("Lỗi trong quá trình hủy phân công công việc cho nhân viên", nameof(TaskService.UnAssignStaffTask));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        task.StaffMakerId = null;
+                                        task.StaffMaker = null;
+                                        task.Index = null;
+                                        task.Status = 3;
+                                        if (productRepository.Update(task.Id, task))
+                                        {
+                                            await SwapTaskIndex(task.Id, null, null);
+                                            return true;
+                                        }
+                                        else
+                                        {
+                                            throw new SystemsException("Lỗi trong quá trình hủy phân công công việc cho nhân viên", nameof(TaskService.UnAssignStaffTask));
+                                        }
                                     }
                                 }
                             }
