@@ -32,7 +32,7 @@ Tuệ Tailor is a tailor shop in Bình Thạnh district, Ho Chi Minh City, prefe
 
 ### E-Tailor
 
-- **Link:** [E-Tailor](https://www.e-tailor.vercel.app)
+- **Link:** [E-Tailor](https://e-tailor.vercel.app)
 - **Description:** E-Tailor allows users to design and order custom shirts, suits, and menswear.
 - **Advantages:** Customers can track their orders.
 - **Disadvantages:** Poor interface design.
