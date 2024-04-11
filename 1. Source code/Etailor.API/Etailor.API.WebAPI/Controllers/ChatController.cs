@@ -18,14 +18,16 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
         private readonly IChatService chatService;
+        private readonly IMapper mapper;
         private readonly string _wwwrootPath;
 
-        public ChatController(IStaffService staffService, ICustomerService customerService, IChatService chatService, IWebHostEnvironment webHost)
+        public ChatController(IStaffService staffService, ICustomerService customerService, IChatService chatService, IWebHostEnvironment webHost, IMapper mapper)
         {
             this.staffService = staffService;
             this.customerService = customerService;
             this.chatService = chatService;
             _wwwrootPath = webHost.WebRootPath;
+            this.mapper = mapper;
         }
 
         [HttpGet("order/{orderId}")]
@@ -50,7 +52,19 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         var chat = await chatService.GetChatDetail(orderId, role, id);
 
-                        return Ok(chat);
+                        if (chat != null)
+                        {
+                            return Ok(mapper.Map<ChatAllVM>(chat));
+                        }
+                        else
+                        {
+                            return Ok(new ChatAllVM()
+                            {
+                                ChatLists = new List<ChatListVM>(),
+                                CreatedTime = DateTime.Now,
+                                OrderId = orderId
+                            });
+                        }
                     }
                 }
             }

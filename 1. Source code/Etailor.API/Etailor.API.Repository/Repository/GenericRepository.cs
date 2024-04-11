@@ -3,6 +3,7 @@ using Etailor.API.Repository.Interface;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -420,6 +421,22 @@ namespace Etailor.API.Repository.Repository
 
                     return dbSet.FromSqlRaw(sqlQueryString, parameters);
                 }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public DatabaseFacade GetDatabase()
+        {
+            try
+            {
+                return dBContext.Database;
             }
             catch (UserException ex)
             {
