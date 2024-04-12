@@ -679,41 +679,20 @@ namespace Etailor.API.Service.Service
                                 tasks.Add(
                                     Task.Run(() =>
                                     {
-                                        if (
-                                            product.FabricMaterialId != null
-                                            && product.FabricMaterialId
-                                                != dbProduct.FabricMaterialId
-                                        )
+                                        if (product.FabricMaterialId != null && product.FabricMaterialId != dbProduct.FabricMaterialId)
                                         {
-                                            if (
-                                                sameProductMaterialdbs == null
-                                                || !sameProductMaterialdbs.Any(x =>
-                                                    x.Id != product.Id
-                                                )
-                                            )
+                                            if (sameProductMaterialdbs == null || !sameProductMaterialdbs.Any(x => x.Id != product.Id))
                                             {
-                                                var oldMaterial = orderMaterials.FirstOrDefault(x =>
-                                                    x.MaterialId == dbProduct.FabricMaterialId
-                                                );
+                                                var oldMaterial = orderMaterials.FirstOrDefault(x => x.MaterialId == dbProduct.FabricMaterialId);
                                                 if (oldMaterial != null)
                                                 {
-                                                    if (
-                                                        !orderMaterialRepository.Delete(
-                                                            oldMaterial.Id
-                                                        )
-                                                    )
+                                                    if (!orderMaterialRepository.Delete(oldMaterial.Id))
                                                     {
-                                                        throw new SystemsException(
-                                                            "Lỗi trong quá trình xóa order materials",
-                                                            nameof(ProductService)
-                                                        );
+                                                        throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
                                                     }
                                                 }
 
-                                                if (
-                                                    sameProductMaterials == null
-                                                    || !sameProductMaterials.Any()
-                                                )
+                                                if (sameProductMaterials == null || !sameProductMaterials.Any())
                                                 {
                                                     var orderMaterial = new OrderMaterial()
                                                     {
@@ -1601,6 +1580,31 @@ namespace Etailor.API.Service.Service
 
                         if (productRepository.Update(dbProduct.Id, dbProduct))
                         {
+                            var sameProductMaterialdbs = productRepository.GetAll(x => x.OrderId == order.Id && x.FabricMaterialId == dbProduct.FabricMaterialId && x.IsActive == true && x.Status > 0);
+                            if (sameProductMaterialdbs != null && sameProductMaterialdbs.Any())
+                            {
+                                sameProductMaterialdbs = null;
+                            }
+                            else
+                            {
+                                sameProductMaterialdbs = null;
+                                var orderMaterial = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.MaterialId == dbProduct.FabricMaterialId && x.IsActive == true);
+                                if (orderMaterial != null && orderMaterial.Any())
+                                {
+                                    orderMaterial = orderMaterial.ToList();
+                                    if (orderMaterial.Count() > 1)
+                                    {
+                                        throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
+                                    }
+                                    else
+                                    {
+                                        if (!orderMaterialRepository.Delete(orderMaterial.First().Id))
+                                        {
+                                            throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
+                                        }
+                                    }
+                                }
+                            }
                             if (await orderService.CheckOrderPaid(dbProduct.OrderId))
                             {
                                 return true;

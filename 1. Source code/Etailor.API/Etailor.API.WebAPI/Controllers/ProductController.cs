@@ -48,7 +48,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -129,7 +129,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -304,7 +304,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
