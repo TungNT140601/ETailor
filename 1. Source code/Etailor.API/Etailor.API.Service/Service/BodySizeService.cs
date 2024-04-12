@@ -271,6 +271,8 @@ namespace Etailor.API.Service.Service
 
             if (listOfBodySize != null && listOfBodySize.Any())
             {
+                listOfBodySize = listOfBodySize.OrderBy(x => x.BodyIndex).OrderBy(x => x.Name).ToList();
+
                 var tasks = new List<Task>();
                 foreach (var bodySize in listOfBodySize)
                 {

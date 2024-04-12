@@ -178,7 +178,12 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<ComponentType> GetComponentTypes(string? search)
         {
-            return componentTypeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            var componentTypes = componentTypeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            if (componentTypes != null && componentTypes.Any())
+            {
+                componentTypes = componentTypes.OrderBy(x => x.Name).ToList();
+            }
+            return componentTypes;
         }
 
         public IEnumerable<ComponentType> GetComponentTypesByCategory(string? id)

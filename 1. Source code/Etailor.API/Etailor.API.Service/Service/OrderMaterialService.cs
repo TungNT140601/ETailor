@@ -27,7 +27,7 @@ namespace Etailor.API.Service.Service
         {
             var order = orderRepository.Get(orderId);
 
-            if (order != null && order.IsActive == true && order.Status > 0)
+            if (order != null && order.Status > 0)
             {
                 switch (order.Status)
                 {

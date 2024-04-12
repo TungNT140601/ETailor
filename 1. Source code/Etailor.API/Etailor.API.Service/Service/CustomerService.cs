@@ -381,7 +381,7 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                if (customer.Otpused == false && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.UtcNow.AddHours(7))
+                if (customer.Otpused == true && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.UtcNow.AddHours(7))
                 {
                     throw new UserException($"Mã xác thực có thể gửi lại sau {customer.OtptimeLimit.Value.AddMinutes(-3).Minute - DateTime.UtcNow.AddHours(7).Minute} phút");
                 }
@@ -502,7 +502,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            if (existCus.CreatedTime == null)
+                            if (existCus.Password == null)
                             {
                                 var hashPass = Task.Run(() =>
                                 {

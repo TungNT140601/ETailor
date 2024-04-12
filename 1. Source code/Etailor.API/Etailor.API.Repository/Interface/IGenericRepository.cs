@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Etailor.API.Repository.DataAccess;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
 using System.Collections.Generic;
@@ -31,5 +32,6 @@ namespace Etailor.API.Repository.Interface
         Task SaveChangeAsync();
         IEnumerable<T> GetStoreProcedure(string storeProcedure, params SqlParameter[]? parameters);
         DatabaseFacade GetDatabase();
+        ETailor_DBContext GetDbContext();
     }
 }

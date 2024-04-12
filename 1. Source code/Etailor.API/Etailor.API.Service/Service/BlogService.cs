@@ -258,7 +258,7 @@ namespace Etailor.API.Service.Service
             var ListOfBlog = blogRepository.GetAll(x => (search == null || (search != null && x.Title.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
             if (ListOfBlog != null && ListOfBlog.Any())
             {
-                ListOfBlog = ListOfBlog.ToList();
+                ListOfBlog = ListOfBlog.OrderByDescending(x => x.CreatedTime).OrderBy(x => x.Title).ToList();
                 foreach (Blog blog in ListOfBlog)
                 {
                     var setThumbnail = Task.Run(async () =>
@@ -283,7 +283,6 @@ namespace Etailor.API.Service.Service
             var listOfBlogs = blogRepository.GetAll(x => hastag != null && x.Hastag == hastag && x.IsActive == true);
             if (listOfBlogs != null && listOfBlogs.Any())
             {
-                // Shuffle the listOfBlogs and take the top 3
                 var random = new Random();
                 var shuffledBlogs = listOfBlogs.OrderBy(x => random.Next()).Take(3).ToList();
 

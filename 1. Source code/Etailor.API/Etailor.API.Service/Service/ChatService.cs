@@ -255,7 +255,7 @@ namespace Etailor.API.Service.Service
                         }
                         await Task.WhenAll(tasks);
 
-                        chat.ChatLists = chatLists.ToList();
+                        chat.ChatLists = chatLists.OrderBy(x => x.SendTime).ToList();
                     }
                     else
                     {

@@ -55,6 +55,7 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<StaffWithTotalTask> StaffWithTotalTask { get; set; } = null!;
         public virtual DbSet<FabricMaterialCommonUsed> FabricMaterialCommonUsed { get; set; } = null!;
         public virtual DbSet<TemplateDashboard> TemplateDashboard { get; set; } = null!;
+        public virtual DbSet<SpResult> SpResults { get; set; } = null!;
         #endregion
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -1038,6 +1039,10 @@ namespace Etailor.API.Repository.DataAccess
             });
 
             modelBuilder.Entity<StaffWithTotalTask>(entity =>
+            {
+                entity.HasNoKey();
+            });
+            modelBuilder.Entity<SpResult>(entity =>
             {
                 entity.HasNoKey();
             });

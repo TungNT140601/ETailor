@@ -804,7 +804,7 @@ namespace Etailor.API.Service.Service
                     var tasks = new List<Task>();
                     foreach (var template in templates)
                     {
-                        tasks.Add(Task.Run(async () =>
+                        tasks.Add(Task.Run(() =>
                         {
                             if (!string.IsNullOrEmpty(template.ThumbnailImage))
                             {

@@ -360,10 +360,7 @@ namespace Etailor.API.Service.Service
                                     insideTasks.Add(
                                         Task.Run(async () =>
                                         {
-                                            var componentIds = string.Join(
-                                                ",",
-                                                productComponents.Select(c => c.ComponentId)
-                                            );
+                                            var componentIds = string.Join(",", productComponents.Select(c => c.ComponentId));
                                             var productComponentAdds = templateComponents.Where(x =>
                                                 x.ComponentTypeId == type.Id
                                                 && componentIds.Contains(x.Id)
@@ -405,15 +402,9 @@ namespace Etailor.API.Service.Service
                                                     )
                                                 )
                                                 {
-                                                    var listStringImage =
-                                                        JsonConvert.DeserializeObject<List<string>>(
-                                                            productComponent.NoteImage
-                                                        );
+                                                    var listStringImage = JsonConvert.DeserializeObject<List<string>>(productComponent.NoteImage);
                                                     var listImage = new List<string>();
-                                                    if (
-                                                        listStringImage != null
-                                                        && listStringImage.Count > 0
-                                                    )
+                                                    if (listStringImage != null && listStringImage.Count > 0)
                                                     {
                                                         var insideTask1s = new List<Task>();
                                                         foreach (var item in listStringImage)
@@ -421,20 +412,20 @@ namespace Etailor.API.Service.Service
                                                             insideTask1s.Add(
                                                                 Task.Run(async () =>
                                                                 {
-                                                                    var image =
-                                                                        JsonConvert.DeserializeObject<FileDTO>(
-                                                                            item
+                                                                    var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                                    if (!string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
+                                                                    {
+                                                                        listImage.Add(
+                                                                            await Ultils.UploadImageBase64(
+                                                                                wwwroot,
+                                                                                $"Product/{product.Id}/Component/{component.Id}",
+                                                                                image.Base64String,
+                                                                                image.FileName,
+                                                                                image.ContentType,
+                                                                                null
+                                                                            )
                                                                         );
-                                                                    listImage.Add(
-                                                                        await Ultils.UploadImageBase64(
-                                                                            wwwroot,
-                                                                            $"Product/{product.Id}/Component/{component.Id}",
-                                                                            image.Base64String,
-                                                                            image.FileName,
-                                                                            image.ContentType,
-                                                                            null
-                                                                        )
-                                                                    );
+                                                                    }
                                                                 })
                                                             );
                                                         }
