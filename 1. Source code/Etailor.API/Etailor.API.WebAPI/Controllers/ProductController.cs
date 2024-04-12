@@ -21,17 +21,17 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
         private readonly IProductTemplateService productTemplateService;
-        private readonly IOrderService orderService;
+        private readonly ITaskService taskService;
         private readonly IMapper mapper;
         private readonly string wwwrootPath;
 
         public ProductController(IProductService productService, IProductTemplateService productTemplateService
-            , IOrderService orderService, IMapper mapper, IStaffService staffService, ICustomerService customerService
+            , ITaskService taskService, IMapper mapper, IStaffService staffService, ICustomerService customerService
             , IWebHostEnvironment webHost)
         {
             this.productService = productService;
             this.productTemplateService = productTemplateService;
-            this.orderService = orderService;
+            this.taskService = taskService;
             this.mapper = mapper;
             this.customerService = customerService;
             this.staffService = staffService;
@@ -193,6 +193,90 @@ namespace Etailor.API.WebAPI.Controllers
                              productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
                              productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
                         return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("{orderId}/{productId}/price")]
+        public async Task<IActionResult> UpdateProductPrice(string orderId, string productId, decimal? price)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return productService.UpdateProductPrice(orderId, productId, price) ? Ok("Cập nhật giá sản phẩm thành công") : BadRequest("Cập nhật giá sản phẩm thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("{orderId}/{productId}/defects")]
+        public async Task<IActionResult> DefectsProduct(string orderId, string productId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await taskService.DefectsTask(orderId, productId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
                     }
                 }
             }
@@ -414,7 +498,6 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-
 
         [HttpGet("order/{orderId}")]
         public async Task<IActionResult> GetProductsByOrderId(string? orderId)

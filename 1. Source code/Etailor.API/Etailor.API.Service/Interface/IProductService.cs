@@ -12,7 +12,7 @@ namespace Etailor.API.Service.Interface
         Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity);
 
         Task<string> UpdateProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity);
-
+        bool UpdateProductPrice(string orderId, string productId, decimal? price);
         Task<bool> DeleteProduct(string id);
         Task<Product> GetProductOrder(string id, string orderId);
         Task<Product> GetProductOrderByCus(string id, string orderId, string cusId);

@@ -74,7 +74,7 @@ namespace Etailor.API.WebAPI
 
             CreateMap<ProductBodySize, ProductBodySizeTaskDetailVM>().ReverseMap();
 
-            CreateMap<ProductComponentMaterial, ProductComponentMaterialOrderVM>().ReverseMap();
+            CreateMap<ProductStageMaterial, ProductStageMaterialOrderVM>().ReverseMap();
 
             CreateMap<BodySize, BodySizeVM>().ReverseMap();
             CreateMap<BodySize, CreateUpdateBodySizeVM>().ReverseMap();

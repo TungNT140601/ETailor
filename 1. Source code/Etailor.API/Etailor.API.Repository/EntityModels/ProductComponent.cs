@@ -5,11 +5,6 @@ namespace Etailor.API.Repository.EntityModels
 {
     public partial class ProductComponent
     {
-        public ProductComponent()
-        {
-            ProductComponentMaterials = new HashSet<ProductComponentMaterial>();
-        }
-
         public string Id { get; set; } = null!;
         public string? ComponentId { get; set; }
         public string? ProductStageId { get; set; }
@@ -21,6 +16,5 @@ namespace Etailor.API.Repository.EntityModels
 
         public virtual Component? Component { get; set; }
         public virtual ProductStage? ProductStage { get; set; }
-        public virtual ICollection<ProductComponentMaterial> ProductComponentMaterials { get; set; }
     }
 }

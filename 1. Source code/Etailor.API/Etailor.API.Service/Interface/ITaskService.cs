@@ -21,6 +21,7 @@ namespace Etailor.API.Service.Interface
         Task<bool> StartTask(string productId, string productStageId, string staffId);
         Task<bool> FinishTask(string wwwroot, string productId, string productStageId, string staffId, List<IFormFile>? images);
         bool PendingTask(string productId, string productStageId, string staffId);
+        Task<bool> DefectsTask(string productId, string orderId);
         Task AutoCreateEmptyTaskProduct();
         void AutoAssignTaskForStaff();
         Task SwapTaskIndex(string productId, string? staffId, int? index);

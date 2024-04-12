@@ -1509,6 +1509,52 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        public bool UpdateProductPrice(string orderId, string productId, decimal? price)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null)
+            {
+                if (dbOrder.Status >= 2)
+                {
+                    throw new UserException("Đơn hàng đã duyệt. Không thể chỉnh sửa");
+                }
+                else
+                {
+                    var dbProduct = productRepository.Get(productId);
+                    if (dbProduct != null && dbProduct.IsActive == true && dbOrder.Id == dbProduct.OrderId)
+                    {
+                        if (dbProduct.Status >= 2)
+                        {
+                            throw new UserException(
+                                "Sản phẩm trong giai đoạn thực hiện. Không thể chỉnh sửa"
+                            );
+                        }
+                        else
+                        {
+                            if (price == null || price < 0)
+                            {
+                                throw new UserException("Giá không hợp lệ");
+                            }
+                            else
+                            {
+                                dbProduct.Price = price;
+
+                                return productRepository.Update(dbProduct.Id, dbProduct);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy sản phẩm");
+                    }
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
         public async Task<bool> DeleteProduct(string id)
         {
             var dbProduct = productRepository.Get(id);

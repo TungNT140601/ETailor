@@ -195,7 +195,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
 
-builder.Services.AddScoped<IProductComponentMaterialRepository, ProductComponentMaterialRepository>();
+builder.Services.AddScoped<IProductStageMaterialRepository, ProductStageMaterialRepository>();
 
 #region Dashboard
 builder.Services.AddScoped<IOrderDashboardRepository, OrderDashoardRepository>();

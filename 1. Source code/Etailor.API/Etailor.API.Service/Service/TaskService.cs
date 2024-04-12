@@ -37,7 +37,7 @@ namespace Etailor.API.Service.Service
         private readonly IMasteryRepository masteryRepository;
         private readonly IProductBodySizeRepository productBodySizeRepository;
         private readonly ICategoryRepository categoryRepository;
-        private readonly IProductComponentMaterialRepository productComponentMaterialRepository;
+        private readonly IProductStageMaterialRepository productStageMaterialRepository;
         private readonly ISignalRService signalRService;
         private readonly INotificationService notificationService;
 
@@ -50,7 +50,7 @@ namespace Etailor.API.Service.Service
             , IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository
             , IProfileBodyRepository profileBodyRepository, IOrderMaterialRepository orderMaterialRepository
             , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository
-            , IProductComponentMaterialRepository productComponentMaterialRepository, ISignalRService signalRService
+            , IProductStageMaterialRepository productStageMaterialRepository, ISignalRService signalRService
             , INotificationService notificationService)
         {
             this.productRepository = productRepository;
@@ -72,7 +72,7 @@ namespace Etailor.API.Service.Service
             this.staffRepository = staffRepository;
             this.masteryRepository = masteryRepository;
             this.categoryRepository = categoryRepository;
-            this.productComponentMaterialRepository = productComponentMaterialRepository;
+            this.productStageMaterialRepository = productStageMaterialRepository;
             this.signalRService = signalRService;
             this.notificationService = notificationService;
         }
@@ -398,6 +398,10 @@ namespace Etailor.API.Service.Service
                                             productAllDbs = productAllDbs.ToList();
                                             greatestIndexDb = productAllDbs.OrderByDescending(x => x.Index).FirstOrDefault()?.Index;
                                         }
+                                        else
+                                        {
+                                            productAllDbs = null;
+                                        }
 
                                         if (greatestIndexDb == null)
                                         {
@@ -414,6 +418,10 @@ namespace Etailor.API.Service.Service
                                         if (existProductStages != null && existProductStages.Any())
                                         {
                                             existProductStages = existProductStages.ToList();
+                                        }
+                                        else
+                                        {
+                                            existProductStages = null;
                                         }
 
                                         var check = new List<bool>();
@@ -492,7 +500,6 @@ namespace Etailor.API.Service.Service
                                                                                                     productComponent.LastestUpdatedTime = DateTime.Now;
                                                                                                     productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
                                                                                                     productComponent.ProductStageId = productStage.Id;
-                                                                                                    productComponent.ProductComponentMaterials = null;
 
                                                                                                     productStage.ProductComponents.Add(productComponent);
                                                                                                 }
@@ -759,7 +766,6 @@ namespace Etailor.API.Service.Service
                                                             productComponent.LastestUpdatedTime = DateTime.Now;
                                                             productComponent.Name = componentsInStage.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
                                                             productComponent.ProductStageId = productStage.Id;
-                                                            productComponent.ProductComponentMaterials = null;
 
                                                             productStage.ProductComponents.Add(productComponent);
                                                         }
@@ -1919,10 +1925,10 @@ namespace Etailor.API.Service.Service
                                         orderMaterials = orderMaterials.ToList();
                                     }
 
-                                    var stageComponentMaterial = productComponentMaterialRepository.GetAll(x => x.ProductComponentId == stageComponent.ComponentId && x.MaterialId == materialId)?.FirstOrDefault();
-                                    if (stageComponentMaterial != null)
+                                    var stageMaterials = productStageMaterialRepository.GetAll(x => x.ProductStageId == productStage.Id && x.MaterialId == materialId)?.FirstOrDefault();
+                                    if (stageMaterials != null)
                                     {
-                                        stageComponentMaterial.Quantity += quantity;
+                                        stageMaterials.Quantity += quantity;
 
                                         if (orderMaterials != null && orderMaterials.Any() && product.FabricMaterialId == materialId)
                                         {
@@ -1957,7 +1963,7 @@ namespace Etailor.API.Service.Service
                                                 {
                                                     if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
                                                     {
-                                                        return productComponentMaterialRepository.Update(stageComponentMaterial.Id, stageComponentMaterial);
+                                                        return productStageMaterialRepository.Update(stageMaterials.Id, stageMaterials);
                                                     }
                                                     else
                                                     {
@@ -1986,7 +1992,7 @@ namespace Etailor.API.Service.Service
                                             }
                                             if (materialRepository.Update(materialId, material))
                                             {
-                                                return productComponentMaterialRepository.Update(stageComponentMaterial.Id, stageComponentMaterial);
+                                                return productStageMaterialRepository.Update(stageMaterials.Id, stageMaterials);
                                             }
                                             else
                                             {
@@ -1996,10 +2002,10 @@ namespace Etailor.API.Service.Service
                                     }
                                     else
                                     {
-                                        stageComponentMaterial = new ProductComponentMaterial
+                                        stageMaterials = new ProductStageMaterial
                                         {
                                             Id = Ultils.GenGuidString(),
-                                            ProductComponentId = stageComponent.ComponentId,
+                                            ProductStageId = stageId,
                                             MaterialId = materialId,
                                             Quantity = quantity
                                         };
@@ -2014,7 +2020,7 @@ namespace Etailor.API.Service.Service
                                                     cusMaterial.ValueUsed += quantity;
                                                     if (orderMaterialRepository.Update(cusMaterial.Id, cusMaterial))
                                                     {
-                                                        return productComponentMaterialRepository.Create(stageComponentMaterial);
+                                                        return productStageMaterialRepository.Create(stageMaterials);
                                                     }
                                                     else
                                                     {
@@ -2045,7 +2051,7 @@ namespace Etailor.API.Service.Service
                                                 {
                                                     if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
                                                     {
-                                                        return productComponentMaterialRepository.Create(stageComponentMaterial);
+                                                        return productStageMaterialRepository.Create(stageMaterials);
                                                     }
                                                     else
                                                     {
@@ -2074,7 +2080,7 @@ namespace Etailor.API.Service.Service
                                             }
                                             if (materialRepository.Update(materialId, material))
                                             {
-                                                return productComponentMaterialRepository.Create(stageComponentMaterial);
+                                                return productStageMaterialRepository.Create(stageMaterials);
                                             }
                                             else
                                             {

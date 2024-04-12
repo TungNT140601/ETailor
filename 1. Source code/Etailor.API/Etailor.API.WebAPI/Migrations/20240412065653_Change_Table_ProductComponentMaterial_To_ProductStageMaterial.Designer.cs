@@ -4,6 +4,7 @@ using Etailor.API.Repository.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Etailor.API.WebAPI.Migrations
 {
     [DbContext(typeof(ETailor_DBContext))]
-    partial class ETailor_DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240412065653_Change_Table_ProductComponentMaterial_To_ProductStageMaterial")]
+    partial class Change_Table_ProductComponentMaterial_To_ProductStageMaterial
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1164,7 +1166,7 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.HasIndex("ProductStageId");
 
-                    b.ToTable("ProductStageMaterial", (string)null);
+                    b.ToTable("ProductComponentMaterial", (string)null);
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductTemplate", b =>

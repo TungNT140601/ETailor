@@ -8,7 +8,7 @@ namespace Etailor.API.Repository.EntityModels
         public Material()
         {
             OrderMaterials = new HashSet<OrderMaterial>();
-            ProductComponentMaterials = new HashSet<ProductComponentMaterial>();
+            ProductComponentMaterials = new HashSet<ProductStageMaterial>();
             Products = new HashSet<Product>();
         }
 
@@ -24,7 +24,7 @@ namespace Etailor.API.Repository.EntityModels
 
         public virtual MaterialCategory? MaterialCategory { get; set; }
         public virtual ICollection<OrderMaterial> OrderMaterials { get; set; }
-        public virtual ICollection<ProductComponentMaterial> ProductComponentMaterials { get; set; }
+        public virtual ICollection<ProductStageMaterial> ProductComponentMaterials { get; set; }
         public virtual ICollection<Product> Products { get; set; }
     }
 }
