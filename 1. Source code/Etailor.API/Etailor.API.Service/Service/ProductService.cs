@@ -82,7 +82,7 @@ namespace Etailor.API.Service.Service
             this.masteryRepository = masteryRepository;
         }
 
-        public async Task<string> AddProduct(
+        public async Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
             string wwwroot,
             string orderId,
             Product product,
@@ -558,16 +558,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<string> UpdateProduct(
-            string wwwroot,
-            string orderId,
-            Product product,
-            List<ProductComponent> productComponents,
-            string materialId,
-            string profileId,
-            bool isCusMaterial,
-            double materialQuantity
-        )
+        public async Task<string> UpdateProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null)
@@ -771,32 +762,32 @@ namespace Etailor.API.Service.Service
                                     })
                                 );
 
-                                tasks.Add(
-                                    Task.Run(() =>
-                                    {
-                                        if (isCusMaterial)
-                                        {
-                                            dbProduct.Price = template.Price;
-                                        }
-                                        else
-                                        {
-                                            dbProduct.Price =
-                                                template.Price
-                                                + Math.Abs(
-                                                    Math.Round(
-                                                        (decimal)(
-                                                            (double)(
-                                                                materialCategory != null
-                                                                    ? materialCategory.PricePerUnit
-                                                                    : 0
-                                                            ) * materialQuantity
-                                                        ),
-                                                        2
-                                                    )
-                                                );
-                                        }
-                                    })
-                                );
+                                //    tasks.Add(
+                                //        Task.Run(() =>
+                                //        {
+                                //            if (isCusMaterial)
+                                //            {
+                                //                dbProduct.Price = template.Price;
+                                //            }
+                                //            else
+                                //            {
+                                //                dbProduct.Price =
+                                //                    template.Price
+                                //                    + Math.Abs(
+                                //                        Math.Round(
+                                //(decimal)(
+                                //    (double)(
+                                //        materialCategory != null
+                                //            ? materialCategory.PricePerUnit
+                                //            : 0
+                                //    ) * materialQuantity
+                                //),
+                                //2
+                                //                        )
+                                //                    );
+                                //            }
+                                //        })
+                                //    );
 
                                 tasks.Add(
                                     Task.Run(async () =>
@@ -1638,24 +1629,18 @@ namespace Etailor.API.Service.Service
                         product.FabricMaterial = materialRepository.Get(product.FabricMaterialId);
                     }
                     await Task.WhenAll(
-                        Task.Run(async () =>
+                        Task.Run(() =>
                         {
-                            if (
-                                product.ProductTemplate != null
-                                && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage)
-                            )
+                            if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
                             {
                                 product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(
                                     product.ProductTemplate.ThumbnailImage
                                 );
                             }
                         }),
-                        Task.Run(async () =>
+                        Task.Run(() =>
                         {
-                            if (
-                                product.FabricMaterial != null
-                                && !string.IsNullOrEmpty(product.FabricMaterial.Image)
-                            )
+                            if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
                             {
                                 product.FabricMaterial.Image = Ultils.GetUrlImage(
                                     product.FabricMaterial.Image
@@ -1856,10 +1841,7 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public async Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(
-            string orderId,
-            string cusId
-        )
+        public async Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId)
         {
             var dbOrder = orderRepository.Get(orderId);
             if (
