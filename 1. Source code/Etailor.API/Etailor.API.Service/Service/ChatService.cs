@@ -101,7 +101,7 @@ namespace Etailor.API.Service.Service
                     replierIdParam.Value = DBNull.Value;
                 }
 
-                if (order.Status >= 1 && order.Status < 7)
+                if (order.Status >= 1 && order.Status < 8)
                 {
                     var orderParam = new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar);
                     orderParam.Value = orderId;

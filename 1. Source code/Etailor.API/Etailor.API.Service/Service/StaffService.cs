@@ -783,7 +783,7 @@ namespace Etailor.API.Service.Service
             if (staff != null && staff.IsActive == true)
             {
                 var staffTasks = productRepository.GetAll(x =>
-                    x.StaffMakerId == staffId && x.Status > 0 && x.Status < 4 && x.IsActive == true
+                    x.StaffMakerId == staffId && x.Status > 0 && x.Status < 5 && x.IsActive == true
                 );
                 if (staffTasks != null && staffTasks.Any())
                 {

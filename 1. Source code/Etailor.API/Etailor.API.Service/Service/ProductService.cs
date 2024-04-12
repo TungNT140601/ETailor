@@ -82,7 +82,7 @@ namespace Etailor.API.Service.Service
             this.masteryRepository = masteryRepository;
         }
 
-        public async Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
+        public async Task<string> AddProduct(
             string wwwroot,
             string orderId,
             Product product,
@@ -174,13 +174,15 @@ namespace Etailor.API.Service.Service
                                 orderMaterials = orderMaterials.ToList();
                                 if (orderMaterials.Any(x => x.MaterialId == materialId))
                                 {
-                                    var orderMaterial = orderMaterials.First(x => x.MaterialId == materialId);
-                                    insideTasks.Add(Task.Run(() =>
+                                    var orderMaterial = orderMaterials.First(x =>
+                                        x.MaterialId == materialId
+                                    );
+                                    insideTasks.Add(
+                                        Task.Run(() =>
                                         {
                                             if (orderMaterial.Value != null)
                                             {
-                                                orderMaterial.Value +=
-                                                    (decimal)materialQuantity;
+                                                orderMaterial.Value += (decimal)materialQuantity;
                                             }
                                             else
                                             {
@@ -189,7 +191,8 @@ namespace Etailor.API.Service.Service
 
                                             updateOrderMaterial = orderMaterial;
                                             addOrderMaterial = null;
-                                        }));
+                                        })
+                                    );
                                 }
                                 else
                                 {
@@ -278,7 +281,16 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            product.Price = template.Price + Math.Abs(Math.Round((decimal)((double)materialCategory.PricePerUnit * materialQuantity), 2));
+                            product.Price =
+                                template.Price
+                                + Math.Abs(
+                                    Math.Round(
+                                        (decimal)(
+                                            (double)materialCategory.PricePerUnit * materialQuantity
+                                        ),
+                                        2
+                                    )
+                                );
                         }
                     })
                 );
@@ -558,7 +570,16 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<string> UpdateProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
+        public async Task<string> UpdateProduct(
+            string wwwroot,
+            string orderId,
+            Product product,
+            List<ProductComponent> productComponents,
+            string materialId,
+            string profileId,
+            bool isCusMaterial,
+            double materialQuantity
+        )
         {
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null)
@@ -1631,7 +1652,10 @@ namespace Etailor.API.Service.Service
                     await Task.WhenAll(
                         Task.Run(() =>
                         {
-                            if (product.ProductTemplate != null && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage))
+                            if (
+                                product.ProductTemplate != null
+                                && !string.IsNullOrEmpty(product.ProductTemplate.ThumbnailImage)
+                            )
                             {
                                 product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(
                                     product.ProductTemplate.ThumbnailImage
@@ -1640,7 +1664,10 @@ namespace Etailor.API.Service.Service
                         }),
                         Task.Run(() =>
                         {
-                            if (product.FabricMaterial != null && !string.IsNullOrEmpty(product.FabricMaterial.Image))
+                            if (
+                                product.FabricMaterial != null
+                                && !string.IsNullOrEmpty(product.FabricMaterial.Image)
+                            )
                             {
                                 product.FabricMaterial.Image = Ultils.GetUrlImage(
                                     product.FabricMaterial.Image
@@ -1841,7 +1868,10 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public async Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId)
+        public async Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(
+            string orderId,
+            string cusId
+        )
         {
             var dbOrder = orderRepository.Get(orderId);
             if (
