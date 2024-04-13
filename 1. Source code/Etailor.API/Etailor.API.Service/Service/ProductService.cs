@@ -1479,7 +1479,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool UpdateProductPrice(string orderId, string productId, decimal? price)
+        public async Task<bool> UpdateProductPrice(string orderId, string productId, decimal? price)
         {
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null)
@@ -1509,7 +1509,14 @@ namespace Etailor.API.Service.Service
                             {
                                 dbProduct.Price = price;
 
-                                return productRepository.Update(dbProduct.Id, dbProduct);
+                                if (productRepository.Update(dbProduct.Id, dbProduct))
+                                {
+                                    return await orderService.CheckOrderPaid(dbProduct.OrderId);
+                                }
+                                else
+                                {
+                                    throw new SystemsException($"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật giá sản phẩm", nameof(ProductService.UpdateProductPrice));
+                                }
                             }
                         }
                     }

@@ -234,7 +234,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return productService.UpdateProductPrice(orderId, productId, price) ? Ok("Cập nhật giá sản phẩm thành công") : BadRequest("Cập nhật giá sản phẩm thất bại");
+                        return await productService.UpdateProductPrice(orderId, productId, price) ? Ok("Cập nhật giá sản phẩm thành công") : BadRequest("Cập nhật giá sản phẩm thất bại");
                     }
                 }
             }

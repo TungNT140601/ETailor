@@ -1321,8 +1321,6 @@ namespace Etailor.API.Service.Service
                 {
                     case 0:
                         throw new UserException("Sản phẩm bị hủy");
-                    case 1:
-                        throw new UserException("Sản phẩm đang chờ");
                     case 5:
                         throw new UserException("Sản phẩm đã hoàn thành");
                 }
@@ -1337,8 +1335,6 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Hóa đơn chưa được duyệt");
                         case 2:
                             throw new UserException("Hóa đơn chưa được bắt đầu");
-                        case 3:
-                            throw new UserException("Hóa đơn chưa bắt đầu");
                         case 5:
                             throw new UserException("Hóa đơn bị tạm dừng");
                         case 6:
