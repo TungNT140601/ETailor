@@ -2,12 +2,17 @@
 using Etailor.API.Repository.Interface;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
+using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
+using OfficeOpenXml;
+using OfficeOpenXml.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
+using System.Security.AccessControl;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -821,6 +826,137 @@ namespace Etailor.API.Service.Service
             }
 
             return null;
+        }
+
+        public string ExportFile(string templateId)
+        {
+            var template = productTemplateRepository.Get(templateId);
+            if (template != null)
+            {
+                var category = categoryRepository.Get(template.CategoryId);
+                if (category != null && category.IsActive == true)
+                {
+                    var componentTypes = componentTypeRepository.GetAll(x => x.CategoryId == category.Id && x.IsActive == true);
+                    if (componentTypes != null && componentTypes.Any())
+                    {
+                        componentTypes = componentTypes.OrderBy(x => x.Name).ToList();
+
+                        var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
+                        if (templateComponents != null && templateComponents.Any())
+                        {
+                            templateComponents = templateComponents.OrderBy(x => x.Name).ToList();
+
+                        }
+                        else
+                        {
+                            templateComponents = new List<Component>();
+                        }
+
+                        // Set the license context
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                        FileInfo templateFile = new FileInfo("./wwwroot/File/Export/Output.xlsx");
+                        using (ExcelPackage excelPackage = new ExcelPackage(templateFile))
+                        {
+                            if (excelPackage.Workbook.Worksheets.Any(ws => ws.Name == "Sheet1"))
+                            {
+                                // Delete the sheet
+                                excelPackage.Workbook.Worksheets.Delete("Sheet1");
+                            }
+
+                            foreach (var componentType in componentTypes)
+                            {
+                                ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add($"{componentType.Name}|{componentType.Id}");
+
+                                // Set protection options to prevent renaming or deleting the sheet
+                                worksheet.Protection.AllowDeleteColumns = false;
+                                worksheet.Protection.AllowDeleteRows = false;
+
+                                int startRow = 2; // Assuming data starts from row 2
+
+                                if (templateComponents != null && templateComponents.Any(x => x.ComponentTypeId == componentType.Id))
+                                {
+                                    var componentOfType = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).ToList();
+
+                                    for (int i = 0; i < componentOfType.Count; i++)
+                                    {
+                                        var row = startRow + i;
+                                        worksheet.Rows[row].Height = 100;
+                                        var colName = 1;
+                                        worksheet.Columns[colName].AutoFit();
+                                        var colImage = 2;
+                                        worksheet.Columns[colImage].Width = 20;
+                                        var colDefault = 3;
+                                        worksheet.Columns[colDefault].AutoFit();
+                                        var rowData = componentOfType[i];
+
+                                        worksheet.Cells[row, colName].Value = rowData.Name;
+
+
+                                        if (!string.IsNullOrEmpty(rowData.Image))
+                                        {
+                                            worksheet.Cells[row, colImage].Value = " ";
+
+                                            var fileDtp = JsonConvert.DeserializeObject<ImageFileDTO>(rowData.Image);
+
+                                            byte[] imageBytes = Ultils.DownloadImageFromFirebase(fileDtp.ObjectName);
+
+                                            var fileName = fileDtp.ObjectName.Split("/").Last();
+                                            var filePath = $"./wwwroot/File/Template/{fileName}";
+                                            File.WriteAllBytes(filePath, imageBytes);
+
+                                            using (var fileStream = System.IO.File.OpenRead(filePath))
+                                            {
+                                                ExcelPicture picture = worksheet.Drawings.AddPicture(fileDtp.ObjectName, fileStream);
+
+                                                picture.SetPosition(row - 1, 0, colImage - 1, 0); // Set the position of the image within the cell
+                                                picture.SetSize(100, 100);
+                                            }
+                                            System.IO.File.Delete(filePath);
+
+                                        }
+                                        worksheet.Cells[startRow + i, 3].Value = rowData.Default;
+
+
+                                    }
+
+
+                                    ExcelRange range = worksheet.Cells[2, 1, componentOfType.Count + 1, 3];
+
+                                    // Set border style
+                                    var border = range.Style.Border;
+                                    border.Bottom.Style = border.Left.Style = border.Top.Style = border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Medium; // Set border style to thin
+                                    border.Bottom.Color.SetColor(System.Drawing.Color.Black); // Set border color to black
+                                    border.Left.Color.SetColor(System.Drawing.Color.Black);
+                                    border.Top.Color.SetColor(System.Drawing.Color.Black);
+                                    border.Right.Color.SetColor(System.Drawing.Color.Black);
+
+                                }
+
+                                worksheet.Protection.SetPassword("123456");
+                                worksheet.Protection.IsProtected = true;
+                                excelPackage.Save();
+                            }
+
+                            //excelPackage.SaveAs(new FileInfo("./wwwroot/File/Export/Output.xlsx"));
+                        }
+
+                        return "./wwwroot/File/Export/Output.xlsx";
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy bộ phận của loại bản mẫu");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy loại bản mẫu");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy bản mẫu");
+            }
         }
     }
 }

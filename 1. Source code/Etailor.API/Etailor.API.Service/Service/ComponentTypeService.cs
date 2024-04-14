@@ -3,6 +3,7 @@ using Etailor.API.Repository.Interface;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -197,5 +198,6 @@ namespace Etailor.API.Service.Service
                 return componentTypeRepository.GetAll(x => x.CategoryId.Trim() == id.Trim() && x.IsActive == true);
             }
         }
+
     }
 }

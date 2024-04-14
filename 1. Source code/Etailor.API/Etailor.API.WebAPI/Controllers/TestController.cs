@@ -48,13 +48,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ISignalRService signalRService;
         private readonly IBackgroundService backgroundService;
         private readonly INotificationService notificationService;
+        private readonly IProductTemplateService productTemplateService;
         private readonly ETailor_DBContext dBContext;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
             , ITaskService taskService, INotificationService notificationService
-            , ETailor_DBContext dBContext)
+            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -68,6 +69,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.taskService = taskService;
             this.notificationService = notificationService;
             this.dBContext = dBContext;
+            this.productTemplateService = productTemplateService;
         }
 
         #region SendMail
@@ -1097,6 +1099,34 @@ namespace Etailor.API.WebAPI.Controllers
         public async Task<IActionResult> RecieveData([FromForm] List<ProductComponentOrderVM> componentOrderVMs)
         {
             return Ok();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadExportFile(string templateId)
+        {
+            try
+            {
+                var filePath = productTemplateService.ExportFile(templateId);
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("File not found");
+                }
+                else
+                {
+                    var fileName = Path.GetFileName(filePath);
+
+                    byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+
+                    System.IO.File.Delete(filePath);
+
+                    return File(fileBytes, "application/octet-stream", fileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
     }
     public class Notify

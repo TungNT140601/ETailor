@@ -570,6 +570,17 @@ namespace Etailor.API.Ultity
                 throw new SystemsException(ex.Message, nameof(Ultils.CheckExistImageAfterUpdate));
             }
         }
+
+        public static byte[] DownloadImageFromFirebase(string objectName)
+        {
+
+            // Download the image from Firebase Storage
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                _storage.DownloadObject(AppValue.BUCKET_NAME, objectName, memoryStream);
+                return memoryStream.ToArray();
+            }
+        }
         #endregion
         public static IFormFile ConvertBase64ToIFormFile(string? base64String, string? fileName)
         {
