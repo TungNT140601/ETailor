@@ -6,6 +6,7 @@ using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -53,7 +54,7 @@ namespace Etailor.API.WebAPI.Controllers
 
                         return Ok(new
                         {
-                            Data = mapper.Map<NotificationVM>(notifications),
+                            Data = mapper.Map<IEnumerable<NotificationVM>>(notifications),
                             Unread = notifications.Count(x => x.IsRead == false)
                         });
                     }

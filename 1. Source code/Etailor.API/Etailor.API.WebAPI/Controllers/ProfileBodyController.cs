@@ -331,7 +331,7 @@ namespace Etailor.API.WebAPI.Controllers
                         var profileBodyList = mapper.Map<IEnumerable<GetAllProfileBodyOfCustomerVM>>(profileBodyService.GetProfileBodysByCustomerId(id));
                         foreach (var profileBody in profileBodyList)
                         {
-                            if (staffService.GetStaff(profileBody.StaffId) != null)
+                            if ((await staffService.GetStaff(profileBody.StaffId)) != null)
                             {
                                 profileBody.StaffName = (await staffService.GetStaff(profileBody.StaffId))?.Fullname;
                             }

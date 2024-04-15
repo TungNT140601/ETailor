@@ -76,12 +76,18 @@ namespace Etailor.API.WebAPI.Controllers
                                 }
                                 if (category.ProductTemplates != null && category.ProductTemplates.Any())
                                 {
+                                    category.ProductTemplates = category.ProductTemplates.OrderBy(x => x.Name).ToList();
                                     returnData.Add(category);
                                 }
                             }));
                         }
 
                         await Task.WhenAll(tasks);
+
+                        if (returnData != null && returnData.Any())
+                        {
+                            returnData = returnData.OrderBy(x => x.Name).ToList();
+                        }
                     }
                 }
                 return Ok(returnData);

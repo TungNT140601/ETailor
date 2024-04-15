@@ -36,6 +36,10 @@ namespace Etailor.API.WebAPI
             CreateMap<Component, ComponentOrderVM>().ReverseMap();
             //CreateMap<Component, ComponentDetailVM>().ReverseMap();
 
+            CreateMap<Chat, ChatAllVM>().ReverseMap();
+
+            CreateMap<ChatList, ChatListVM>().ReverseMap();
+
             CreateMap<ComponentStage, ComponentStageVM>().ReverseMap();
 
             CreateMap<Discount, DiscountVM>().ReverseMap();
@@ -49,6 +53,7 @@ namespace Etailor.API.WebAPI
             CreateMap<Order, OrderDetailVM>().ReverseMap();
 
             CreateMap<OrderMaterial, OrderMaterialVM>().ReverseMap();
+            CreateMap<OrderMaterial, OrderMaterialUpdateVM>().ReverseMap();
 
 
             CreateMap<ProductTemplate, ProductTemplateALLVM>();
@@ -69,7 +74,7 @@ namespace Etailor.API.WebAPI
 
             CreateMap<ProductBodySize, ProductBodySizeTaskDetailVM>().ReverseMap();
 
-            CreateMap<ProductComponentMaterial, ProductComponentMaterialOrderVM>().ReverseMap();
+            CreateMap<ProductStageMaterial, ProductStageMaterialOrderVM>().ReverseMap();
 
             CreateMap<BodySize, BodySizeVM>().ReverseMap();
             CreateMap<BodySize, CreateUpdateBodySizeVM>().ReverseMap();

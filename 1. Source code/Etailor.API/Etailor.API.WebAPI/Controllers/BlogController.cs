@@ -60,6 +60,35 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpGet("url-path/{urlPath}")]
+        public async Task<IActionResult> GetUrlPath(string urlPath)
+        {
+            try
+            {
+                var blog = await blogService.GetBlogUrl(urlPath);
+                if (blog == null)
+                {
+                    return NotFound("không tìm thấy bài blog này");
+                }
+                else
+                {
+                    return Ok(mapper.Map<BlogVM>(blog));
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAll(string? search)
         {

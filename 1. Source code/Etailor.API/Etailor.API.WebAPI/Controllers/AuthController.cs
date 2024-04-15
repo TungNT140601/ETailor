@@ -56,7 +56,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     loginEmail.ClientToken = string.Empty;
                 }
-                var customer = await customerService.Login(loginEmail.EmailOrUsername, loginEmail.Password, HttpContext.Connection.RemoteIpAddress.ToString(), loginEmail.ClientToken);
+                var customer = customerService.Login(loginEmail.EmailOrUsername, loginEmail.Password, HttpContext.Connection.RemoteIpAddress.ToString(), loginEmail.ClientToken);
 
                 return Ok(new
                 {

@@ -39,5 +39,10 @@ namespace Etailor.API.Service.Service
                 await hubContext.Clients.Group(id).SendAsync("ChatWithUs", "Have message");
             }
         }
+
+        public async Task SendNotificationToManagers(string Notification)
+        {
+            await hubContext.Clients.Group(RoleName.MANAGER).SendAsync("Notification", Notification);
+        }
     }
 }

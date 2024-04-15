@@ -16,4 +16,7 @@ namespace Etailor.API.Repository.Interface.Dashboard
     public interface IFabricMaterialCommonUsedRepository : IGenericRepository<FabricMaterialCommonUsed>
     {
     }
+    public interface ITemplateDashboardRepository : IGenericRepository<TemplateDashboard>
+    {
+    }
 }

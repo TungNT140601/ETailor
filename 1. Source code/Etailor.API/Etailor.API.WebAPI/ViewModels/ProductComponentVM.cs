@@ -8,6 +8,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? ComponentId { get; set; }
         public string? Note { get; set; }
         public List<ImageFile>? NoteImageFiles { get; set; }
+        public List<string>? NoteImageObjects { get; set; }
     }
     public class ImageFile
     {
@@ -24,6 +25,6 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? NoteImage { get; set; }
 
         public virtual ComponentOrderVM? Component { get; set; }
-        public virtual ICollection<ProductComponentMaterialOrderVM>? ProductComponentMaterials { get; set; }
+        public virtual ICollection<ProductStageMaterialOrderVM>? ProductStageMaterials { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using Etailor.API.Repository.Interface;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -178,7 +179,12 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<ComponentType> GetComponentTypes(string? search)
         {
-            return componentTypeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            var componentTypes = componentTypeRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            if (componentTypes != null && componentTypes.Any())
+            {
+                componentTypes = componentTypes.OrderBy(x => x.Name).ToList();
+            }
+            return componentTypes;
         }
 
         public IEnumerable<ComponentType> GetComponentTypesByCategory(string? id)
@@ -192,5 +198,6 @@ namespace Etailor.API.Service.Service
                 return componentTypeRepository.GetAll(x => x.CategoryId.Trim() == id.Trim() && x.IsActive == true);
             }
         }
+
     }
 }

@@ -21,17 +21,17 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
         private readonly IProductTemplateService productTemplateService;
-        private readonly IOrderService orderService;
+        private readonly ITaskService taskService;
         private readonly IMapper mapper;
         private readonly string wwwrootPath;
 
         public ProductController(IProductService productService, IProductTemplateService productTemplateService
-            , IOrderService orderService, IMapper mapper, IStaffService staffService, ICustomerService customerService
+            , ITaskService taskService, IMapper mapper, IStaffService staffService, ICustomerService customerService
             , IWebHostEnvironment webHost)
         {
             this.productService = productService;
             this.productTemplateService = productTemplateService;
-            this.orderService = orderService;
+            this.taskService = taskService;
             this.mapper = mapper;
             this.customerService = customerService;
             this.staffService = staffService;
@@ -48,7 +48,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -129,7 +129,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -155,10 +155,19 @@ namespace Etailor.API.WebAPI.Controllers
                                 tasks.Add(Task.Run(async () =>
                                 {
                                     var productComponent = mapper.Map<ProductComponent>(component);
+
+                                    var images = new List<string>();
+
+                                    if (component.NoteImageObjects != null && component.NoteImageObjects.Any())
+                                    {
+                                        foreach (var img in component.NoteImageObjects)
+                                        {
+                                            images.Add(img);
+                                        }
+                                    }
                                     if (component.NoteImageFiles != null && component.NoteImageFiles.Any())
                                     {
                                         var insideTasks = new List<Task>();
-                                        var images = new List<string>();
                                         foreach (var image in component.NoteImageFiles)
                                         {
                                             insideTasks.Add(Task.Run(() =>
@@ -201,6 +210,90 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpPut("{orderId}/{productId}/price")]
+        public async Task<IActionResult> UpdateProductPrice(string orderId, string productId, decimal? price)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await productService.UpdateProductPrice(orderId, productId, price) ? Ok("Cập nhật giá sản phẩm thành công") : BadRequest("Cập nhật giá sản phẩm thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("{orderId}/{productId}/defects")]
+        public async Task<IActionResult> DefectsProduct(string orderId, string productId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await taskService.DefectsTask(orderId, productId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(string id)
         {
@@ -211,7 +304,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -321,6 +414,7 @@ namespace Etailor.API.WebAPI.Controllers
                                                 insideTasks.Add(Task.Run(() =>
                                                 {
                                                     component.Component_Id = $"component_{component.Id}";
+                                                    component.Note_Id = $"productComponent_{component.Id}";
                                                 }));
 
                                                 insideTasks.Add(Task.Run(() =>
@@ -360,9 +454,9 @@ namespace Etailor.API.WebAPI.Controllers
                                                                 foreach (var img in listImageDTO)
                                                                 {
                                                                     insideTasks1.Add(Task.Run(() =>
-                                                                {
-                                                                    listImageUrl.Add(Ultils.GetUrlImage(img));
-                                                                }));
+                                                                    {
+                                                                        listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                    }));
                                                                 }
                                                                 await Task.WhenAll(insideTasks1);
                                                                 component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);
@@ -404,7 +498,6 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-
 
         [HttpGet("order/{orderId}")]
         public async Task<IActionResult> GetProductsByOrderId(string? orderId)

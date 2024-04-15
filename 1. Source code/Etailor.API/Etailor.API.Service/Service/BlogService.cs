@@ -230,13 +230,35 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
+        public async Task<Blog> GetBlogUrl(string urlPath)
+        {
+            var blog = blogRepository.FirstOrDefault(x => x.UrlPath == urlPath && x.IsActive == true);
+            if (blog != null && blog.IsActive == true)
+            {
+                var setThumbnail = Task.Run(async () =>
+                {
+                    if (string.IsNullOrEmpty(blog.Thumbnail))
+                    {
+                        blog.Thumbnail = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                    }
+                    else
+                    {
+                        blog.Thumbnail = Ultils.GetUrlImage(blog.Thumbnail);
+                    }
+                });
+                await Task.WhenAll(setThumbnail);
+
+                return blog;
+            }
+            return null;
+        }
 
         public async Task<IEnumerable<Blog>> GetBlogs(string? search)
         {
             var ListOfBlog = blogRepository.GetAll(x => (search == null || (search != null && x.Title.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
             if (ListOfBlog != null && ListOfBlog.Any())
             {
-                ListOfBlog = ListOfBlog.ToList();
+                ListOfBlog = ListOfBlog.OrderByDescending(x => x.CreatedTime).OrderBy(x => x.Title).ToList();
                 foreach (Blog blog in ListOfBlog)
                 {
                     var setThumbnail = Task.Run(async () =>
@@ -261,7 +283,6 @@ namespace Etailor.API.Service.Service
             var listOfBlogs = blogRepository.GetAll(x => hastag != null && x.Hastag == hastag && x.IsActive == true);
             if (listOfBlogs != null && listOfBlogs.Any())
             {
-                // Shuffle the listOfBlogs and take the top 3
                 var random = new Random();
                 var shuffledBlogs = listOfBlogs.OrderBy(x => random.Next()).Take(3).ToList();
 

@@ -132,7 +132,6 @@ namespace Etailor.API.Service.Service
                                                                         productComponent.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                                                         productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
                                                                         productComponent.ProductStageId = productStage.Id;
-                                                                        productComponent.ProductComponentMaterials = null;
 
                                                                         productStage.ProductComponents.Add(productComponent);
                                                                     }

@@ -17,26 +17,26 @@ namespace Etailor.API.WebAPI.Controllers
     {
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
-        private readonly IOrderService orderService;
+        private readonly IOrderMaterialService orderMaterialService;
         private readonly IProductService productService;
         private readonly IProductTemplateService productTemplateService;
         private readonly IDiscountService discountService;
         private readonly IMapper mapper;
 
         public OrderMaterialController(IStaffService staffService, ICustomerService customerService,
-            IOrderService orderService, IMapper mapper, IProductService productService, IProductTemplateService productTemplateService,
+            IOrderMaterialService orderMaterialService, IMapper mapper, IProductService productService, IProductTemplateService productTemplateService,
             IDiscountService discountService)
         {
             this.mapper = mapper;
             this.staffService = staffService;
             this.customerService = customerService;
-            this.orderService = orderService;
+            this.orderMaterialService = orderMaterialService;
             this.productService = productService;
             this.productTemplateService = productTemplateService;
             this.discountService = discountService;
         }
         [HttpPut("/order/{id}")]
-        public async Task<IActionResult> UpdateOrder(string id, [FromBody] OrderCreateVM orderVM)
+        public async Task<IActionResult> UpdateOrder(string id, [FromBody] List<OrderMaterialUpdateVM>? orderMaterialVMs)
         {
             try
             {
@@ -59,13 +59,9 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var order = mapper.Map<Order>(orderVM);
+                        var check = await orderMaterialService.UpdateOrderMaterials(id, mapper.Map<List<OrderMaterial>>(orderMaterialVMs));
 
-                        order.CreaterId = id;
-
-                        var orderId = await orderService.UpdateOrder(order, role);
-
-                        return orderId != null ? Ok(orderId) : BadRequest("Cập nhật hóa đơn thất bại");
+                        return check ? Ok("Cập nhật nguyên liệu hóa đơn thành công") : BadRequest("Cập nhật nguyên liệu hóa đơn thất bại");
                     }
                 }
             }

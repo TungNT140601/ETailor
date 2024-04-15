@@ -10,7 +10,17 @@ namespace Etailor.API.Repository.StoreProcModels
     {
         public static string Get_Order_Dashboard = "GetOrderDashboard";
         public static string Get_Staff_With_Total_Task = "GetStaffWithTotalTask";
+        public static string Get_Order_Chat = "GetOrderChat";
         public static string Get_Order_Chat_List = "GetOrderChatList";
         public static string Get_Total_Fabric_Material_Common_Used = "GetTotalFabricMaterialCommonUsed";
+        public static string Get_Template_Dashboard = "GetTemplateDashboard";
+        public static string Get_Active_Orders = "GetActiveOrders";
+        public static string Get_Active_Orders_Products = "GetActiveOrdersProducts";
+        public static string Insert_Chat_List = "InsertChatList";
+        public static string Check_Order_Paid = "CheckOrderPaid";
+    }
+    public class SpResult
+    {
+        public int ReturnValue { get; set; }
     }
 }

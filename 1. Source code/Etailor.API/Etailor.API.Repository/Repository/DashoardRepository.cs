@@ -28,4 +28,10 @@ namespace Etailor.API.Repository.Repository.Dashoard
         {
         }
     }
+    public class TemplateDashboardRepository : GenericRepository<TemplateDashboard>, ITemplateDashboardRepository
+    {
+        public TemplateDashboardRepository(ETailor_DBContext dBContext) : base(dBContext)
+        {
+        }
+    }
 }

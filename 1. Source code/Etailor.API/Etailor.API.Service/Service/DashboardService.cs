@@ -20,14 +20,17 @@ namespace Etailor.API.Service.Service
         private readonly IOrderDashboardRepository orderDashboardRepository;
         private readonly IStaffWithTotalTaskRepository staffWithTotalTaskRepository;
         private readonly IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository;
+        private readonly ITemplateDashboardRepository templateDashboardRepository;
 
         public DashboardService(IOrderDashboardRepository orderDashboardRepository
             , IStaffWithTotalTaskRepository staffWithTotalTaskRepository
-            , IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository)
+            , IFabricMaterialCommonUsedRepository fabricMaterialCommonUsedRepository
+            , ITemplateDashboardRepository templateDashboardRepository)
         {
             this.orderDashboardRepository = orderDashboardRepository;
             this.staffWithTotalTaskRepository = staffWithTotalTaskRepository;
             this.fabricMaterialCommonUsedRepository = fabricMaterialCommonUsedRepository;
+            this.templateDashboardRepository = templateDashboardRepository;
         }
 
         public object GetOrderDashboard(int? year, int? month)
@@ -54,7 +57,7 @@ namespace Etailor.API.Service.Service
 
             var returnResult = new List<OrderDashboard>();
 
-            for (int i = 0; i <= 7; i++)
+            for (int i = 0; i <= 8; i++)
             {
                 if (orderDashboards == null || !orderDashboards.Any(x => x.Status == i))
                 {
@@ -99,11 +102,11 @@ namespace Etailor.API.Service.Service
 
                 var orderDashboards = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, startDateParam);
 
-                if (orderDashboards != null && orderDashboards.Any(x => x.Status == 7 || x.Status == 0))
+                if (orderDashboards != null && orderDashboards.Any(x => x.Status == 8 || x.Status == 0))
                 {
                     orderDashboards = orderDashboards.ToList();
 
-                    var done = orderDashboards.SingleOrDefault(x => x.Status == 7);
+                    var done = orderDashboards.SingleOrDefault(x => x.Status == 8);
                     var cancel = orderDashboards.SingleOrDefault(x => x.Status == 0);
                     returnResult.Add(new OrderDashboardMonth
                     {
@@ -117,7 +120,7 @@ namespace Etailor.API.Service.Service
                         },
                         OrderDone = done != null ? done : new OrderDashboard()
                         {
-                            Status = 7,
+                            Status = 8,
                             Total = 0,
                             TotalPrice = 0
                         }
@@ -137,7 +140,7 @@ namespace Etailor.API.Service.Service
                         },
                         OrderDone = new OrderDashboard()
                         {
-                            Status = 7,
+                            Status = 8,
                             Total = 0,
                             TotalPrice = 0
                         }
@@ -192,9 +195,9 @@ namespace Etailor.API.Service.Service
             var date = new DateTime(year.Value, month.Value, 1);
 
             var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", date));
-            if (thisMonth != null && thisMonth.Any(x => x.Status == 7))
+            if (thisMonth != null && thisMonth.Any(x => x.Status == 8))
             {
-                return thisMonth.Single(x => x.Status == 7).Total.Value;
+                return thisMonth.Single(x => x.Status == 8).Total.Value;
             }
             else
             {
@@ -220,18 +223,18 @@ namespace Etailor.API.Service.Service
             double totalThisMonth = 0;
             double totalPreMonth = 0;
 
-            if (thisMonth != null && thisMonth.Any(x => x.Status == 7))
+            if (thisMonth != null && thisMonth.Any(x => x.Status == 8))
             {
-                totalThisMonth = thisMonth.Single(x => x.Status == 7).Total.Value;
+                totalThisMonth = thisMonth.Single(x => x.Status == 8).Total.Value;
             }
             else
             {
                 totalThisMonth = 0;
             }
 
-            if (preMonth != null && preMonth.Any(x => x.Status == 7))
+            if (preMonth != null && preMonth.Any(x => x.Status == 8))
             {
-                totalPreMonth = preMonth.Single(x => x.Status == 7).Total.Value;
+                totalPreMonth = preMonth.Single(x => x.Status == 8).Total.Value;
             }
             else
             {
@@ -265,9 +268,9 @@ namespace Etailor.API.Service.Service
             var date = new DateTime(year.Value, month.Value, 1);
 
             var thisMonth = orderDashboardRepository.GetStoreProcedure(StoreProcName.Get_Order_Dashboard, new SqlParameter("@StartDate", date));
-            if (thisMonth != null && thisMonth.Any(x => x.Status == 7))
+            if (thisMonth != null && thisMonth.Any(x => x.Status == 8))
             {
-                return thisMonth.Single(x => x.Status == 7).TotalPrice.Value;
+                return thisMonth.Single(x => x.Status == 8).TotalPrice.Value;
             }
             else
             {
@@ -292,18 +295,18 @@ namespace Etailor.API.Service.Service
             decimal totalThisMonth = 0;
             decimal totalPreMonth = 0;
 
-            if (thisMonth != null && thisMonth.Any(x => x.Status == 7))
+            if (thisMonth != null && thisMonth.Any(x => x.Status == 8))
             {
-                totalThisMonth = thisMonth.Single(x => x.Status == 7).TotalPrice.Value;
+                totalThisMonth = thisMonth.Single(x => x.Status == 8).TotalPrice.Value;
             }
             else
             {
                 totalThisMonth = 0;
             }
 
-            if (preMonth != null && preMonth.Any(x => x.Status == 7))
+            if (preMonth != null && preMonth.Any(x => x.Status == 8))
             {
-                totalPreMonth = preMonth.Single(x => x.Status == 7).TotalPrice.Value;
+                totalPreMonth = preMonth.Single(x => x.Status == 8).TotalPrice.Value;
             }
             else
             {
@@ -347,11 +350,55 @@ namespace Etailor.API.Service.Service
                     tasks.Add(Task.Run(() =>
                     {
                         item.Image = Ultils.GetUrlImage(item.Image);
+                        if (item.TotalProducts == null)
+                        {
+                            item.TotalProducts = 0;
+                        }
+                        if (item.TotalOrders == null)
+                        {
+                            item.TotalOrders = 0;
+                        }
                     }));
                 }
                 await Task.WhenAll(tasks);
 
-                return monthData.ToList();
+                return monthData.OrderByDescending(x => x.TotalProducts).ToList();
+            }
+
+            return null;
+        }
+        public async Task<List<TemplateDashboard>> GetTemplateCommonUsedByMonth(int? year, int? month)
+        {
+            if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
+            {
+                year = DateTime.UtcNow.AddHours(7).Year;
+            }
+            if (month == null || (month > DateTime.UtcNow.AddHours(7).Month && year >= DateTime.UtcNow.AddHours(7).Year))
+            {
+                month = DateTime.UtcNow.AddHours(7).Month;
+            }
+            var date = new DateTime(year.Value, month.Value, 1);
+
+            var monthData = templateDashboardRepository.GetStoreProcedure(StoreProcName.Get_Template_Dashboard, new SqlParameter("@Date", date));
+
+            if (monthData != null && monthData.Any())
+            {
+                monthData = monthData.ToList();
+                var tasks = new List<Task>();
+                foreach (var item in monthData)
+                {
+                    tasks.Add(Task.Run(() =>
+                    {
+                        item.ThumbnailImage = Ultils.GetUrlImage(item.ThumbnailImage);
+                        if (item.Total == null)
+                        {
+                            item.Total = 0;
+                        }
+                    }));
+                }
+                await Task.WhenAll(tasks);
+
+                return monthData.OrderByDescending(x => x.Total).ToList();
             }
 
             return null;

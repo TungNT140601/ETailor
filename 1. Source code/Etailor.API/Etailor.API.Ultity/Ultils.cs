@@ -20,6 +20,8 @@ using Microsoft.AspNetCore.Hosting;
 using System.Security.AccessControl;
 using Newtonsoft.Json;
 using Google.Apis.Storage.v1;
+using Serilog;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Etailor.API.Ultity
 {
@@ -210,6 +212,8 @@ namespace Etailor.API.Ultity
                 message.From = new MailAddress(fromMail);
                 message.Subject = "Error Notification Mail From TueTailor";
                 message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
+                message.To.Add(new MailAddress("tridmse151125@fpt.edu.vn"));
+                message.To.Add(new MailAddress("tudase151149@fpt.edu.vn"));
                 message.Body = $"Error at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
                 message.Body += error;
                 message.IsBodyHtml = false;
@@ -228,7 +232,7 @@ namespace Etailor.API.Ultity
                 throw new Exception(ex.Message);
             }
         }
-        public static void SendMessageToDev(string error)
+        public static void SendMessageToDev()
         {
             try
             {
@@ -243,20 +247,34 @@ namespace Etailor.API.Ultity
 
                 MailMessage message = new MailMessage();
                 message.From = new MailAddress(fromMail);
-                message.Subject = "Notification Mail From TueTailor";
+                message.Subject = "Server Log TueTailor";
                 message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
-                message.Body = $"Notification at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
-                message.Body += error;
-                message.IsBodyHtml = false;
 
-                var smtpClient = new SmtpClient("smtp.gmail.com")
+                var filePath = Path.Combine("./wwwroot", "Log", "Check", $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}.txt");
+
+                var fileNameNew = $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}" + "_abc.txt";
+
+                string filePathNew = Path.Combine("./wwwroot", "Log", "Check", fileNameNew);
+
+                System.IO.File.Copy(filePath, filePathNew, overwrite: true);
+
+                if (System.IO.File.Exists(filePathNew))
                 {
-                    Port = 587,
-                    Credentials = new NetworkCredential(fromMail, fromPassword),
-                    EnableSsl = true,
-                };
+                    message.Attachments.Add(new Attachment($"./wwwroot/Log/Check/log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}.txt"));
+                    message.Body = $"Log at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss:ffff")}; \n";
+                    message.IsBodyHtml = false;
 
-                smtpClient.Send(message);
+                    var smtpClient = new SmtpClient("smtp.gmail.com")
+                    {
+                        Port = 587,
+                        Credentials = new NetworkCredential(fromMail, fromPassword),
+                        EnableSsl = true,
+                    };
+
+                    smtpClient.Send(message);
+
+                    System.IO.File.Delete(filePathNew);
+                }
             }
             catch (Exception ex)
             {
@@ -550,6 +568,17 @@ namespace Etailor.API.Ultity
             catch (Exception ex)
             {
                 throw new SystemsException(ex.Message, nameof(Ultils.CheckExistImageAfterUpdate));
+            }
+        }
+
+        public static byte[] DownloadImageFromFirebase(string objectName)
+        {
+
+            // Download the image from Firebase Storage
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                _storage.DownloadObject(AppValue.BUCKET_NAME, objectName, memoryStream);
+                return memoryStream.ToArray();
             }
         }
         #endregion

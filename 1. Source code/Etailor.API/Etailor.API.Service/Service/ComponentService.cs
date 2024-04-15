@@ -47,22 +47,26 @@ namespace Etailor.API.Service.Service
 
         public async Task<IEnumerable<Component>> GetComponents()
         {
-            IEnumerable<Component> ListOfComponents = componentRepository.GetAll(x => x.IsActive == true);
-            foreach (var component in ListOfComponents)
+            var ListOfComponents = componentRepository.GetAll(x => x.IsActive == true);
+            if (ListOfComponents != null && ListOfComponents.Any())
             {
-                var setImage = Task.Run(async () =>
+                ListOfComponents = ListOfComponents.OrderBy(x => x.Name).ToList();
+                foreach (var component in ListOfComponents)
                 {
-                    if (string.IsNullOrEmpty(component.Image))
+                    var setImage = Task.Run(async () =>
                     {
-                        component.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
-                    }
-                    else
-                    {
-                        component.Image = Ultils.GetUrlImage(component.Image);
-                    }
-                });
-                await Task.WhenAll(setImage);
-            };
+                        if (string.IsNullOrEmpty(component.Image))
+                        {
+                            component.Image = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                        }
+                        else
+                        {
+                            component.Image = Ultils.GetUrlImage(component.Image);
+                        }
+                    });
+                    await Task.WhenAll(setImage);
+                };
+            }
             return ListOfComponents;
         }
 
@@ -293,10 +297,11 @@ namespace Etailor.API.Service.Service
             var components = componentRepository.GetAll(x => x.ComponentTypeId == componentTypeId && x.ProductTemplateId == templateId && x.IsActive == true);
             if (components != null && components.Any())
             {
+                components = components.OrderBy(x => x.Name).ToList();
                 var tasks = new List<Task>();
-                foreach (var component in components.ToList())
+                foreach (var component in components)
                 {
-                    tasks.Add(Task.Run(async () =>
+                    tasks.Add(Task.Run(() =>
                     {
                         component.Image = Ultils.GetUrlImage(component.Image);
                     }));

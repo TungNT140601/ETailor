@@ -21,10 +21,13 @@ namespace Etailor.API.Service.Interface
         Task<bool> StartTask(string productId, string productStageId, string staffId);
         Task<bool> FinishTask(string wwwroot, string productId, string productStageId, string staffId, List<IFormFile>? images);
         bool PendingTask(string productId, string productStageId, string staffId);
-        void AutoCreateEmptyTaskProduct();
+        Task<bool> DefectsTask(string productId, string orderId);
+        Task AutoCreateEmptyTaskProduct();
+        void AutoAssignTaskForStaff();
         Task SwapTaskIndex(string productId, string? staffId, int? index);
         void ResetIndex(string? staffId);
         void ResetBlankIndex(string? staffId);
+        Task<bool> SetDeadlineForTask(string productId, DateTime deadline);
         Task<bool> AssignTaskToStaff(string productId, string staffId);
         Task<bool> UnAssignStaffTask(string productId, string staffId);
         Task<IEnumerable<Category>> GetTaskByCategories();

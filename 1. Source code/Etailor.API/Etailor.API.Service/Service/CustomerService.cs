@@ -22,54 +22,23 @@ namespace Etailor.API.Service.Service
             this.customerRepository = customerRepository;
         }
 
-        public async Task<Customer> Login(string emailOrUsername, string password, string ip, string clientToken)
+        public Customer Login(string emailOrUsername, string password, string ip, string clientToken)
         {
-            try
-            {
-                var customer = await Task.Run(() =>
-                {
-                    if (Ultils.IsValidEmail(emailOrUsername))
-                    {
-                        return customerRepository.GetAll(x => (x.Email != null && x.Email == emailOrUsername) && (x.EmailVerified != null && x.EmailVerified == true) && Ultils.VerifyPassword(password, x.Password) == true).FirstOrDefault();
-                    }
-                    else
-                    {
-                        return customerRepository.GetAll(x => (x.Username != null && x.Username.Trim() == emailOrUsername.Trim()) && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true).FirstOrDefault();
-                    }
-                });
+            var customer = customerRepository.FirstOrDefault(x => ((x.Username != null && x.Username.Trim() == emailOrUsername.Trim()) || (x.Email != null && x.Email == emailOrUsername) && (x.EmailVerified != null && x.EmailVerified == true)) && Ultils.VerifyPassword(password, x.Password) && x.IsActive == true);
 
-                if (customer == null)
+            if (customer == null)
+            {
+                throw new UserException("Mật khẩu của bạn không chính xác");
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
                 {
-                    throw new UserException("Mật khẩu của bạn không chính xác");
+                    customer.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
+                    customerRepository.Update(customer.Id, customer);
                 }
-                else
-                {
-                    var updateSecretKeyTask = Task.Run(() =>
-                    {
-                        //Thread1
-                        if (string.IsNullOrEmpty(customer.SecrectKeyLogin))
-                        {
-                            customer.SecrectKeyLogin = Guid.NewGuid().ToString().Substring(0, 20);
-                            customerRepository.Update(customer.Id, customer);
-                        }
-                    });
 
-                    await Task.WhenAll(updateSecretKeyTask);
-
-                    return customer;
-                }
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message, nameof(CustomerService));
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message, nameof(CustomerService));
+                return customer;
             }
         }
 
@@ -77,8 +46,7 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                var cuss = customerRepository.GetAll(x => (x.Email != null && x.Email == email) && (x.IsActive != null && x.IsActive == true))?.FirstOrDefault();
-                return cuss;
+                return customerRepository.FirstOrDefault(x => (x.Email != null && x.Email == email) && (x.IsActive != null && x.IsActive == true));
             }
             catch (UserException ex)
             {
@@ -381,7 +349,7 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                if (customer.Otpused == false && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.UtcNow.AddHours(7))
+                if (customer.Otpused == true && customer.OtptimeLimit?.AddMinutes(-3) < DateTime.UtcNow.AddHours(7))
                 {
                     throw new UserException($"Mã xác thực có thể gửi lại sau {customer.OtptimeLimit.Value.AddMinutes(-3).Minute - DateTime.UtcNow.AddHours(7).Minute} phút");
                 }
@@ -502,7 +470,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
-                            if (existCus.CreatedTime == null)
+                            if (existCus.Password == null)
                             {
                                 var hashPass = Task.Run(() =>
                                 {
@@ -598,11 +566,11 @@ namespace Etailor.API.Service.Service
             {
                 if (id == null)
                 {
-                    return customerRepository.GetAll(x => (x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.IsActive == true).Any();
+                    return customerRepository.GetAll(x => (x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.Password != null && x.IsActive == true).Any();
                 }
                 else
                 {
-                    return customerRepository.GetAll(x => x.Id != id && ((x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.IsActive == true)).Any();
+                    return customerRepository.GetAll(x => x.Id != id && ((x.Email == null || (x.Email != null && x.Email == email)) || (x.Phone == null || (x.Phone != null && x.Phone == phone)) && x.Password != null && x.IsActive == true)).Any();
                 }
             }
             catch (UserException ex)

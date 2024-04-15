@@ -5,9 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Etailor.API.Repository.Interface
+namespace Etailor.API.Service.Interface
 {
-    public interface IProductComponentMaterialRepository : IGenericRepository<ProductComponentMaterial>
+    public interface IOrderMaterialService
     {
+        Task<bool> UpdateOrderMaterials(string orderId, List<OrderMaterial>? orderMaterials);
     }
 }
