@@ -440,18 +440,21 @@ namespace Etailor.API.Service.Service
             try
             {
                 var staff = staffRepository.Get(id);
-                var setAvatar = Task.Run(async () =>
+                if (staff != null)
                 {
-                    if (string.IsNullOrEmpty(staff.Avatar))
+                    var setAvatar = Task.Run(async () =>
                     {
-                        staff.Avatar = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
-                    }
-                    else
-                    {
-                        staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
-                    }
-                });
-                await Task.WhenAll(setAvatar);
+                        if (string.IsNullOrEmpty(staff.Avatar))
+                        {
+                            staff.Avatar = "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                        }
+                        else
+                        {
+                            staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
+                        }
+                    });
+                    await Task.WhenAll(setAvatar);
+                }
                 return staff;
             }
             catch (UserException ex)

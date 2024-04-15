@@ -224,5 +224,7 @@ namespace Etailor.API.Service.Service
             }
             return categories;
         }
+
+
     }
 }
