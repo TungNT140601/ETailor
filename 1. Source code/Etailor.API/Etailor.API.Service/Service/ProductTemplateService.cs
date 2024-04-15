@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
@@ -868,10 +869,6 @@ namespace Etailor.API.Service.Service
                             {
                                 ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add($"{componentType.Name}|{componentType.Id}");
 
-                                // Set protection options to prevent renaming or deleting the sheet
-                                worksheet.Protection.AllowDeleteColumns = false;
-                                worksheet.Protection.AllowDeleteRows = false;
-
                                 int startRow = 2; // Assuming data starts from row 2
 
                                 if (templateComponents != null && templateComponents.Any(x => x.ComponentTypeId == componentType.Id))
@@ -895,7 +892,6 @@ namespace Etailor.API.Service.Service
 
                                         if (!string.IsNullOrEmpty(rowData.Image))
                                         {
-                                            worksheet.Cells[row, colImage].Value = " ";
 
                                             var fileDtp = JsonConvert.DeserializeObject<ImageFileDTO>(rowData.Image);
 
@@ -909,7 +905,7 @@ namespace Etailor.API.Service.Service
                                             {
                                                 ExcelPicture picture = worksheet.Drawings.AddPicture(fileDtp.ObjectName, fileStream);
 
-                                                picture.SetPosition(row - 1, 0, colImage - 1, 0); // Set the position of the image within the cell
+                                                picture.SetPosition(row - 1, 1, colImage - 1, 1); // Set the position of the image within the cell
                                                 picture.SetSize(100, 100);
                                             }
                                             System.IO.File.Delete(filePath);
@@ -933,8 +929,6 @@ namespace Etailor.API.Service.Service
 
                                 }
 
-                                worksheet.Protection.SetPassword("123456");
-                                worksheet.Protection.IsProtected = true;
                                 excelPackage.Save();
                             }
 

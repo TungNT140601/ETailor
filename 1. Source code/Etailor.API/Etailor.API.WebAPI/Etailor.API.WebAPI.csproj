@@ -46,6 +46,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="wwwroot\File\DemoImage\" />
     <Folder Include="wwwroot\Log\Check\" />
     <Folder Include="wwwroot\UpdateDraft\" />
   </ItemGroup>

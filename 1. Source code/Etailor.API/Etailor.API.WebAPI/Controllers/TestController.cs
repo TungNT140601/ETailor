@@ -32,6 +32,10 @@ using System.IO;
 using Serilog;
 using Etailor.API.WebAPI.ViewModels;
 using Etailor.API.Repository.DataAccess;
+using OfficeOpenXml;
+using System.Collections.Generic;
+using OfficeOpenXml.Drawing;
+using static QRCoder.Base64QRCode;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -1126,6 +1130,109 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ImportFile(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+
+                var list = new List<ComponentTypeOrderVM>();
+
+                // Set the license context
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                using (var stream = new MemoryStream())
+                {
+                    await file.CopyToAsync(stream);
+
+                    using (var package = new ExcelPackage(stream))
+                    {
+                        if (package.Workbook.Worksheets.Any())
+                        {
+                            foreach (var worksheet in package.Workbook.Worksheets)
+                            {
+                                var sheetName = worksheet.Name;
+
+                                var drawings = worksheet.Drawings;
+
+                                if (sheetName.Contains("|"))
+                                {
+                                    var name = sheetName.Split("|")[0];
+                                    var id = sheetName.Split("|")[1];
+
+                                    var componentType = new ComponentTypeOrderVM
+                                    {
+                                        Name = name,
+                                        Id = id,
+                                        Components = new List<ComponentOrderVM>()
+                                    };
+
+                                    var startRow = 2;
+
+                                    int end = worksheet.Dimension.Rows + 1;
+
+                                    for (int i = startRow; i <= end; i++)
+                                    {
+                                        var componentName = worksheet.Cells[i, 1].Value?.ToString();
+                                        var componentImage = "";
+
+                                        var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 1);
+
+                                        if (picture != null)
+                                        {
+                                            var fileName = Path.GetFileName(picture.Name) + "." + picture.Image.Type;
+                                            componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
+
+                                            // Saving the image to the specified path
+                                            System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
+
+                                            componentImage += $";row:{picture.From.Row};col:{picture.From.Column}";
+                                        }
+                                        var componentDefault = worksheet.Cells[i, 3].Value;
+
+                                        componentType.Components.Add(new ComponentOrderVM
+                                        {
+                                            Name = componentName,
+                                            Image = componentImage,
+                                            Default = (bool?)componentDefault
+                                        });
+                                    }
+
+                                    list.Add(componentType);
+                                }
+                            }
+                        }
+
+                        return Ok(list);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        private string GetImageExtensionFromType(string imageType)
+        {
+            // Adjust this method based on the actual format of picture.Type
+            // This is an example assuming picture.Type returns MIME types
+            switch (imageType.ToLower())
+            {
+                case "image/jpeg":
+                    return "jpeg";
+                case "image/png":
+                    return "png";
+                // Add more cases as necessary
+                default:
+                    return "img"; // Default extension
             }
         }
     }
