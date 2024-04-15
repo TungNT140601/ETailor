@@ -572,14 +572,16 @@ namespace Etailor.API.Service.Service
                 if (staff != null)
                 {
                     var setAvatar = Task.Run(async () =>
-                    if (string.IsNullOrEmpty(staff.Avatar))
                     {
-                        staff.Avatar =
-                            "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
-                    }
-                    else
-                    {
+                        if (string.IsNullOrEmpty(staff.Avatar))
+                        {
+                            staff.Avatar =
+                                "https://firebasestorage.googleapis.com/v0/b/etailor-21a50.appspot.com/o/Uploads%2FThumbnail%2Fstill-life-spring-wardrobe-switch.jpg?alt=media&token=7dc9a197-1b76-4525-8dc7-caa2238d8327";
+                        }
+                        else
+                        {
                             staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
+                        }
                     });
                     await Task.WhenAll(setAvatar);
                 }
