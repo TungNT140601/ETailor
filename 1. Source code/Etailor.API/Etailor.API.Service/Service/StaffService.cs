@@ -569,8 +569,9 @@ namespace Etailor.API.Service.Service
             try
             {
                 var staff = staffRepository.Get(id);
-                var setAvatar = Task.Run(async () =>
+                if (staff != null)
                 {
+                    var setAvatar = Task.Run(async () =>
                     if (string.IsNullOrEmpty(staff.Avatar))
                     {
                         staff.Avatar =
@@ -578,10 +579,10 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
-                    }
-                });
-                await Task.WhenAll(setAvatar);
+                            staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
+                    });
+                    await Task.WhenAll(setAvatar);
+                }
                 return staff;
             }
             catch (UserException ex)
