@@ -5,6 +5,8 @@ using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Http;
+using OfficeOpenXml.Drawing;
+using OfficeOpenXml;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -272,6 +274,92 @@ namespace Etailor.API.Service.Service
             else
             {
                 throw new UserException("Bộ phận không tồn tại");
+            }
+        }
+
+        public async Task<bool> ImportFileAddComponents(string templateId, IFormFile file, string wwwroot)
+        {
+            var list = new List<ComponentType>();
+
+            // Set the license context
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+            using (var stream = new MemoryStream())
+            {
+                await file.CopyToAsync(stream);
+
+                using (var package = new ExcelPackage(stream))
+                {
+                    if (package.Workbook.Worksheets.Any())
+                    {
+                        var tasks = new List<Task>();
+                        foreach (var worksheet in package.Workbook.Worksheets)
+                        {
+                            //tasks.Add(Task.Run(() =>
+                            //{
+
+                            var drawings = worksheet.Drawings;
+
+                            var componentType = new ComponentType
+                            {
+                                Name = worksheet.Cells[1, 2].Value?.ToString(),
+                                Id = worksheet.Cells[1, 1].Value?.ToString(),
+                                Components = new List<Component>()
+                            };
+
+                            var startRow = 3;
+
+                            int end = worksheet.Dimension.Rows + 1;
+
+                            for (int i = startRow; i <= end; i++)
+                            {
+                                if (worksheet.Cells[i, 2].Value == null)
+                                {
+                                    break;
+                                }
+                                var componentName = worksheet.Cells[i, 2].Value?.ToString();
+                                var componentImage = "";
+
+                                var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 2);
+
+                                if (picture != null)
+                                {
+                                    var fileName = Ultils.GenerateRandomString(20) + "." + picture.Image.Type?.ToString().ToLower();
+                                    componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
+
+                                    // Saving the image to the specified path
+                                    System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
+
+                                    System.IO.File.Delete(componentImage);
+
+                                    componentImage += $";row:{picture.From.Row};col:{picture.From.Column}";
+
+                                }
+                                var componentDefault = worksheet.Cells[i, 4].Value;
+
+                                componentType.Components.Add(new Component()
+                                {
+                                    Id = Ultils.GenGuidString(),
+                                    Name = componentName,
+                                    Image = componentImage,
+                                    Default = (bool?)componentDefault,
+                                    ProductTemplateId = templateId,
+                                    ComponentTypeId = componentType.Id,
+                                    CreatedTime = DateTime.UtcNow.AddHours(7),
+                                    InactiveTime = null,
+                                    IsActive = true,
+                                    Index = null
+                                });
+                            }
+
+                            list.Add(componentType);
+                            //}));
+                        }
+                        await Task.WhenAll(tasks);
+                    }
+
+                    return true;
+                }
             }
         }
 

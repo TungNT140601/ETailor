@@ -1142,75 +1142,111 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return BadRequest("Invalid file");
                 }
-
-                var list = new List<ComponentTypeOrderVM>();
-
-                // Set the license context
-                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-                using (var stream = new MemoryStream())
+                else
                 {
-                    await file.CopyToAsync(stream);
-
-                    using (var package = new ExcelPackage(stream))
-                    {
-                        if (package.Workbook.Worksheets.Any())
+                    var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
                         {
-                            foreach (var worksheet in package.Workbook.Worksheets)
+                            ".xls",
+                            ".xlsx"
+                        };
+
+                    var excelMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            "application/vnd.ms-excel",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        };
+
+                    string fileExtension = Path.GetExtension(file.FileName).ToLower();
+                    string mimeType = file.ContentType.ToLower();
+
+                    if (allowedExtensions.Contains(fileExtension) && excelMimeTypes.Contains(mimeType))
+                    {
+                        var list = new List<ComponentTypeOrderVM>();
+
+                        // Set the license context
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                        using (var stream = new MemoryStream())
+                        {
+                            await file.CopyToAsync(stream);
+
+                            using (var package = new ExcelPackage(stream))
                             {
-                                var sheetName = worksheet.Name;
-
-                                var drawings = worksheet.Drawings;
-
-                                if (sheetName.Contains("|"))
+                                if (package.Workbook.Worksheets.Any())
                                 {
-                                    var name = sheetName.Split("|")[0];
-                                    var id = sheetName.Split("|")[1];
-
-                                    var componentType = new ComponentTypeOrderVM
+                                    var tasks = new List<Task>();
+                                    foreach (var worksheet in package.Workbook.Worksheets)
                                     {
-                                        Name = name,
-                                        Id = id,
-                                        Components = new List<ComponentOrderVM>()
-                                    };
+                                        //tasks.Add(Task.Run(() =>
+                                        //{
+                                        var sheetName = worksheet.Name;
 
-                                    var startRow = 2;
+                                        var drawings = worksheet.Drawings;
 
-                                    int end = worksheet.Dimension.Rows + 1;
-
-                                    for (int i = startRow; i <= end; i++)
-                                    {
-                                        var componentName = worksheet.Cells[i, 1].Value?.ToString();
-                                        var componentImage = "";
-
-                                        var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 1);
-
-                                        if (picture != null)
+                                        if (sheetName.Contains("|"))
                                         {
-                                            var fileName = Path.GetFileName(picture.Name) + "." + picture.Image.Type;
-                                            componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
+                                            var name = sheetName.Split("|")[0];
+                                            var id = sheetName.Split("|")[1];
 
-                                            // Saving the image to the specified path
-                                            System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
+                                            var componentType = new ComponentTypeOrderVM
+                                            {
+                                                Name = name,
+                                                Id = id,
+                                                Components = new List<ComponentOrderVM>()
+                                            };
 
-                                            componentImage += $";row:{picture.From.Row};col:{picture.From.Column}";
+                                            var startRow = 3;
+
+                                            int end = worksheet.Dimension.Rows + 1;
+
+                                            for (int i = startRow; i <= end; i++)
+                                            {
+                                                if (worksheet.Cells[i, 2].Value == null)
+                                                {
+                                                    break;
+                                                }
+                                                var componentName = worksheet.Cells[i, 2].Value?.ToString();
+                                                var componentImage = "";
+
+                                                var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 2);
+
+                                                if (picture != null)
+                                                {
+                                                    var fileName = Ultils.GenerateRandomString(20) + "." + picture.Image.Type?.ToString().ToLower();
+                                                    componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
+
+                                                    // Saving the image to the specified path
+                                                    System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
+
+                                                    System.IO.File.Delete(componentImage);
+
+                                                    componentImage = await Ultils.UploadImageExcell(_wwwrootPath, "DemoExcell", picture);
+
+                                                }
+                                                var componentDefault = worksheet.Cells[i, 4].Value;
+
+                                                componentType.Components.Add(new ComponentOrderVM
+                                                {
+                                                    Name = componentName,
+                                                    Image = componentImage,
+                                                    Default = (bool?)componentDefault
+                                                });
+                                            }
+
+                                            list.Add(componentType);
                                         }
-                                        var componentDefault = worksheet.Cells[i, 3].Value;
-
-                                        componentType.Components.Add(new ComponentOrderVM
-                                        {
-                                            Name = componentName,
-                                            Image = componentImage,
-                                            Default = (bool?)componentDefault
-                                        });
+                                        //}));
                                     }
-
-                                    list.Add(componentType);
+                                    await Task.WhenAll(tasks);
                                 }
+
+                                return Ok(list);
                             }
                         }
-
-                        return Ok(list);
+                    }
+                    else
+                    {
+                        return BadRequest("Invalid file format");
                     }
                 }
             }
