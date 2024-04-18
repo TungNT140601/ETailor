@@ -247,5 +247,75 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        [HttpPost("import/template/{templateId}")]
+        public async Task<IActionResult> ExportFile(string templateId, IFormFile? file)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (file == null || file.Length == 0)
+                        {
+                            return BadRequest("Không có file");
+                        }
+                        else
+                        {
+                            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                ".xls",
+                                ".xlsx"
+                            };
+
+                            var excelMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                            {
+                                "application/vnd.ms-excel",
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            };
+
+                            string fileExtension = Path.GetExtension(file.FileName).ToLower();
+                            string mimeType = file.ContentType.ToLower();
+
+                            if (allowedExtensions.Contains(fileExtension) && excelMimeTypes.Contains(mimeType))
+                            {
+                                return await componentService.ImportFileAddComponents(templateId, file, _wwwroot) ? Ok("Thêm dữ liệu kiểu bộ phận thành công") : BadRequest("Thêm dữ liệu kiểu bộ phận thất bại");
+                            }
+                            else
+                            {
+                                return BadRequest($"File không đúng định dạng: {fileExtension}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }
