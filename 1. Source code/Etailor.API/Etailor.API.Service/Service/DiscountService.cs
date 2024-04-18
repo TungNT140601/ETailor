@@ -60,31 +60,23 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                 {
                     throw new UserException("Vui lòng chọn điều kiện giảm giá");
                 }
-                else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                 {
                     if (discount.ConditionProductMin <= 0)
                     {
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
                     }
                 }
-                else if (!discount.ConditionProductMin.HasValue && (discount.ConditionPriceMax.HasValue || discount.ConditionPriceMin.HasValue))
+                else if (!discount.ConditionProductMin.HasValue && discount.ConditionPriceMin.HasValue)
                 {
                     if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin < 0)
                     {
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
                     }
-                    if (discount.ConditionPriceMax.HasValue && ((discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0))
-                    {
-                        throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
-                    }
-                }
-                else
-                {
-                    throw new UserException("Điều kiện giảm giá không hợp lệ: Chỉ được chọn 1 trong 2 điều kiện giảm giá");
                 }
             }));
 
@@ -107,9 +99,13 @@ namespace Etailor.API.Service.Service
                 }
                 else if (!discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
                 {
-                    if (discount.DiscountPercent < 0 && discount.DiscountPercent > 1)
+                    if (discount.DiscountPercent < 0.1 && discount.DiscountPercent > 0.5)
                     {
-                        throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 1% - 99%");
+                        throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 10 - 50%");
+                    }
+                    else if (!discount.ConditionPriceMax.HasValue || discount.ConditionPriceMax <= 0)
+                    {
+                        throw new UserException("Điều kiện giảm giá không hợp lệ: Số tiền giảm tối đa không hợp lệ");
                     }
                 }
             }));
@@ -168,29 +164,24 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                    if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                     {
                         throw new UserException("Vui lòng chọn điều kiện giảm giá");
                     }
-                    else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                    else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                     {
                         if (discount.ConditionProductMin <= 0)
                         {
                             throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
                         }
                     }
-                    else
+                    else if (!discount.ConditionProductMin.HasValue && discount.ConditionPriceMin.HasValue)
                     {
                         if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin < 0)
                         {
                             throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
                         }
-                        if (discount.ConditionPriceMax.HasValue && ((discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0))
-                        {
-                            throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
-                        }
                     }
-                    existDiscount.ConditionPriceMax = discount.ConditionPriceMax;
                     existDiscount.ConditionPriceMin = discount.ConditionPriceMin;
                     existDiscount.ConditionProductMin = discount.ConditionProductMin;
                 }));
@@ -214,11 +205,16 @@ namespace Etailor.API.Service.Service
                     }
                     else if (!discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
                     {
-                        if (discount.DiscountPercent < 0 && discount.DiscountPercent > 1)
+                        if (discount.DiscountPercent < 0.1 && discount.DiscountPercent > 0.5)
                         {
-                            throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 1% - 99%");
+                            throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 10 - 50%");
+                        }
+                        else if (!discount.ConditionPriceMax.HasValue || discount.ConditionPriceMax <= 0)
+                        {
+                            throw new UserException("Điều kiện giảm giá không hợp lệ: Số tiền giảm tối đa không hợp lệ");
                         }
                     }
+                    existDiscount.ConditionPriceMax = discount.ConditionPriceMax;
                     existDiscount.DiscountPercent = discount.DiscountPercent;
                     existDiscount.DiscountPrice = discount.DiscountPrice;
                 }));
