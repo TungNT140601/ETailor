@@ -360,7 +360,7 @@ namespace Etailor.API.Service.Service
                                                     throw new UserException("Hình ảnh kiểu bộ phận không được để trống. Dòng: " + i);
                                                 }
 
-                                                var componentDefault = worksheet.Cells[i, 4]?.Value != null ? worksheet.Cells[i, 4].Value.ToString() == "X" ? true : false : false;
+                                                var componentDefault = worksheet.Cells[i, 4]?.Value != null ? worksheet.Cells[i, 4].Value.ToString() == "X" || worksheet.Cells[i, 4].Value.ToString() == "x" ? true : false : false;
 
                                                 list.Add(new Component()
                                                 {
@@ -412,7 +412,7 @@ namespace Etailor.API.Service.Service
                                             tasks.Add(Task.Run(() =>
                                             {
                                                 var newDefaultComponent = list.FirstOrDefault(x => x.ComponentTypeId == componentType.Id && x.Default == true);
-                                                if(newDefaultComponent != null)
+                                                if (newDefaultComponent != null)
                                                 {
                                                     if (templateComponents != null && templateComponents.Any())
                                                     {
@@ -423,6 +423,11 @@ namespace Etailor.API.Service.Service
                                                             updateOldDefaultComponent.Add(oldComponentDefault);
                                                         }
                                                     }
+                                                }
+                                                else
+                                                {
+                                                    newDefaultComponent = list.First(x => x.ComponentTypeId == componentType.Id && x.Default == false);
+                                                    newDefaultComponent.Default = true;
                                                 }
                                             }));
                                         }

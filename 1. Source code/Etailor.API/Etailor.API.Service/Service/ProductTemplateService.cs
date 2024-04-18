@@ -868,7 +868,7 @@ namespace Etailor.API.Service.Service
                                 worksheet.Cells[2, 1].Value = "STT";
                                 worksheet.Cells[2, 2].Value = "Tên kiểu";
                                 worksheet.Cells[2, 3].Value = "Hình ảnh";
-                                worksheet.Cells[2, 4].Value = "Kiểu mặc định";
+                                worksheet.Cells[2, 4].Value = "Kiểu mặc định (x)";
 
                                 for (int i = 3; i < 13; i++)
                                 {
