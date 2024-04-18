@@ -842,17 +842,6 @@ namespace Etailor.API.Service.Service
                     {
                         componentTypes = componentTypes.OrderBy(x => x.Name).ToList();
 
-                        var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
-                        if (templateComponents != null && templateComponents.Any())
-                        {
-                            templateComponents = templateComponents.OrderBy(x => x.Name).ToList();
-
-                        }
-                        else
-                        {
-                            templateComponents = new List<Component>();
-                        }
-
                         // Set the license context
                         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
@@ -865,17 +854,9 @@ namespace Etailor.API.Service.Service
                                 excelPackage.Workbook.Worksheets.Delete("Sheet1");
                             }
 
-                            ExcelWorksheet metaDataSheet = excelPackage.Workbook.Worksheets.Add("MetaData");
-                            int rowMetaSheet = 1;
-
                             foreach (var componentType in componentTypes)
                             {
                                 ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add($"{componentType.Name}");
-
-                                metaDataSheet.Cells[rowMetaSheet, 1].Value = componentType.Id;
-                                metaDataSheet.Cells[rowMetaSheet, 2].Value = componentType.Name;
-
-                                rowMetaSheet++;
 
                                 worksheet.View.ZoomScale = 150;
 
@@ -911,6 +892,17 @@ namespace Etailor.API.Service.Service
                                 worksheet.Protection.IsProtected = true;
 
                                 #region ExportData
+
+                                //var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
+                                //if (templateComponents != null && templateComponents.Any())
+                                //{
+                                //    templateComponents = templateComponents.OrderBy(x => x.Name).ToList();
+
+                                //}
+                                //else
+                                //{
+                                //    templateComponents = new List<Component>();
+                                //}
 
                                 //int startRow = 2; // Assuming data starts from row 2
 
@@ -975,7 +967,6 @@ namespace Etailor.API.Service.Service
                                 excelPackage.Save();
                             }
 
-                            metaDataSheet.Hidden = eWorkSheetHidden.VeryHidden;
                             excelPackage.Save();
                         }
 

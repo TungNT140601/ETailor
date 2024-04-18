@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Etailor.API.Service.Service
 {
@@ -279,87 +280,190 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> ImportFileAddComponents(string templateId, IFormFile file, string wwwroot)
         {
-            var list = new List<ComponentType>();
-
-            // Set the license context
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
-            using (var stream = new MemoryStream())
+            var template = productTemplateRepository.Get(templateId);
+            if (template != null)
             {
-                await file.CopyToAsync(stream);
-
-                using (var package = new ExcelPackage(stream))
+                var templateComponentTypes = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true);
+                if (templateComponentTypes != null && templateComponentTypes.Any())
                 {
-                    if (package.Workbook.Worksheets.Any())
+                    templateComponentTypes = templateComponentTypes.ToList();
+
+                    var templateComponentTypeIds = templateComponentTypes.Select(x => x.Id).ToList();
+
+                    var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && string.Join(",", templateComponentTypeIds).Contains(x.ComponentTypeId) && x.IsActive == true);
+                    if (templateComponents != null && templateComponents.Any())
                     {
-                        var tasks = new List<Task>();
-                        foreach (var worksheet in package.Workbook.Worksheets)
-                        {
-                            //tasks.Add(Task.Run(() =>
-                            //{
-
-                            var drawings = worksheet.Drawings;
-
-                            var componentType = new ComponentType
-                            {
-                                Name = worksheet.Cells[1, 2].Value?.ToString(),
-                                Id = worksheet.Cells[1, 1].Value?.ToString(),
-                                Components = new List<Component>()
-                            };
-
-                            var startRow = 3;
-
-                            int end = worksheet.Dimension.Rows + 1;
-
-                            for (int i = startRow; i <= end; i++)
-                            {
-                                if (worksheet.Cells[i, 2].Value == null)
-                                {
-                                    break;
-                                }
-                                var componentName = worksheet.Cells[i, 2].Value?.ToString();
-                                var componentImage = "";
-
-                                var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 2);
-
-                                if (picture != null)
-                                {
-                                    var fileName = Ultils.GenerateRandomString(20) + "." + picture.Image.Type?.ToString().ToLower();
-                                    componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
-
-                                    // Saving the image to the specified path
-                                    System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
-
-                                    System.IO.File.Delete(componentImage);
-
-                                    componentImage += $";row:{picture.From.Row};col:{picture.From.Column}";
-
-                                }
-                                var componentDefault = worksheet.Cells[i, 4].Value;
-
-                                componentType.Components.Add(new Component()
-                                {
-                                    Id = Ultils.GenGuidString(),
-                                    Name = componentName,
-                                    Image = componentImage,
-                                    Default = (bool?)componentDefault,
-                                    ProductTemplateId = templateId,
-                                    ComponentTypeId = componentType.Id,
-                                    CreatedTime = DateTime.UtcNow.AddHours(7),
-                                    InactiveTime = null,
-                                    IsActive = true,
-                                    Index = null
-                                });
-                            }
-
-                            list.Add(componentType);
-                            //}));
-                        }
-                        await Task.WhenAll(tasks);
+                        templateComponents = templateComponents.ToList();
+                    }
+                    else
+                    {
+                        templateComponents = null;
                     }
 
-                    return true;
+                    #region MyRegion
+                    var list = new List<Component>();
+
+                    // Set the license context
+                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                    using (var stream = new MemoryStream())
+                    {
+                        await file.CopyToAsync(stream);
+
+                        using (var package = new ExcelPackage(stream))
+                        {
+                            if (package.Workbook.Worksheets.Any())
+                            {
+                                foreach (var worksheet in package.Workbook.Worksheets)
+                                {
+                                    var id = worksheet.Cells[1, 1].Value?.ToString();
+                                    if (id == null || !templateComponentTypes.Any(x => x.Id == id))
+                                    {
+                                        throw new UserException($"Kiểu bộ phận không tồn tại: Sheet {worksheet.Name}");
+                                    }
+                                    else
+                                    {
+                                        var drawings = worksheet.Drawings;
+
+                                        var startRow = 3;
+
+                                        int end = worksheet.Dimension.Rows + 1;
+
+                                        for (int i = startRow; i <= end; i++)
+                                        {
+                                            if (worksheet.Cells[i, 2].Value == null)
+                                            {
+                                                break;
+                                            }
+                                            var componentName = worksheet.Cells[i, 2].Value?.ToString();
+                                            if (string.IsNullOrWhiteSpace(componentName))
+                                            {
+                                                throw new UserException("Tên kiểu bộ phận không được để trống. Dòng: " + i);
+                                            }
+                                            var componentImage = "";
+
+                                            var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 2);
+
+                                            if (picture != null)
+                                            {
+                                                componentImage = JsonConvert.SerializeObject(picture);
+                                            }
+                                            else
+                                            {
+                                                throw new UserException("Hình ảnh kiểu bộ phận không được để trống. Dòng: " + i);
+                                            }
+
+                                            var componentDefault = worksheet.Cells[i, 4]?.Value != null ? worksheet.Cells[i, 4].Value.ToString() == "X" ? true : false : false;
+
+                                            list.Add(new Component()
+                                            {
+                                                Id = Ultils.GenGuidString(),
+                                                Name = componentName,
+                                                Image = componentImage,
+                                                Default = componentDefault,
+                                                ProductTemplateId = templateId,
+                                                ComponentTypeId = id,
+                                                CreatedTime = DateTime.UtcNow.AddHours(7),
+                                                InactiveTime = null,
+                                                IsActive = true,
+                                                Index = null
+                                            });
+                                        }
+                                    }
+                                }
+                                if (list != null && list.Any())
+                                {
+                                    var tasks = new List<Task>();
+
+                                    foreach (var componentType in templateComponentTypes)
+                                    {
+                                        tasks.Add(Task.Run(() =>
+                                        {
+                                            if (list.Where(x => x.ComponentTypeId == componentType.Id && x.Default == true).Count() > 1)
+                                            {
+                                                throw new UserException($"Chỉ được chọn 1 kiểu mặc định cho {componentType.Name}");
+                                            }
+                                        }));
+                                    }
+
+                                    foreach (var component in list)
+                                    {
+                                        tasks.Add(Task.Run(() =>
+                                        {
+                                            if (list.Where(x => x.Name == component.Name).Count() > 1 || (templateComponents != null && templateComponents.Any(x => x.Name == component.Name)))
+                                            {
+                                                throw new UserException($"Tên bộ phận {component.Name} bị trùng");
+                                            }
+                                        }));
+                                    }
+                                    await Task.WhenAll(tasks);
+
+                                    foreach (var component in list)
+                                    {
+                                        tasks.Add(Task.Run(async () =>
+                                        {
+                                            component.Image = await Ultils.UploadImageExcell(wwwroot, $"ProductTemplates/{template.Id}/Components", JsonConvert.DeserializeObject<ExcelPicture>(component.Image));
+                                        }));
+                                    }
+                                    await Task.WhenAll(tasks);
+
+                                    var updateOldDefaultComponent = new List<Component>();
+
+                                    foreach (var componentType in templateComponentTypes)
+                                    {
+                                        tasks.Add(Task.Run(() =>
+                                        {
+                                            if (templateComponents != null && templateComponents.Any())
+                                            {
+                                                var oldComponentDefault = templateComponents.FirstOrDefault(x => x.ComponentTypeId == componentType.Id && x.Default == true);
+                                                if (oldComponentDefault != null)
+                                                {
+                                                    oldComponentDefault.Default = false;
+                                                    updateOldDefaultComponent.Add(oldComponentDefault);
+                                                }
+                                            }
+                                        }));
+                                    }
+
+                                    await Task.WhenAll(tasks);
+
+                                    if (updateOldDefaultComponent != null && updateOldDefaultComponent.Any())
+                                    {
+                                        if (componentRepository.UpdateRange(updateOldDefaultComponent))
+                                        {
+                                            return componentRepository.CreateRange(list);
+                                        }
+                                        else
+                                        {
+                                            throw new SystemsException("Lỗi trong quá trình cập nhật dữ liệu", nameof(ComponentService.ImportFileAddComponents));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        return componentRepository.CreateRange(list);
+                                    }
+                                }
+                                else
+                                {
+                                    throw new UserException("File không có dữ liệu");
+                                }
+                            }
+                            else
+                            {
+                                throw new UserException("File không có dữ liệu");
+                            }
+                        }
+                    }
+                    #endregion
                 }
+                else
+                {
+                    throw new UserException("Không tồn tại bộ phận của bản mẫu");
+                }
+            }
+            else
+            {
+                throw new UserException("Mẫu sản phẩm không tồn tại");
             }
         }
 
