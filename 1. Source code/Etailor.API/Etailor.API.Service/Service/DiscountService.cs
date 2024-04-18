@@ -43,22 +43,6 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                if (string.IsNullOrWhiteSpace(discount.Code))
-                {
-                    throw new UserException("Vui lòng nhập mã giảm giá");
-                }
-                else if (discount.Code.Contains(" "))
-                {
-                    throw new UserException("Mã giảm giá không được chứa khoảng trống");
-                }
-                else if (discountRepository.GetAll(x => x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
-                {
-                    throw new UserException("Mã giảm giá không được trùng");
-                }
-            }));
-
-            tasks.Add(Task.Run(() =>
-            {
                 if (!discount.StartDate.HasValue)
                 {
                     throw new UserException("Vui lòng chọn ngày bắt đầu giảm giá");
@@ -158,26 +142,6 @@ namespace Etailor.API.Service.Service
                     else
                     {
                         existDiscount.Name = discount.Name;
-                    }
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    if (string.IsNullOrWhiteSpace(discount.Code))
-                    {
-                        throw new UserException("Vui lòng nhập mã giảm giá");
-                    }
-                    else if (discount.Code.Contains(" "))
-                    {
-                        throw new UserException("Mã giảm giá không được chứa khoảng trống");
-                    }
-                    else if (discountRepository.GetAll(x => x.Id != existDiscount.Id && x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
-                    {
-                        throw new UserException("Mã giảm giá không được trùng");
-                    }
-                    else
-                    {
-                        existDiscount.Code = discount.Code.Trim();
                     }
                 }));
 
