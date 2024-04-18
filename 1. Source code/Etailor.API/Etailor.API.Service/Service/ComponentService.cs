@@ -319,7 +319,7 @@ namespace Etailor.API.Service.Service
                                     var id = worksheet.Cells[1, 1].Value?.ToString();
                                     if (id == null || !templateComponentTypes.Any(x => x.Id == id))
                                     {
-                                        throw new UserException($"Kiểu bộ phận không tồn tại: Sheet {worksheet.Name}");
+                                        break;
                                     }
                                     else
                                     {
