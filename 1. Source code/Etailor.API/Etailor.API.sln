@@ -11,7 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Etailor.API.WebAPI", "Etail
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Etailor.API.Ultity", "Etailor.API.Ultity\Etailor.API.Ultity.csproj", "{2B7FC0CA-48D2-49F2-83E2-9E64E9286C8A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{955D1BE6-82DE-418A-9363-92198FB6D5D8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestCase", "TestCase\TestCase.csproj", "{28E98C6B-CD4B-47FA-A129-8AAECAFB6C64}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +35,10 @@ Global
 		{2B7FC0CA-48D2-49F2-83E2-9E64E9286C8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B7FC0CA-48D2-49F2-83E2-9E64E9286C8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B7FC0CA-48D2-49F2-83E2-9E64E9286C8A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{955D1BE6-82DE-418A-9363-92198FB6D5D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{955D1BE6-82DE-418A-9363-92198FB6D5D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{955D1BE6-82DE-418A-9363-92198FB6D5D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{955D1BE6-82DE-418A-9363-92198FB6D5D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28E98C6B-CD4B-47FA-A129-8AAECAFB6C64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28E98C6B-CD4B-47FA-A129-8AAECAFB6C64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28E98C6B-CD4B-47FA-A129-8AAECAFB6C64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28E98C6B-CD4B-47FA-A129-8AAECAFB6C64}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

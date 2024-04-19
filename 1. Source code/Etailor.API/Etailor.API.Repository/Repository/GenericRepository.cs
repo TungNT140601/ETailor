@@ -1,7 +1,9 @@
 ﻿using Etailor.API.Repository.DataAccess;
 using Etailor.API.Repository.Interface;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -399,11 +401,57 @@ namespace Etailor.API.Repository.Repository
             }
         }
 
-        public IEnumerable<T> GetStoreProcedure(string storeProcedure)
+        public IEnumerable<T> GetStoreProcedure(string storeProcedure, params SqlParameter[]? parameters)
         {
             try
             {
-                return dbSet.FromSqlRaw(storeProcedure);
+                if (parameters == null || parameters.Length == 0)
+                {
+                    return dbSet.FromSqlRaw(storeProcedure);
+                }
+                else
+                {
+                    var sqlQueryString = $"EXEC {storeProcedure} ";
+                    foreach (var param in parameters)
+                    {
+                        sqlQueryString += $"{param.ParameterName}, ";
+                    }
+
+                    sqlQueryString = sqlQueryString.Remove(sqlQueryString.Length - 2);
+
+                    return dbSet.FromSqlRaw(sqlQueryString, parameters);
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public DatabaseFacade GetDatabase()
+        {
+            try
+            {
+                return dBContext.Database;
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+        public ETailor_DBContext GetDbContext()
+        {
+            try
+            {
+                return dBContext;
             }
             catch (UserException ex)
             {

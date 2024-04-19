@@ -203,11 +203,11 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (role == RoleName.CUSTOMER)
                         {
-                            order = mapper.Map<OrderDetailVM>(orderService.GetOrderByCustomer(staffid, id));
+                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrderByCustomer(staffid, id));
                         }
                         else
                         {
-                            order = mapper.Map<OrderDetailVM>(orderService.GetOrder(id));
+                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrder(id));
                         }
 
                         if (order != null)
@@ -220,7 +220,7 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 order.Customer = mapper.Map<CustomerAllVM>(customerService.FindById(order.CustomerId));
 
-                                order.Customer.Avatar = await Ultils.GetUrlImage(order.Customer.Avatar);
+                                order.Customer.Avatar = Ultils.GetUrlImage(order.Customer.Avatar);
                             }
 
                             var listProducts = await productService.GetProductsByOrderId(order.Id);
@@ -290,48 +290,26 @@ namespace Etailor.API.WebAPI.Controllers
 
                         if (role == RoleName.CUSTOMER)
                         {
-                            orders = orderService.GetOrdersByCustomer(staffid);
+                            orders = await orderService.GetOrdersByCustomer(staffid);
                         }
                         else
                         {
-                            orders = orderService.GetOrders();
+                            orders = await orderService.GetOrders();
                         }
-
-                        var getOrderVMs = new List<GetOrderVM>();
-
-                        if (orders != null && orders.Any() && orders.Count() > 0)
+                        var orderVMs = new List<GetOrderVM>();
+                        if (orders != null && orders.Any())
                         {
-                            orders = orders.ToList();
-
-                            var listProducts = await productService.GetProductsByOrderIds(orders.Select(x => x.Id).ToList());
-                            if (listProducts != null && listProducts.Any())
+                            foreach (var order in orders)
                             {
-                                listProducts = listProducts.ToList();
-                                var tasks = new List<Task>();
-                                foreach (var order in orders.ToList())
+                                var orderVM = mapper.Map<GetOrderVM>(order);
+                                if (order.Products != null && order.Products.Any())
                                 {
-                                    tasks.Add(Task.Run(async () =>
-                                    {
-                                        var realOrder = mapper.Map<GetOrderVM>(order);
-                                        var firstProductOrder = listProducts.FirstOrDefault(x => x.OrderId == order.Id);
-                                        if (firstProductOrder != null)
-                                        {
-                                            if (firstProductOrder.ProductTemplate == null)
-                                            {
-                                                firstProductOrder.ProductTemplate = await productTemplateService.GetById(listProducts.First().ProductTemplateId);
-                                            }
-
-                                            realOrder.ThumbnailImage = firstProductOrder.ProductTemplate.ThumbnailImage;
-                                        }
-                                        realOrder.CreatedTime = order.CreatedTime;
-
-                                        getOrderVMs.Add(realOrder);
-                                    }));
+                                    orderVM.ThumbnailImage = order.Products.First().ProductTemplate.ThumbnailImage;
                                 }
-                                await Task.WhenAll(tasks);
+                                orderVMs.Add(orderVM);
                             }
                         }
-                        return Ok(getOrderVMs);
+                        return Ok(orderVMs);
                     }
                 }
             }

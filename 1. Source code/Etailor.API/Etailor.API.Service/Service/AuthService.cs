@@ -25,8 +25,7 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> Regis(string? username, string? email, string? fullname, string? phone, string? address, string password, IFormFile? avatarFile)
         {
-            var dupplicateStaffs = staffRepository.GetAll(x => (!string.IsNullOrWhiteSpace(username) && x.Username == username) && x.IsActive == true);
-            var dupplicateCustomers = customerRepository.GetAll(x => (!string.IsNullOrWhiteSpace(username) && x.Username == username) || (!string.IsNullOrWhiteSpace(email) && x.Email == email) && x.IsActive == true);
+            var dupplicateCustomers = customerRepository.GetAll(x => (!string.IsNullOrWhiteSpace(username) && x.Username == username) || (!string.IsNullOrWhiteSpace(email) && x.Password != null && x.Email == email) && x.IsActive == true);
 
             var tasks = new List<Task>();
 
@@ -60,7 +59,7 @@ namespace Etailor.API.Service.Service
             }));
             tasks.Add(Task.Run(() =>
             {
-                if ((dupplicateCustomers != null && dupplicateCustomers.Any()) || (dupplicateStaffs != null && dupplicateStaffs.Any()))
+                if (dupplicateCustomers != null && dupplicateCustomers.Any())
                 {
                     throw new UserException("Tên tài khoản hoặc email đã được sử dụng");
                 }

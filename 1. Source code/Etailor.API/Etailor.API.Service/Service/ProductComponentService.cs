@@ -29,7 +29,7 @@ namespace Etailor.API.Service.Service
         {
             var productComponent = productComponentRepository.Get(id);
 
-            var setImage= Task.Run(async () =>
+            var setImage = Task.Run(async () =>
             {
                 if (string.IsNullOrEmpty(productComponent.Image))
                 {
@@ -37,12 +37,12 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    productComponent.Image = await Ultils.GetUrlImage(productComponent.Image);
+                    productComponent.Image = Ultils.GetUrlImage(productComponent.Image);
                 }
             });
             await Task.WhenAll(setImage);
 
-            return productComponent == null ? null :  productComponent;
+            return productComponent == null ? null : productComponent;
         }
 
 
@@ -59,7 +59,7 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        productComponent.Image = await Ultils.GetUrlImage(productComponent.Image);
+                        productComponent.Image = Ultils.GetUrlImage(productComponent.Image);
                     }
                 });
                 await Task.WhenAll(setImage);

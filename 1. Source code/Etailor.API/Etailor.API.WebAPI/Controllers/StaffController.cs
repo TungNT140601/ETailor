@@ -20,14 +20,16 @@ namespace Etailor.API.WebAPI.Controllers
     public class StaffController : ControllerBase
     {
         private readonly IStaffService staffService;
+        private readonly IDashboardService dashboardService;
         private readonly IMapper mapper;
         private readonly string _wwwrootPath;
-        public StaffController(IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost)
+        public StaffController(IStaffService staffService, IMapper mapper, IWebHostEnvironment webHost, IDashboardService dashboardService)
         {
             this.staffService = staffService;
             this.mapper = mapper;
 
             _wwwrootPath = webHost.WebRootPath;
+            this.dashboardService = dashboardService;
         }
 
         [HttpPost()]
@@ -35,30 +37,29 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                ////else if (role != RoleName.MANAGER)
-                //else if (role == RoleName.STAFF || role == RoleName.CUSTOMER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(id, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var staffCreate = mapper.Map<Staff>(staff);
-                return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage, staff.MasterySkill)) ? Ok("Tạo mới nhân viên thành công") : BadRequest("Tạo mới nhân viên thất bại");
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var staffCreate = mapper.Map<Staff>(staff);
+                        return (await staffService.AddNewStaff(staffCreate, _wwwrootPath, staff.AvatarImage, staff.MasterySkill)) ? Ok("Tạo mới nhân viên thành công") : BadRequest("Tạo mới nhân viên thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -84,8 +85,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                //else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
-                else if (role == RoleName.CUSTOMER) //check role
+                else if (role == RoleName.ADMIN || role == RoleName.CUSTOMER)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -97,8 +97,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
-                    //else if (role == RoleName.MANAGER) // check if manager login
-                    else if (role == RoleName.MANAGER || role == RoleName.ADMIN)
+                    else if (role == RoleName.MANAGER) // check if manager login
                     {
                         if (id == null) // update manager's info
                         {
@@ -203,7 +202,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
@@ -251,21 +250,28 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
+                        var staff = new Staff();
                         if (role == RoleName.STAFF)
                         {
-                            return Ok(mapper.Map<StaffListVM>(await staffService.GetStaff(staffId)));
+                            staff = await staffService.GetStaff(staffId);
                         }
                         else
                         {
-                            var staff = await staffService.GetStaff(id == null ? staffId : id);
-                            if (staff == null)
+                            staff = await staffService.GetStaff(id == null ? staffId : id);
+                        }
+
+                        if (staff == null)
+                        {
+                            return NotFound();
+                        }
+                        else
+                        {
+                            var staffVM = mapper.Map<StaffListVM>(staff);
+                            if (staff.Masteries != null && staff.Masteries.Any())
                             {
-                                return NotFound();
+                                staffVM.MasterySkills = staff.Masteries.Select(x => x.CategoryId).ToList();
                             }
-                            else
-                            {
-                                return Ok(mapper.Map<StaffListVM>(staff));
-                            }
+                            return Ok(staffVM);
                         }
                     }
                 }
@@ -331,7 +337,7 @@ namespace Etailor.API.WebAPI.Controllers
                                     var staffVM = mapper.Map<StaffListVM>(staff);
                                     staffVM.STT = stt;
                                     stt++;
-                                    staffVM.Avatar = await Ultils.GetUrlImage(staffVM.Avatar);
+                                    staffVM.Avatar = Ultils.GetUrlImage(staffVM.Avatar);
                                     staffVMs.Add(staffVM);
                                 }));
                             }
@@ -341,7 +347,7 @@ namespace Etailor.API.WebAPI.Controllers
                             return Ok(new
                             {
                                 TotalData = staffs.Count(),
-                                Data = staffVMs
+                                Data = staffVMs.OrderBy(x => x.Username).OrderBy(x => x.Fullname)
                             });
                         }
                     }
@@ -399,7 +405,7 @@ namespace Etailor.API.WebAPI.Controllers
                                     var staffVM = mapper.Map<StaffListVM>(staff);
                                     staffVM.STT = stt;
                                     stt++;
-                                    staffVM.Avatar = await Ultils.GetUrlImage(staffVM.Avatar);
+                                    staffVM.Avatar = Ultils.GetUrlImage(staffVM.Avatar);
                                     staffVMs.Add(staffVM);
                                 }));
                             }
@@ -420,6 +426,48 @@ namespace Etailor.API.WebAPI.Controllers
                                 Data = new List<StaffListVM>()
                             });
                         }
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("current-tasks")]
+        public async Task<IActionResult> GetStaffWithTotalTask()
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return Ok(await dashboardService.GetStaffWithTotalTask());
                     }
                 }
             }

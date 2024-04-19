@@ -22,6 +22,10 @@ namespace Etailor.API.Service.Service
         {
             RecurringJob.AddOrUpdate<ITaskService>("AutoCreateEmptyTaskProduct", x => x.AutoCreateEmptyTaskProduct(), Cron.Hourly(0));
 
+            RecurringJob.AddOrUpdate<ITaskService>("AutoAssignTaskForStaff", x => x.AutoAssignTaskForStaff(), Cron.Hourly(5));
+
+            RecurringJob.AddOrUpdate("SendServerLogDaily", () => Ultils.SendMessageToDev(), Cron.Daily(23, 59));
+
             RecurringJob.AddOrUpdate("KeepServerAliveMethod", () => Ultils.KeepServerAlive(_wwwroot), "*/5 * * * *");
 
             return Task.CompletedTask;

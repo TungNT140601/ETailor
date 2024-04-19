@@ -13,14 +13,15 @@ namespace Etailor.API.Service.Interface
         Task<string> UpdateOrder(Order order, string? role);
         Task<bool> ApplyDiscount(string orderId, string code);
         Task<bool> DeleteOrder(string id);
-        Order GetOrder(string id);
-        IEnumerable<Order> GetOrders();
-        Order GetOrderByCustomer(string cusId, string orderId);
-        IEnumerable<Order> GetOrdersByCustomer(string cusId);
+        Task<Order> GetOrder(string id);
+        Task<IEnumerable<Order>> GetOrders();
+        Task<Order> GetOrderByCustomer(string cusId, string orderId);
+        Task<IEnumerable<Order>> GetOrdersByCustomer(string cusId);
         Task<bool> PayDeposit(string orderId, decimal amount);
         Task<bool> CheckOrderPaid(string id);
         Task<bool> FinishOrder(string orderId, string role);
         Task<bool> ApproveOrder(string id);
         Task<bool> UpdateOrderPrice(string id, int price);
+        Task<bool> UpdateOrderMaterial(List<OrderMaterial> orderMaterials);
     }
 }

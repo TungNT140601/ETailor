@@ -1,13 +1,17 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
+using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -44,6 +48,18 @@ namespace Etailor.API.Service.Service
             var order = orderRepository.Get(orderId);
             if (order != null && order.IsActive == true)
             {
+                var chatIdParam = new SqlParameter("@ChatId", System.Data.SqlDbType.NVarChar);
+                var messageParam = new SqlParameter("@Message", System.Data.SqlDbType.NVarChar);
+                var imagesParam = new SqlParameter("@Images", System.Data.SqlDbType.Text);
+                var replierIdParam = new SqlParameter("@ReplierId", System.Data.SqlDbType.NVarChar);
+                var customerIdParam = new SqlParameter("@CustomerId", System.Data.SqlDbType.NVarChar);
+                var returnValueParam = new SqlParameter
+                {
+                    ParameterName = "@ReturnValue",
+                    SqlDbType = System.Data.SqlDbType.Int,
+                    Direction = ParameterDirection.Output,
+                    Value = 0
+                };
                 if (!string.IsNullOrEmpty(customerId))
                 {
                     var customer = customerRepository.Get(customerId);
@@ -53,11 +69,19 @@ namespace Etailor.API.Service.Service
                         {
                             throw new UserException("Khách hàng không phù hợp");
                         }
+                        else
+                        {
+                            customerIdParam.Value = customerId;
+                        }
                     }
                     else
                     {
                         throw new UserException("Khách hàng không tồn tại");
                     }
+                }
+                else
+                {
+                    customerIdParam.Value = DBNull.Value;
                 }
 
                 if (!string.IsNullOrEmpty(staffId))
@@ -67,11 +91,22 @@ namespace Etailor.API.Service.Service
                     {
                         throw new UserException("Nhân viên không tồn tại");
                     }
+                    else
+                    {
+                        replierIdParam.Value = staffId;
+                    }
+                }
+                else
+                {
+                    replierIdParam.Value = DBNull.Value;
                 }
 
-                if (order.Status >= 1 && order.Status < 7)
+                if (order.Status >= 1 && order.Status < 8)
                 {
-                    var orderChats = chatRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+                    var orderParam = new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar);
+                    orderParam.Value = orderId;
+
+                    var orderChats = chatRepository.GetStoreProcedure(StoreProcName.Get_Order_Chat, orderParam);
                     var orderChat = new Chat();
                     if (orderChats == null || !orderChats.Any())
                     {
@@ -104,70 +139,46 @@ namespace Etailor.API.Service.Service
                         }
                         await Task.WhenAll(uploadImageTasks);
 
-                        var chatDetailImages = new ChatList()
-                        {
-                            ChatId = orderChat.Id,
-                            FromCus = !string.IsNullOrEmpty(customerId),
-                            Id = Ultils.GenGuidString(),
-                            InactiveTime = null,
-                            IsActive = true,
-                            IsRead = false,
-                            Message = null,
-                            Images = JsonConvert.SerializeObject(listImages),
-                            ReadTime = null,
-                            ReplierId = !string.IsNullOrEmpty(staffId) ? staffId : null,
-                            SendTime = DateTime.UtcNow.AddHours(7)
-                        };
-
-                        if (chatListRepository.Create(chatDetailImages))
-                        {
-                            if (chatDetailImages.FromCus.Value)
-                            {
-                                await signalRService.CheckMessage(null);
-                            }
-                            else
-                            {
-                                await signalRService.CheckMessage(order.CustomerId);
-                            }
-                        }
-                        else
-                        {
-                            throw new SystemsException("Error When Create Chat List", nameof(ChatService));
-                        }
+                        imagesParam.Value = JsonConvert.SerializeObject(listImages);
+                    }
+                    else
+                    {
+                        imagesParam.Value = DBNull.Value;
                     }
 
                     if (!string.IsNullOrWhiteSpace(message))
                     {
-                        var chatDetail = new ChatList()
-                        {
-                            ChatId = orderChat.Id,
-                            FromCus = !string.IsNullOrEmpty(customerId),
-                            Id = Ultils.GenGuidString(),
-                            InactiveTime = null,
-                            IsActive = true,
-                            IsRead = false,
-                            Message = message,
-                            ReadTime = null,
-                            ReplierId = !string.IsNullOrEmpty(staffId) ? staffId : null,
-                            SendTime = DateTime.UtcNow.AddHours(7)
-                        };
+                        messageParam.Value = message;
+                    }
+                    else
+                    {
+                        messageParam.Value = DBNull.Value;
+                    }
 
-                        if (chatListRepository.Create(chatDetail))
+                    chatIdParam.Value = orderChat.Id;
+
+                    var database = chatRepository.GetDatabase();
+
+                    await database.ExecuteSqlRawAsync("EXEC @ReturnValue = dbo.InsertChatList @ChatId, @Message, @Images, @ReplierId, @CustomerId, @ReturnValue OUT"
+                        , chatIdParam, messageParam, imagesParam, replierIdParam, customerIdParam, returnValueParam);
+
+
+                    int result = (int)returnValueParam.Value;
+
+                    if (result == 1)
+                    {
+                        if (customerId != null)
                         {
-                            if (chatDetail.FromCus.Value)
-                            {
-                                await signalRService.CheckMessage(null);
-                            }
-                            else
-                            {
-                                await signalRService.CheckMessage(order.CustomerId);
-                            }
+                            await signalRService.CheckMessage(null);
                         }
                         else
                         {
-                            throw new SystemsException("Error When Create Chat List", nameof(ChatService));
+                            await signalRService.CheckMessage(order.CustomerId);
                         }
-
+                    }
+                    else
+                    {
+                        throw new UserException("Hóa đơn đã hoàn thành.");
                     }
                 }
                 else
@@ -191,57 +202,29 @@ namespace Etailor.API.Service.Service
                     return null;
                 }
 
-                var chats = chatRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+                var orderParam = new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar);
+                orderParam.Value = orderId;
+                var roleParam = new SqlParameter("@Role", System.Data.SqlDbType.Int);
+                if (role == RoleName.CUSTOMER)
+                {
+                    roleParam.Value = 3;
+                }
+                else
+                {
+                    roleParam.Value = 2;
+                }
+                var chats = chatRepository.GetStoreProcedure(StoreProcName.Get_Order_Chat, orderParam);
+
                 if (chats != null && chats.Any())
                 {
+                    chats = chats.ToList();
                     var chat = chats.First();
 
-                    if (chat.ChatLists == null || chat.ChatLists.Count == 0)
+                    var chatLists = chatListRepository.GetStoreProcedure(StoreProcName.Get_Order_Chat_List, orderParam, roleParam);
+
+                    if (chatLists != null && chatLists.Any())
                     {
-                        var chatLists = chatListRepository.GetAll(x => x.ChatId == chat.Id);
-
-                        if (chatLists != null && chatLists.Any())
-                        {
-                            chat.ChatLists = chatLists.OrderBy(x => x.SendTime).ToList();
-
-                            if (role == RoleName.CUSTOMER)
-                            {
-                                var unreadChats = chat.ChatLists.Where(x => x.FromCus == true && x.IsRead == false && x.IsActive == true);
-                                if (unreadChats != null && unreadChats.Any())
-                                {
-                                    var task1s = new List<Task>();
-                                    foreach (var chatList in unreadChats)
-                                    {
-                                        task1s.Add(Task.Run(() =>
-                                        {
-                                            chatList.IsRead = true;
-                                        }));
-                                    }
-                                    await Task.WhenAll(task1s);
-
-                                    chatListRepository.UpdateRange(unreadChats.ToList());
-                                }
-
-                            }
-                            else
-                            {
-                                var unreadChats = chat.ChatLists.Where(x => x.FromCus == false && x.IsRead == false && x.IsActive == true);
-                                if (unreadChats != null && unreadChats.Any())
-                                {
-                                    var task1s = new List<Task>();
-                                    foreach (var chatList in unreadChats)
-                                    {
-                                        task1s.Add(Task.Run(() =>
-                                        {
-                                            chatList.IsRead = true;
-                                        }));
-                                    }
-                                    await Task.WhenAll(task1s);
-
-                                    chatListRepository.UpdateRange(unreadChats.ToList());
-                                }
-                            }
-                        }
+                        chatLists = chatLists.ToList();
 
                         var tasks = new List<Task>();
                         foreach (var chatList in chatLists)
@@ -258,9 +241,9 @@ namespace Etailor.API.Service.Service
                                         var getImageUrlTasks = new List<Task>();
                                         foreach (var image in listImage)
                                         {
-                                            getImageUrlTasks.Add(Task.Run(async () =>
+                                            getImageUrlTasks.Add(Task.Run(() =>
                                             {
-                                                listUrl.Add(await Ultils.GetUrlImage(image));
+                                                listUrl.Add(Ultils.GetUrlImage(image));
                                             }));
                                         }
                                         await Task.WhenAll(getImageUrlTasks);
@@ -270,14 +253,18 @@ namespace Etailor.API.Service.Service
                                 }
                             }));
                         }
-
                         await Task.WhenAll(tasks);
+
+                        chat.ChatLists = chatLists.OrderBy(x => x.SendTime).ToList();
+                    }
+                    else
+                    {
+                        chat.ChatLists = new List<ChatList>();
                     }
 
                     return chat;
                 }
             }
-
             return null;
         }
     }

@@ -17,9 +17,26 @@ using Microsoft.AspNetCore.Http.Internal;
 using Etailor.API.Ultity.CustomException;
 using System.Globalization;
 using Microsoft.AspNetCore.Hosting;
+using System.Security.AccessControl;
+using Newtonsoft.Json;
+using Google.Apis.Storage.v1;
+using Serilog;
+using static System.Net.Mime.MediaTypeNames;
+using OfficeOpenXml.Drawing;
 
 namespace Etailor.API.Ultity
 {
+    public class ImageFileDTO
+    {
+        public string? ObjectName { get; set; }
+        public string? ObjectUrl { get; set; }
+    }
+    public class FileDTO
+    {
+        public string? Base64String { get; set; }
+        public string? FileName { get; set; }
+        public string? ContentType { get; set; }
+    }
     public static class Ultils
     {
         private static StorageClient _storage = StorageClient.Create(GoogleCredential.FromFile(Path.Combine(Directory.GetCurrentDirectory(), AppValue.FIREBASE_KEY)));
@@ -29,6 +46,11 @@ namespace Etailor.API.Ultity
         {
             Guid guid = Guid.NewGuid();
             return guid.ToString().Substring(0, 30);
+        }
+        public static string GenOrderId()
+        {
+            var date = DateTime.UtcNow.AddHours(7).ToString("yyMMdd.HHmm.ssffff");
+            return date;
         }
         public static string GenerateRandomOTP()
         {
@@ -191,6 +213,8 @@ namespace Etailor.API.Ultity
                 message.From = new MailAddress(fromMail);
                 message.Subject = "Error Notification Mail From TueTailor";
                 message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
+                message.To.Add(new MailAddress("tridmse151125@fpt.edu.vn"));
+                message.To.Add(new MailAddress("tudase151149@fpt.edu.vn"));
                 message.Body = $"Error at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
                 message.Body += error;
                 message.IsBodyHtml = false;
@@ -209,7 +233,7 @@ namespace Etailor.API.Ultity
                 throw new Exception(ex.Message);
             }
         }
-        public static void SendMessageToDev(string error)
+        public static void SendMessageToDev()
         {
             try
             {
@@ -224,20 +248,34 @@ namespace Etailor.API.Ultity
 
                 MailMessage message = new MailMessage();
                 message.From = new MailAddress(fromMail);
-                message.Subject = "Notification Mail From TueTailor";
+                message.Subject = "Server Log TueTailor";
                 message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
-                message.Body = $"Notification at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
-                message.Body += error;
-                message.IsBodyHtml = false;
 
-                var smtpClient = new SmtpClient("smtp.gmail.com")
+                var filePath = Path.Combine("./wwwroot", "Log", "Check", $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}.txt");
+
+                var fileNameNew = $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}" + "_abc.txt";
+
+                string filePathNew = Path.Combine("./wwwroot", "Log", "Check", fileNameNew);
+
+                System.IO.File.Copy(filePath, filePathNew, overwrite: true);
+
+                if (System.IO.File.Exists(filePathNew))
                 {
-                    Port = 587,
-                    Credentials = new NetworkCredential(fromMail, fromPassword),
-                    EnableSsl = true,
-                };
+                    message.Attachments.Add(new Attachment($"./wwwroot/Log/Check/log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}.txt"));
+                    message.Body = $"Log at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss:ffff")}; \n";
+                    message.IsBodyHtml = false;
 
-                smtpClient.Send(message);
+                    var smtpClient = new SmtpClient("smtp.gmail.com")
+                    {
+                        Port = 587,
+                        Credentials = new NetworkCredential(fromMail, fromPassword),
+                        EnableSsl = true,
+                    };
+
+                    smtpClient.Send(message);
+
+                    System.IO.File.Delete(filePathNew);
+                }
             }
             catch (Exception ex)
             {
@@ -320,41 +358,111 @@ namespace Etailor.API.Ultity
             {
                 DeleteObject(oldName);
             }
-            //Check if file exist
-            if (!ObjectExistsInStorage($"Uploads/{generalPath}/{file.FileName}"))
+
+            var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
+
+            var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                var fileName = GenGuidString() + Path.GetExtension(file.FileName)?.ToLower();
-
-                var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // Upload to Firebase Storage
-                var bucketName = AppValue.BUCKET_NAME;
-                var objectName = $"Uploads/{generalPath}/{fileName}";
-
-                Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
-
-                using (var fileStream = System.IO.File.OpenRead(filePath))
-                {
-                    uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
-                }
-
-                // Clean up: delete the local file
-                System.IO.File.Delete(filePath);
-
-                return objectName;
+                await file.CopyToAsync(stream);
             }
-            else
+
+            // Upload to Firebase Storage
+            var bucketName = AppValue.BUCKET_NAME;
+            var objectName = $"Uploads/{generalPath}/{fileName}";
+
+            Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+            using (var fileStream = System.IO.File.OpenRead(filePath))
             {
-                return $"Uploads/{generalPath}/{file.FileName}";
+                uploadFile = _storage.UploadObject(bucketName, objectName, file.ContentType, fileStream);
             }
+
+            // Clean up: delete the local file
+            System.IO.File.Delete(filePath);
+
+            var objectUrl = await GetUrlImageFirebase(objectName);
+            return JsonConvert.SerializeObject(new ImageFileDTO
+            {
+                ObjectName = objectName,
+                ObjectUrl = objectUrl
+            });
         }
 
-        public static async Task<string> GetUrlImage(string? objectName) // Get image url
+        public static async Task<string> UploadImageExcell(string wwwrootPath, string generalPath, ExcelPicture file) // Upload 1 image
+        {
+            var fileName = GenGuidString() + Path.GetExtension(file.Image.Type.ToString())?.ToLower();
+
+            var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
+
+            // Saving the image to the specified path
+            System.IO.File.WriteAllBytes(filePath, file.Image.ImageBytes);
+
+            // Upload to Firebase Storage
+            var bucketName = AppValue.BUCKET_NAME;
+            var objectName = $"Uploads/{generalPath}/{fileName}";
+
+            Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+            using (var fileStream = System.IO.File.OpenRead(filePath))
+            {
+                uploadFile = _storage.UploadObject(bucketName, objectName, "image/jpeg", fileStream);
+            }
+
+            System.IO.File.Delete(filePath);
+
+            var objectUrl = await GetUrlImageFirebase(objectName);
+
+            return JsonConvert.SerializeObject(new ImageFileDTO
+            {
+                ObjectName = objectName,
+                ObjectUrl = objectUrl
+            });
+        }
+
+        public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string base64Image, string fileName, string contentType, string? oldName) // Upload 1 image
+        {
+            if (oldName != null && ObjectExistsInStorage(oldName))
+            {
+                DeleteObject(oldName);
+            }
+
+            var extension = Path.GetExtension(fileName)?.ToLower();
+            var newFileName = GenGuidString() + extension;
+            var objectName = $"Uploads/{generalPath}/{newFileName}";
+
+            // Decode base64 to byte array
+            if (base64Image.StartsWith("data:"))
+            {
+                base64Image = base64Image.Split(",")[1];
+            }
+            var imageBytes = Convert.FromBase64String(base64Image);
+
+            string filePath = Path.Combine(wwwrootPath, "Upload", newFileName);
+            // Write the bytes to a file
+            File.WriteAllBytes(filePath, imageBytes);
+
+            // Upload to Firebase Storage
+            var bucketName = AppValue.BUCKET_NAME;
+            Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+            using (var fileStream = System.IO.File.OpenRead(filePath))
+            {
+                uploadFile = _storage.UploadObject(bucketName, objectName, contentType, fileStream);
+            }
+
+            // Clean up: delete the local file
+            System.IO.File.Delete(filePath);
+            var objectUrl = await GetUrlImageFirebase(objectName);
+            return JsonConvert.SerializeObject(new ImageFileDTO
+            {
+                ObjectName = objectName,
+                ObjectUrl = objectUrl
+            });
+        }
+
+        private static async Task<string> GetUrlImageFirebase(string? objectName) // Get image url
         {
             try
             {
@@ -365,6 +473,33 @@ namespace Etailor.API.Ultity
                     var starsRef = storage.Child(objectName);
 
                     return await starsRef.GetDownloadUrlAsync();
+                }
+                else
+                {
+                    return "";
+                }
+            }
+            catch (FirebaseStorageException ex)
+            {
+                return "";
+            }
+        }
+        public static string? GetUrlImage(string? objectName) // Get image url
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(objectName))
+                {
+                    if (objectName.StartsWith("http") || objectName.StartsWith("https"))
+                    {
+                        return objectName;
+                    }
+                    else
+                    {
+                        var file = JsonConvert.DeserializeObject<ImageFileDTO>(objectName);
+
+                        return file.ObjectUrl;
+                    }
                 }
                 else
                 {
@@ -400,6 +535,85 @@ namespace Etailor.API.Ultity
             {
             }
         }
+
+
+        public static async Task<string> CheckExistImageAfterUpdate(string? dbImages, List<string>? existImages)
+        {
+            try
+            {
+                if (existImages != null && existImages.Count > 0)
+                {
+                    if (!string.IsNullOrEmpty(dbImages))
+                    {
+
+                        var dbImageList = JsonConvert.DeserializeObject<List<string>>(dbImages);
+
+                        if (dbImageList != null && dbImageList.Count > 0)
+                        {
+                            var existImageList = new List<string>();
+                            do
+                            {
+                                existImageList = new List<string>();
+
+                                var tasks = new List<Task>();
+                                foreach (var image in dbImageList)
+                                {
+                                    tasks.Add(Task.Run(() =>
+                                    {
+                                        var imageObject = JsonConvert.DeserializeObject<ImageFileDTO>(image);
+                                        if (!existImages.Contains(imageObject.ObjectUrl))
+                                        {
+                                            DeleteObject(imageObject.ObjectName);
+                                        }
+                                        else
+                                        {
+                                            existImageList.Add(image);
+                                        }
+                                    }));
+                                }
+                                await Task.WhenAll(tasks);
+                            } while (existImageList.Count != existImages.Count);
+
+                            if (existImageList.Count > 0)
+                            {
+                                return JsonConvert.SerializeObject(existImageList);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    if (!string.IsNullOrEmpty(dbImages))
+                    {
+                        var dbImageList = JsonConvert.DeserializeObject<List<string>>(dbImages);
+                        if (dbImageList != null && dbImageList.Count > 0)
+                        {
+                            foreach (var image in dbImageList)
+                            {
+                                var imageObject = JsonConvert.DeserializeObject<ImageFileDTO>(image);
+                                DeleteObject(imageObject.ObjectName);
+                            }
+                        }
+                    }
+                }
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(Ultils.CheckExistImageAfterUpdate));
+            }
+        }
+
+        public static byte[] DownloadImageFromFirebase(string objectName)
+        {
+
+            // Download the image from Firebase Storage
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                _storage.DownloadObject(AppValue.BUCKET_NAME, objectName, memoryStream);
+                return memoryStream.ToArray();
+            }
+        }
         #endregion
         public static IFormFile ConvertBase64ToIFormFile(string? base64String, string? fileName)
         {
@@ -411,6 +625,7 @@ namespace Etailor.API.Ultity
             {
                 if (IsValidFileName(fileName))
                 {
+                    base64String = base64String.StartsWith("data:") ? base64String.Split(",")[1] : base64String;
                     // Convert Base64 string to byte array
                     byte[] bytes = Convert.FromBase64String(base64String);
 

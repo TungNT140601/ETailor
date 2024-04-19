@@ -192,7 +192,11 @@ namespace Etailor.API.Service.Service
             var category = categoryRepository.Get(id);
             if (category != null && category.IsActive == true)
             {
-                category.ComponentTypes = componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true).ToList();
+                var categoryComponentTypes = componentTypeRepository.GetAll(x => x.CategoryId == id && x.IsActive == true);
+                if (categoryComponentTypes != null && categoryComponentTypes.Any())
+                {
+                    category.ComponentTypes = categoryComponentTypes.OrderBy(x => x.Name).ToList();
+                }
                 return category;
             }
             else
@@ -206,7 +210,8 @@ namespace Etailor.API.Service.Service
             var categories = categoryRepository.GetAll(x => (search == null || (search != null && x.Name.Trim().ToLower().Contains(search.ToLower().Trim()))) && x.IsActive == true);
             if (categories != null && categories.Any())
             {
-                categories = categories.ToList();
+                categories = categories.OrderBy(x => x.Name).ToList();
+
                 var categoriesComponentTypes = componentTypeRepository.GetAll(x => categories.Select(c => c.Id).Contains(x.CategoryId) && x.IsActive == true);
                 if (categoriesComponentTypes != null && categoriesComponentTypes.Any())
                 {
@@ -217,6 +222,10 @@ namespace Etailor.API.Service.Service
                         tasks.Add(Task.Run(() =>
                         {
                             category.ComponentTypes = categoriesComponentTypes.Where(x => x.CategoryId == category.Id).ToList();
+                            if (category.ComponentTypes != null && category.ComponentTypes.Any())
+                            {
+                                category.ComponentTypes = category.ComponentTypes.OrderBy(x => x.Name).ToList();
+                            }
                         }));
                     }
                     await Task.WhenAll(tasks);
@@ -224,5 +233,7 @@ namespace Etailor.API.Service.Service
             }
             return categories;
         }
+
+
     }
 }

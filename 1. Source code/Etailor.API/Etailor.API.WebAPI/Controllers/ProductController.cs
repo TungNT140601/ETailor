@@ -21,17 +21,17 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
         private readonly IProductTemplateService productTemplateService;
-        private readonly IOrderService orderService;
+        private readonly ITaskService taskService;
         private readonly IMapper mapper;
         private readonly string wwwrootPath;
 
         public ProductController(IProductService productService, IProductTemplateService productTemplateService
-            , IOrderService orderService, IMapper mapper, IStaffService staffService, ICustomerService customerService
+            , ITaskService taskService, IMapper mapper, IStaffService staffService, ICustomerService customerService
             , IWebHostEnvironment webHost)
         {
             this.productService = productService;
             this.productTemplateService = productTemplateService;
-            this.orderService = orderService;
+            this.taskService = taskService;
             this.mapper = mapper;
             this.customerService = customerService;
             this.staffService = staffService;
@@ -39,7 +39,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("{orderId}")]
-        public async Task<IActionResult> AddProduct(string orderId, [FromForm] ProductOrderVM productVM)
+        public async Task<IActionResult> AddProduct(string orderId, [FromBody] ProductOrderVM productVM)
         {
             try
             {
@@ -48,7 +48,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     return Unauthorized("Chưa đăng nhập");
                 }
-                else if (role != RoleName.MANAGER)
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
                 {
                     return Unauthorized("Không có quyền truy cập");
                 }
@@ -79,10 +79,14 @@ namespace Etailor.API.WebAPI.Controllers
                                         var images = new List<string>();
                                         foreach (var image in component.NoteImageFiles)
                                         {
-                                            insideTasks.Add(Task.Run(async () =>
+                                            insideTasks.Add(Task.Run(() =>
                                             {
-                                                var img = await Ultils.UploadImage(wwwrootPath, "Product/Note/Image", image, null);
-                                                images.Add(img);
+                                                images.Add(JsonConvert.SerializeObject(new FileDTO()
+                                                {
+                                                    Base64String = image.Base64String,
+                                                    FileName = image.FileName,
+                                                    ContentType = image.Type
+                                                }));
                                             }));
                                         }
                                         await Task.WhenAll(insideTasks);
@@ -94,7 +98,7 @@ namespace Etailor.API.WebAPI.Controllers
                             await Task.WhenAll(tasks);
                         }
 
-                        var check = await productService.AddProduct(orderId, product, productComponents,
+                        var check = await productService.AddProduct(wwwrootPath, orderId, product, productComponents,
                             productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
                             productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
                         return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
@@ -116,38 +120,165 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut("{orderId}/{productId}")]
-        public async Task<IActionResult> UpdateProduct(string orderId, string productId, [FromForm] ProductOrderVM productVM)
+        public async Task<IActionResult> UpdateProduct(string orderId, string productId, [FromBody] ProductOrderVM productVM)
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var product = mapper.Map<Product>(productVM);
-                product.Id = productId;
-                var productComponents = mapper.Map<List<ProductComponent>>(productVM.ProductComponents);
-                var check = await productService.UpdateProduct(orderId, product, productComponents,
-                     productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
-                     productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
-                return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var product = mapper.Map<Product>(productVM);
+                        product.Id = productId;
+                        var productComponents = new List<ProductComponent>();
+
+                        if (productVM.ProductComponents != null && productVM.ProductComponents.Any())
+                        {
+                            var tasks = new List<Task>();
+                            foreach (var component in productVM.ProductComponents)
+                            {
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    var productComponent = mapper.Map<ProductComponent>(component);
+
+                                    var images = new List<string>();
+
+                                    if (component.NoteImageObjects != null && component.NoteImageObjects.Any())
+                                    {
+                                        foreach (var img in component.NoteImageObjects)
+                                        {
+                                            images.Add(img);
+                                        }
+                                    }
+                                    if (component.NoteImageFiles != null && component.NoteImageFiles.Any())
+                                    {
+                                        var insideTasks = new List<Task>();
+                                        foreach (var image in component.NoteImageFiles)
+                                        {
+                                            insideTasks.Add(Task.Run(() =>
+                                            {
+                                                images.Add(JsonConvert.SerializeObject(new FileDTO()
+                                                {
+                                                    Base64String = image.Base64String,
+                                                    FileName = image.FileName,
+                                                    ContentType = image.Type
+                                                }));
+                                            }));
+                                        }
+                                        await Task.WhenAll(insideTasks);
+                                        productComponent.NoteImage = JsonConvert.SerializeObject(images);
+                                    }
+                                    productComponents.Add(productComponent);
+                                }));
+                            }
+                            await Task.WhenAll(tasks);
+                        }
+
+                        var check = await productService.UpdateProduct(wwwrootPath, orderId, product, productComponents,
+                             productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
+                             productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
+                        return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("{orderId}/{productId}/price")]
+        public async Task<IActionResult> UpdateProductPrice(string orderId, string productId, decimal? price)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await productService.UpdateProductPrice(orderId, productId, price) ? Ok("Cập nhật giá sản phẩm thành công") : BadRequest("Cập nhật giá sản phẩm thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("{orderId}/{productId}/defects")]
+        public async Task<IActionResult> DefectsProduct(string orderId, string productId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await taskService.DefectsTask(orderId, productId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -168,32 +299,32 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else
-                //{
-                if (id == null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    return NotFound("Id sản phẩm không tồn tại");
+                    return Unauthorized("Chưa đăng nhập");
                 }
-                return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
-                //    }
-                //}
+                else if (role != RoleName.MANAGER && role != RoleName.STAFF)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (id == null)
+                        {
+                            return NotFound("Id sản phẩm không tồn tại");
+                        }
+                        return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -276,21 +407,69 @@ namespace Etailor.API.WebAPI.Controllers
                                     {
                                         foreach (var component in productVM.ComponentTypeOrders)
                                         {
-                                            tasks.Add(Task.Run(() =>
+                                            tasks.Add(Task.Run(async () =>
                                             {
-                                                component.Component_Id = $"component_{component.Id}";
+                                                var insideTasks = new List<Task>();
 
-                                                if (role == RoleName.CUSTOMER)
+                                                insideTasks.Add(Task.Run(() =>
                                                 {
-                                                    if (component.Components != null && component.Components.Any() && component.Components.Count > 0)
+                                                    component.Component_Id = $"component_{component.Id}";
+                                                    component.Note_Id = $"productComponent_{component.Id}";
+                                                }));
+
+                                                insideTasks.Add(Task.Run(() =>
+                                                {
+                                                    if (role == RoleName.CUSTOMER)
                                                     {
-                                                        component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                                        if (component.Components != null && component.Components.Any() && component.Components.Count > 0)
+                                                        {
+                                                            component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                                        }
                                                     }
-                                                }
-                                                else if (component.Components != null && component.Components.Any())
+                                                    else if (component.Components != null && component.Components.Any())
+                                                    {
+                                                        component.Selected_Component_Id = component.Components.FirstOrDefault(x => componentIds.Contains(x.Id))?.Id;
+                                                    }
+                                                }));
+
+                                                insideTasks.Add(Task.Run(async () =>
                                                 {
-                                                    component.Selected_Component_Id = component.Components.SingleOrDefault(x => componentIds.Contains(x.Id))?.Id;
-                                                }
+                                                    var componentNote = productComponents.FirstOrDefault(x => component.Components.Select(c => c.Id).Contains(x.ComponentId));
+                                                    if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
+                                                    {
+                                                        component.NoteObject = new ComponentNoteVM();
+
+                                                        if (!string.IsNullOrEmpty(componentNote.Note))
+                                                        {
+                                                            component.NoteObject.Note = componentNote.Note;
+                                                        }
+
+                                                        if (!string.IsNullOrEmpty(componentNote.NoteImage))
+                                                        {
+                                                            var listImageDTO = JsonConvert.DeserializeObject<List<string>>(componentNote.NoteImage);
+                                                            if (listImageDTO != null && listImageDTO.Any())
+                                                            {
+                                                                var listImageUrl = new List<string>();
+                                                                var insideTasks1 = new List<Task>();
+                                                                foreach (var img in listImageDTO)
+                                                                {
+                                                                    insideTasks1.Add(Task.Run(() =>
+                                                                    {
+                                                                        listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                    }));
+                                                                }
+                                                                await Task.WhenAll(insideTasks1);
+                                                                component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);
+                                                            }
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        component.NoteObject = null;
+                                                    }
+                                                }));
+
+                                                await Task.WhenAll(insideTasks);
                                             }));
                                         }
                                     }
@@ -319,7 +498,6 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-
 
         [HttpGet("order/{orderId}")]
         public async Task<IActionResult> GetProductsByOrderId(string? orderId)
@@ -371,6 +549,45 @@ namespace Etailor.API.WebAPI.Controllers
                             }
                         }
                         return Ok(productVms);
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("{productId}/order/{orderId}/bodySize")]
+        public async Task<IActionResult> GetBodySizeOfProduct(string productId, string orderId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if ((role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(staffid, secrectKey)) || (role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(staffid, secrectKey)))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var bodySizes = await productService.GetBodySizeOfProduct(productId, orderId, role == RoleName.CUSTOMER ? staffid : null);
+                        return Ok(mapper.Map<List<ProductBodySizeTaskDetailVM>>(bodySizes));
                     }
                 }
             }

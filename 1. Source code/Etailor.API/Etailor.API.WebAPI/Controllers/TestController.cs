@@ -31,6 +31,11 @@ using System.IO.Compression;
 using System.IO;
 using Serilog;
 using Etailor.API.WebAPI.ViewModels;
+using Etailor.API.Repository.DataAccess;
+using OfficeOpenXml;
+using System.Collections.Generic;
+using OfficeOpenXml.Drawing;
+using static QRCoder.Base64QRCode;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -47,11 +52,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ISignalRService signalRService;
         private readonly IBackgroundService backgroundService;
         private readonly INotificationService notificationService;
+        private readonly IProductTemplateService productTemplateService;
+        private readonly ETailor_DBContext dBContext;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
-            , ITaskService taskService, INotificationService notificationService)
+            , ITaskService taskService, INotificationService notificationService
+            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -64,6 +72,8 @@ namespace Etailor.API.WebAPI.Controllers
             this.backgroundService = backgroundService;
             this.taskService = taskService;
             this.notificationService = notificationService;
+            this.dBContext = dBContext;
+            this.productTemplateService = productTemplateService;
         }
 
         #region SendMail
@@ -448,8 +458,9 @@ namespace Etailor.API.WebAPI.Controllers
                 if (file == null || file.Length == 0)
                     return BadRequest("Invalid file");
 
+                //var viewLink = await Ultils.DemoUploadImage(_wwwrootPath, "TestUpdateImage", file, null);
                 var viewLink = await Ultils.UploadImage(_wwwrootPath, "TestUpdateImage", file, null);
-                var url = await Ultils.GetUrlImage(viewLink);
+                var url = Ultils.GetUrlImage(viewLink);
                 return Ok(new
                 {
                     Name = viewLink,
@@ -555,17 +566,29 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                // Read the content of the file into a byte array
-                using (MemoryStream ms = new MemoryStream())
-                {
+                //var base64String = base64.Base64String.StartsWith("data:") ? base64.Base64String.Split(",")[1] : base64.Base64String;
+                //// Convert Base64 string to byte array
+                //byte[] bytes = Convert.FromBase64String(base64String);
 
-                    // Convert the base64-encoded string to a byte array
-                    byte[] fileBytes2 = Convert.FromBase64String(base64.Base64String);
+                //// Create a MemoryStream from the byte array
+                //using (MemoryStream memoryStream = new MemoryStream(bytes))
+                //{
+                //    // Create an instance of IFormFile
+                //    var formFile = new FormFile(memoryStream, 0, bytes.Length, null, base64.FileName)
+                //    {
+                //        Headers = new HeaderDictionary(),
+                //        ContentType = "application/octet-stream" // Set the content type appropriately
+                //    };
 
-                    string filePath = base64.FileName.Split(".").Last();
-                    // Return the file in the response
-                    return File(fileBytes2, "application/octet-stream", "TusGafQuas." + filePath);
-                }
+                //    if (formFile == null || formFile.Length == 0)
+                //    {
+                //        return BadRequest("Invalid file");
+                //    }
+                //    var fileObject = await Ultils.UploadImage(_wwwrootPath, "TestUpdateBase64Image", formFile, null);
+                //    return Ok(Ultils.GetUrlImage(fileObject));
+                //}
+
+                return Ok(await Ultils.UploadImageBase64(_wwwrootPath, "TestBase64", base64.Base64String, base64.FileName, base64.Type, null));
             }
             catch (Exception ex)
             {
@@ -888,11 +911,24 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPut]
-        public IActionResult RunAutoAssignTask()
+        public async Task<IActionResult> RunAutoAssignTask()
         {
             try
             {
-                taskService.AutoCreateEmptyTaskProduct();
+                await taskService.AutoCreateEmptyTaskProduct();
+                return Ok("Run successfully");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        [HttpPut]
+        public async Task<IActionResult> AutoAssignTaskForStaff()
+        {
+            try
+            {
+                taskService.AutoAssignTaskForStaff();
                 return Ok("Run successfully");
             }
             catch (Exception ex)
@@ -1068,6 +1104,215 @@ namespace Etailor.API.WebAPI.Controllers
         {
             return Ok();
         }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadExportFile(string templateId)
+        {
+            try
+            {
+                var filePath = productTemplateService.ExportFile(templateId);
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("File not found");
+                }
+                else
+                {
+                    var fileName = Path.GetFileName(filePath);
+
+                    byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+
+                    System.IO.File.Delete(filePath);
+
+                    return File(fileBytes, "application/octet-stream", fileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ImportFile(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+                else
+                {
+                    var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ".xls",
+                            ".xlsx"
+                        };
+
+                    var excelMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            "application/vnd.ms-excel",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        };
+
+                    string fileExtension = Path.GetExtension(file.FileName).ToLower();
+                    string mimeType = file.ContentType.ToLower();
+
+                    if (allowedExtensions.Contains(fileExtension) && excelMimeTypes.Contains(mimeType))
+                    {
+                        var list = new List<ComponentTypeOrderVM>();
+
+                        // Set the license context
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                        using (var stream = new MemoryStream())
+                        {
+                            await file.CopyToAsync(stream);
+
+                            using (var package = new ExcelPackage(stream))
+                            {
+                                if (package.Workbook.Worksheets.Any())
+                                {
+                                    var tasks = new List<Task>();
+                                    foreach (var worksheet in package.Workbook.Worksheets)
+                                    {
+                                        //tasks.Add(Task.Run(() =>
+                                        //{
+                                        var sheetName = worksheet.Name;
+
+                                        var drawings = worksheet.Drawings;
+
+                                        if (sheetName.Contains("|"))
+                                        {
+                                            var name = sheetName.Split("|")[0];
+                                            var id = sheetName.Split("|")[1];
+
+                                            var componentType = new ComponentTypeOrderVM
+                                            {
+                                                Name = name,
+                                                Id = id,
+                                                Components = new List<ComponentOrderVM>()
+                                            };
+
+                                            var startRow = 3;
+
+                                            int end = worksheet.Dimension.Rows + 1;
+
+                                            for (int i = startRow; i <= end; i++)
+                                            {
+                                                if (worksheet.Cells[i, 2].Value == null)
+                                                {
+                                                    break;
+                                                }
+                                                var componentName = worksheet.Cells[i, 2].Value?.ToString();
+                                                var componentImage = "";
+
+                                                var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 2);
+
+                                                if (picture != null)
+                                                {
+                                                    var fileName = Ultils.GenerateRandomString(20) + "." + picture.Image.Type?.ToString().ToLower();
+                                                    componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
+
+                                                    // Saving the image to the specified path
+                                                    System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
+
+                                                    System.IO.File.Delete(componentImage);
+
+                                                    componentImage = await Ultils.UploadImageExcell(_wwwrootPath, "DemoExcell", picture);
+
+                                                }
+                                                var componentDefault = worksheet.Cells[i, 4].Value;
+
+                                                componentType.Components.Add(new ComponentOrderVM
+                                                {
+                                                    Name = componentName,
+                                                    Image = componentImage,
+                                                    Default = (bool?)componentDefault
+                                                });
+                                            }
+
+                                            list.Add(componentType);
+                                        }
+                                        //}));
+                                    }
+                                    await Task.WhenAll(tasks);
+                                }
+
+                                return Ok(list);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest("Invalid file format");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetFolderLog()
+        {
+            try
+            {
+                var startDate = new DateTime(2024, 03, 09);
+                var yesterday = DateTime.Now.AddDays(-1);
+
+                var zipFile = Path.Combine(_wwwrootPath, "Log", "Check", $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmssffff")}.zip");
+                var zipFileDictionary = Path.Combine(_wwwrootPath, "Log", "Check", "ZipFolder");
+
+                if (!System.IO.Directory.Exists(zipFileDictionary))
+                {
+                    System.IO.Directory.CreateDirectory(zipFileDictionary);
+                }
+
+                string[] filesPaths = System.IO.Directory.GetFiles(Path.Combine(_wwwrootPath, "Log", "Check"));
+
+                foreach (var path in filesPaths)
+                {
+                    if (System.IO.File.Exists(path))
+                    {
+                        System.IO.File.Copy(path, Path.Combine(zipFileDictionary, Path.GetFileName(path)), overwrite: true);
+                    }
+                }
+
+                ZipFile.CreateFromDirectory(zipFileDictionary, zipFile);
+
+                byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(zipFile);
+
+                System.IO.File.Delete(zipFile);
+
+                System.IO.Directory.Delete(zipFileDictionary, true);
+
+
+                return File(fileBytes, "application/octet-stream", Path.GetFileName(zipFile));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        private string GetImageExtensionFromType(string imageType)
+        {
+            // Adjust this method based on the actual format of picture.Type
+            // This is an example assuming picture.Type returns MIME types
+            switch (imageType.ToLower())
+            {
+                case "image/jpeg":
+                    return "jpeg";
+                case "image/png":
+                    return "png";
+                // Add more cases as necessary
+                default:
+                    return "img"; // Default extension
+            }
+        }
     }
     public class Notify
     {
@@ -1084,6 +1329,7 @@ namespace Etailor.API.WebAPI.Controllers
     {
         public string Base64String { get; set; }
         public string FileName { get; set; }
+        public string Type { get; set; }
     }
     public class CheckExistAndAddNewImage
     {

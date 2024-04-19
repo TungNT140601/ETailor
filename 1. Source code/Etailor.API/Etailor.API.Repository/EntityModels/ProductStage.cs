@@ -8,12 +8,14 @@ namespace Etailor.API.Repository.EntityModels
         public ProductStage()
         {
             ProductComponents = new HashSet<ProductComponent>();
+            ProductStageMaterials = new HashSet<ProductStageMaterial>();
         }
 
         public string Id { get; set; } = null!;
         public string? StaffId { get; set; }
         public string? TemplateStageId { get; set; }
         public string? ProductId { get; set; }
+        public string? StageName { get; set; }
         public int? StageNum { get; set; }
         public int? TaskIndex { get; set; }
         public string? EvidenceImage { get; set; }
@@ -28,5 +30,6 @@ namespace Etailor.API.Repository.EntityModels
         public virtual Staff? Staff { get; set; }
         public virtual TemplateStage? TemplateStage { get; set; }
         public virtual ICollection<ProductComponent> ProductComponents { get; set; }
+        public virtual ICollection<ProductStageMaterial> ProductStageMaterials { get; set; }
     }
 }

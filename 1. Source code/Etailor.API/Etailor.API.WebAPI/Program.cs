@@ -23,6 +23,8 @@ using SixLabors.ImageSharp;
 using Serilog;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Etailor.API.Repository.Interface.Dashboard;
+using Etailor.API.Repository.Repository.Dashoard;
 
 var builder = WebApplication.CreateBuilder(args);
 var time = DateTime.UtcNow.AddHours(7);
@@ -177,6 +179,7 @@ builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddScoped<IOrderMaterialRepository, OrderMaterialRepository>();
+builder.Services.AddScoped<IOrderMaterialService, OrderMaterialService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 
@@ -191,6 +194,18 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
 builder.Services.AddScoped<IBackgroundService, Etailor.API.Service.Service.BackgroundService>();
+
+builder.Services.AddScoped<IProductStageMaterialRepository, ProductStageMaterialRepository>();
+
+#region Dashboard
+builder.Services.AddScoped<IOrderDashboardRepository, OrderDashoardRepository>();
+builder.Services.AddScoped<IStaffWithTotalTaskRepository, StaffWithTotalTaskRepository>();
+builder.Services.AddScoped<IFabricMaterialCommonUsedRepository, FabricMaterialCommonUsedRepository>();
+builder.Services.AddScoped<ITemplateDashboardRepository, TemplateDashboardRepository>();
+#endregion
+
+
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddSingleton<ISignalRService, SignalRService>();
 
@@ -217,7 +232,7 @@ app.UseAuthentication();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API v1.00 Time:{time.ToString("yyyy/MM/dd - HH:mm:ss:ffff")}");
 });
 
 var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();

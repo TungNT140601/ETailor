@@ -6,6 +6,7 @@ using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -18,12 +19,15 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly INotificationService notificationService;
         private readonly IStaffService staffService;
         private readonly ICustomerService customerService;
+        private readonly IMapper mapper;
 
-        public NotificationsController(INotificationService notificationService, IStaffService staffService, ICustomerService customerService)
+        public NotificationsController(INotificationService notificationService, IStaffService staffService
+            , ICustomerService customerService, IMapper mapper)
         {
             this.notificationService = notificationService;
             this.staffService = staffService;
             this.customerService = customerService;
+            this.mapper = mapper;
         }
 
         [HttpGet("get-notification")]
@@ -48,7 +52,11 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         var notifications = notificationService.GetNotifications(id, role);
 
-                        return Ok(notifications);
+                        return Ok(new
+                        {
+                            Data = mapper.Map<IEnumerable<NotificationVM>>(notifications),
+                            Unread = notifications.Count(x => x.IsRead == false)
+                        });
                     }
                 }
             }
@@ -87,7 +95,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         var notifications = notificationService.GetNotification(id, userId, role);
 
-                        return Ok(notifications);
+                        return Ok(mapper.Map<NotificationVM>(notifications));
                     }
                 }
             }

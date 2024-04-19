@@ -25,6 +25,10 @@ namespace Etailor.API.WebAPI.ViewModels
     {
         public string? Id { get; set; }
         public string? CustomerId { get; set; }
+        public string? CusName { get; set; }
+        public string? CusPhone { get; set; }
+        public string? CusEmail { get; set; }
+        public string? CusAddress { get; set; }
     }
 
     public class GetOrderVM
@@ -77,5 +81,6 @@ namespace Etailor.API.WebAPI.ViewModels
         public DiscountOrderDetailVM? Discount { get; set; }
         //public virtual ICollection<Payment> Payments { get; set; }
         public List<ProductListOrderDetailVM>? Products { get; set; }
+        public List<OrderMaterialVM>? OrderMaterials { get; set; }
     }
 }

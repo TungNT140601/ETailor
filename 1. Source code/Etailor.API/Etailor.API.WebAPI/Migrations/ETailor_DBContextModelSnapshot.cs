@@ -844,6 +844,11 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("decimal(18,3)")
                         .HasDefaultValueSql("((0))");
 
+                    b.Property<decimal?>("ValueUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,3)")
+                        .HasDefaultValueSql("((0))");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MaterialId");
@@ -967,7 +972,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("SaveOrderComponents")
-                        .HasColumnType("text");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StaffMakerId")
                         .HasMaxLength(30)
@@ -1072,32 +1077,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.ToTable("ProductComponent", (string)null);
                 });
 
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductComponentMaterial", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("MaterialId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("ProductComponentId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<decimal?>("Quantity")
-                        .HasColumnType("decimal(18,0)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MaterialId");
-
-                    b.HasIndex("ProductComponentId");
-
-                    b.ToTable("ProductComponentMaterial", (string)null);
-                });
-
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductStage", b =>
                 {
                     b.Property<string>("Id")
@@ -1128,6 +1107,10 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("StaffId")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("StageName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<int?>("StageNum")
                         .ValueGeneratedOnAdd()
@@ -1160,6 +1143,32 @@ namespace Etailor.API.WebAPI.Migrations
                     b.HasIndex("TemplateStageId");
 
                     b.ToTable("ProductStage", (string)null);
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductStageMaterial", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("MaterialId")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ProductStageId")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal?>("Quantity")
+                        .HasColumnType("decimal(18,0)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MaterialId");
+
+                    b.HasIndex("ProductStageId");
+
+                    b.ToTable("ProductStageMaterial", (string)null);
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductTemplate", b =>
@@ -1379,8 +1388,8 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<string>("Name")
-                        .HasMaxLength(155)
-                        .HasColumnType("nvarchar(155)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ProductTemplateId")
                         .HasMaxLength(30)
@@ -1402,6 +1411,95 @@ namespace Etailor.API.WebAPI.Migrations
                     b.HasIndex("TemplateStageId");
 
                     b.ToTable("TemplateStage", (string)null);
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.FabricMaterialCommonUsed", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Image")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("TotalOrders")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TotalProducts")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FabricMaterialCommonUsed");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.OrderDashboard", b =>
+                {
+                    b.Property<int?>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Total")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("TotalPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable("OrderDashboard");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.SpResult", b =>
+                {
+                    b.Property<int>("ReturnValue")
+                        .HasColumnType("int");
+
+                    b.ToTable("SpResults");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.StaffWithTotalTask", b =>
+                {
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Avatar")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Fullname")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Role")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TotalTask")
+                        .HasColumnType("int");
+
+                    b.ToTable("StaffWithTotalTask");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.TemplateDashboard", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ThumbnailImage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("Total")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TemplateDashboard");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Blog", b =>
@@ -1693,23 +1791,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Navigation("ProductStage");
                 });
 
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductComponentMaterial", b =>
-                {
-                    b.HasOne("Etailor.API.Repository.EntityModels.Material", "Material")
-                        .WithMany("ProductComponentMaterials")
-                        .HasForeignKey("MaterialId")
-                        .HasConstraintName("FK__ProductCo__Mater__32CB82C6");
-
-                    b.HasOne("Etailor.API.Repository.EntityModels.ProductComponent", "ProductComponent")
-                        .WithMany("ProductComponentMaterials")
-                        .HasForeignKey("ProductComponentId")
-                        .HasConstraintName("FK__ProductCo__Produ__31D75E8D");
-
-                    b.Navigation("Material");
-
-                    b.Navigation("ProductComponent");
-                });
-
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductStage", b =>
                 {
                     b.HasOne("Etailor.API.Repository.EntityModels.Product", "Product")
@@ -1732,6 +1813,23 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Navigation("Staff");
 
                     b.Navigation("TemplateStage");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductStageMaterial", b =>
+                {
+                    b.HasOne("Etailor.API.Repository.EntityModels.Material", "Material")
+                        .WithMany("ProductComponentMaterials")
+                        .HasForeignKey("MaterialId")
+                        .HasConstraintName("FK__ProductCo__Mater__32CB82C6");
+
+                    b.HasOne("Etailor.API.Repository.EntityModels.ProductStage", "ProductStage")
+                        .WithMany("ProductStageMaterials")
+                        .HasForeignKey("ProductStageId")
+                        .HasConstraintName("FK__ProductStage__Materail__31D75E8D");
+
+                    b.Navigation("Material");
+
+                    b.Navigation("ProductStage");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductTemplate", b =>
@@ -1887,14 +1985,11 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Navigation("ProductStages");
                 });
 
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductComponent", b =>
-                {
-                    b.Navigation("ProductComponentMaterials");
-                });
-
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductStage", b =>
                 {
                     b.Navigation("ProductComponents");
+
+                    b.Navigation("ProductStageMaterials");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.ProductTemplate", b =>

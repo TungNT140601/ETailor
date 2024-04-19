@@ -10,6 +10,7 @@ using Etailor.API.Ultity.CommonValue;
 using System.Security.Claims;
 using Etailor.API.Repository.Repository;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -30,6 +31,7 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly ITemplateStageService templateStageService;
         private readonly IProductComponentService productComponentService;
         private readonly IComponentService componentService;
+        private readonly IDashboardService dashboardService;
         private readonly IMapper mapper;
         private readonly string _wwwroot;
 
@@ -38,7 +40,7 @@ namespace Etailor.API.WebAPI.Controllers
             IProfileBodyService profileBodyService, IBodySizeService bodySizeService, IBodyAttributeService bodyAttributeService,
             IMaterialService materialService, IProductTemplateService productTemplateService, ITemplateStageService templateStageService,
             IProductComponentService productComponentService, IComponentService componentService,
-            IMapper mapper, IWebHostEnvironment webHost)
+            IMapper mapper, IWebHostEnvironment webHost, IDashboardService dashboardService)
         {
             this.taskService = taskService;
             this.productService = productService;
@@ -55,6 +57,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.componentService = componentService;
             this.mapper = mapper;
             this._wwwroot = webHost.WebRootPath;
+            this.dashboardService = dashboardService;
         }
 
         [HttpGet("{id}")]
@@ -376,6 +379,63 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+        [HttpPut("task/{productId}/deadline")]
+        public async Task<IActionResult> SetDeadlineForTask(string productId, string? deadlineTickString)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (string.IsNullOrWhiteSpace(deadlineTickString))
+                        {
+                            return BadRequest("Thời hạn không hợp lệ: null");
+                        }
+                        long.TryParse(deadlineTickString, out long milliseconds);
+
+                        DateTime epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+                        DateTime date = epoch.AddMilliseconds(milliseconds).AddHours(7);
+
+                        if (date < DateTime.UtcNow.AddHours(7))
+                        {
+                            return BadRequest($"Thời hạn không hợp lệ :{date.ToString("yyyy/MM/dd - HH:mm:ss:ffff")}");
+                        }
+                        var check = await taskService.SetDeadlineForTask(productId, date);
+                        return check ? Ok("Giao việc thành công") : BadRequest("Giao việc thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPut("staff/{staffId}/assign/{productId}")]
         public async Task<IActionResult> AssignTaskToStaff(string productId, string staffId)
         {

@@ -174,7 +174,7 @@ namespace Etailor.API.WebAPI.Controllers
                     var material = mapper.Map<MaterialVM>(materialService.GetMaterial(id));
                     var setImage = Task.Run(async () =>
                     {
-                        material.Image = await Ultils.GetUrlImage(material.Image);
+                        material.Image = Ultils.GetUrlImage(material.Image);
                     });
                     await Task.WhenAll(setImage);
                     return material != null ? Ok(material) : NotFound(id);
@@ -207,7 +207,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         tasks.Add(Task.Run(async () =>
                         {
-                            material.Image = await Ultils.GetUrlImage(material.Image);
+                            material.Image = Ultils.GetUrlImage(material.Image);
                         }));
                     }
                     await Task.WhenAll(tasks);
@@ -241,7 +241,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         tasks.Add(Task.Run(async () =>
                         {
-                            material.Image = await Ultils.GetUrlImage(material.Image);
+                            material.Image = Ultils.GetUrlImage(material.Image);
                         }));
                     }
                     await Task.WhenAll(tasks);
@@ -275,7 +275,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         tasks.Add(Task.Run(async () =>
                         {
-                            material.Image = await Ultils.GetUrlImage(material.Image);
+                            material.Image = Ultils.GetUrlImage(material.Image);
                         }));
                     }
                     await Task.WhenAll(tasks);
@@ -311,7 +311,7 @@ namespace Etailor.API.WebAPI.Controllers
                     {
                         tasks.Add(Task.Run(async () =>
                         {
-                            material.Image = await Ultils.GetUrlImage(material.Image);
+                            material.Image = Ultils.GetUrlImage(material.Image);
                         }));
                     }
                     await Task.WhenAll(tasks);

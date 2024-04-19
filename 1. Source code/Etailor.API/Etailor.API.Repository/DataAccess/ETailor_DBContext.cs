@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Etailor.API.Repository.EntityModels;
+using Etailor.API.Repository.StoreProcModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
@@ -41,7 +42,7 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<Product> Products { get; set; } = null!;
         public virtual DbSet<ProductBodySize> ProductBodySizes { get; set; } = null!;
         public virtual DbSet<ProductComponent> ProductComponents { get; set; } = null!;
-        public virtual DbSet<ProductComponentMaterial> ProductComponentMaterials { get; set; } = null!;
+        public virtual DbSet<ProductStageMaterial> ProductStageMaterials { get; set; } = null!;
         public virtual DbSet<ProductStage> ProductStages { get; set; } = null!;
         public virtual DbSet<ProductTemplate> ProductTemplates { get; set; } = null!;
         public virtual DbSet<ProfileBody> ProfileBodies { get; set; } = null!;
@@ -49,6 +50,13 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<TemplateStage> TemplateStages { get; set; } = null!;
         public virtual DbSet<Staff> Staff { get; set; } = null!;
 
+        #region DashboardModels
+        public virtual DbSet<OrderDashboard> OrderDashboard { get; set; } = null!;
+        public virtual DbSet<StaffWithTotalTask> StaffWithTotalTask { get; set; } = null!;
+        public virtual DbSet<FabricMaterialCommonUsed> FabricMaterialCommonUsed { get; set; } = null!;
+        public virtual DbSet<TemplateDashboard> TemplateDashboard { get; set; } = null!;
+        public virtual DbSet<SpResult> SpResults { get; set; } = null!;
+        #endregion
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer("server=tungnt-dbcloud.database.windows.net;uid=tungnt;pwd=123456789aA@;database=ETailor_DB;TrustServerCertificate=True;", b => b.MigrationsAssembly("Etailor.API.WebAPI"));
@@ -605,6 +613,10 @@ namespace Etailor.API.Repository.DataAccess
                     .HasColumnType("decimal(18, 3)")
                     .HasDefaultValueSql("((0))");
 
+                entity.Property(e => e.ValueUsed)
+                    .HasColumnType("decimal(18, 3)")
+                    .HasDefaultValueSql("((0))");
+
                 entity.HasOne(d => d.Material)
                     .WithMany(p => p.OrderMaterials)
                     .HasForeignKey(d => d.MaterialId)
@@ -668,7 +680,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.EvidenceImage).HasColumnType("text");
 
-                entity.Property(e => e.SaveOrderComponents).HasColumnType("text");
+                entity.Property(e => e.SaveOrderComponents).HasColumnType("nvarchar(max)");
 
                 entity.Property(e => e.FinishTime).HasColumnType("datetime");
 
@@ -788,15 +800,15 @@ namespace Etailor.API.Repository.DataAccess
                     .HasConstraintName("FK__ProductCo__Produ__0504B816");
             });
 
-            modelBuilder.Entity<ProductComponentMaterial>(entity =>
+            modelBuilder.Entity<ProductStageMaterial>(entity =>
             {
-                entity.ToTable("ProductComponentMaterial");
+                entity.ToTable("ProductStageMaterial");
 
                 entity.Property(e => e.Id).HasMaxLength(30);
 
                 entity.Property(e => e.MaterialId).HasMaxLength(30);
 
-                entity.Property(e => e.ProductComponentId).HasMaxLength(30);
+                entity.Property(e => e.ProductStageId).HasMaxLength(30);
 
                 entity.Property(e => e.Quantity).HasColumnType("decimal(18, 0)");
 
@@ -805,10 +817,10 @@ namespace Etailor.API.Repository.DataAccess
                     .HasForeignKey(d => d.MaterialId)
                     .HasConstraintName("FK__ProductCo__Mater__32CB82C6");
 
-                entity.HasOne(d => d.ProductComponent)
-                    .WithMany(p => p.ProductComponentMaterials)
-                    .HasForeignKey(d => d.ProductComponentId)
-                    .HasConstraintName("FK__ProductCo__Produ__31D75E8D");
+                entity.HasOne(d => d.ProductStage)
+                    .WithMany(p => p.ProductStageMaterials)
+                    .HasForeignKey(d => d.ProductStageId)
+                    .HasConstraintName("FK__ProductStage__Materail__31D75E8D");
             });
 
             modelBuilder.Entity<ProductStage>(entity =>
@@ -828,6 +840,8 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.ProductId).HasMaxLength(30);
 
                 entity.Property(e => e.StaffId).HasMaxLength(30);
+
+                entity.Property(e => e.StageName).HasMaxLength(255);
 
                 entity.Property(e => e.StageNum).HasDefaultValueSql("((0))");
 
@@ -968,7 +982,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.Name).HasMaxLength(155);
+                entity.Property(e => e.Name).HasMaxLength(255);
 
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
 
@@ -1019,6 +1033,22 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Username).HasMaxLength(255);
             });
+
+            #region DashboardModelSetting
+            modelBuilder.Entity<OrderDashboard>(entity =>
+            {
+                entity.HasNoKey();
+            });
+
+            modelBuilder.Entity<StaffWithTotalTask>(entity =>
+            {
+                entity.HasNoKey();
+            });
+            modelBuilder.Entity<SpResult>(entity =>
+            {
+                entity.HasNoKey();
+            });
+            #endregion
 
             OnModelCreatingPartial(modelBuilder);
         }

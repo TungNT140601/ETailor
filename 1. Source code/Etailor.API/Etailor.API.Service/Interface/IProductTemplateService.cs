@@ -15,10 +15,11 @@ namespace Etailor.API.Service.Interface
         Task<ProductTemplate> GetByUrlPath(string urlPath);
         Task<ProductTemplate> GetById(string id);
         Task<string> AddTemplate(ProductTemplate productTemplate, string wwwroot, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages);
-        Task<string> UpdateTemplate(string wwwroot, ProductTemplate productTemplate, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages);
+        Task<string> UpdateTemplate(string wwwroot, ProductTemplate productTemplate, IFormFile? thumbnailImage, List<IFormFile>? images, List<string>? existOldImages, List<IFormFile>? collectionImages, List<string>? existOldCollectionImages);
         bool CreateSaveActiveTemplate(string id);
         bool DeleteTemplate(string id);
         Task<IEnumerable<ComponentType>> GetTemplateComponent(string templateId);
         Task<IEnumerable<ProductTemplate>> GetTemplates(string? search);
+        string ExportFile(string templateId);
     }
 }

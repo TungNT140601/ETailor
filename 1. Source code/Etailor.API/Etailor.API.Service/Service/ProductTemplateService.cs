@@ -2,11 +2,18 @@
 using Etailor.API.Repository.Interface;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
+using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using OfficeOpenXml;
+using OfficeOpenXml.Drawing;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Mime;
+using System.Security.AccessControl;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -39,10 +46,7 @@ namespace Etailor.API.Service.Service
             var tasks = new List<Task>();
             if (string.IsNullOrEmpty(productTemplate.Id) || productTemplateRepository.Get(productTemplate.Id) == null)
             {
-                tasks.Add(Task.Run(() =>
-                {
-                    productTemplate.Id = Ultils.GenGuidString();
-                }));
+                productTemplate.Id = Ultils.GenGuidString();
                 tasks.Add(Task.Run(() =>
                 {
                     if (string.IsNullOrWhiteSpace(productTemplate.Name))
@@ -97,7 +101,7 @@ namespace Etailor.API.Service.Service
                 {
                     if (thumbnailImage != null)
                     {
-                        productTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, null);
+                        productTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, $"ProductTemplates/{productTemplate.Id}/ThumnailImages", thumbnailImage, null);
                     }
                     else
                     {
@@ -116,13 +120,13 @@ namespace Etailor.API.Service.Service
                         {
                             tasksImage.Add(Task.Run(async () =>
                             {
-                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/Images", image, null));
+                                listImageObject.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{productTemplate.Id}/Images", image, null));
                             }));
                         }
 
                         await Task.WhenAll(tasksImage);
 
-                        productTemplate.Image = JsonSerializer.Serialize(listImageObject);
+                        productTemplate.Image = JsonConvert.SerializeObject(listImageObject);
                     }
                     else
                     {
@@ -141,13 +145,13 @@ namespace Etailor.API.Service.Service
                         {
                             tasksImage.Add(Task.Run(async () =>
                             {
-                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/CollectionImages", image, null));
+                                listImageObject.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{productTemplate.Id}/CollectionImages", image, null));
                             }));
                         }
 
                         await Task.WhenAll(tasksImage);
 
-                        productTemplate.CollectionImage = JsonSerializer.Serialize(listImageObject);
+                        productTemplate.CollectionImage = JsonConvert.SerializeObject(listImageObject);
                     }
                 }));
                 tasks.Add(Task.Run(() =>
@@ -185,7 +189,6 @@ namespace Etailor.API.Service.Service
                             }
                         }
                     }));
-
                     tasks.Add(Task.Run(() =>
                     {
                         if (string.IsNullOrWhiteSpace(productTemplate.Name))
@@ -236,11 +239,27 @@ namespace Etailor.API.Service.Service
                     {
                         if (thumbnailImage != null)
                         {
-                            dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, dbTemplate.ThumbnailImage);
+                            dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/ThumnailImages", thumbnailImage, dbTemplate.ThumbnailImage);
                         }
                     }));
                     tasks.Add(Task.Run(async () =>
                     {
+                        if (!string.IsNullOrEmpty(dbTemplate.Image))
+                        {
+                            var listImageString = JsonConvert.DeserializeObject<List<string>>(dbTemplate.Image);
+                            if (listImageString != null && listImageString.Count > 0)
+                            {
+                                var listTask = new List<Task>();
+                                foreach (var image in listImageString)
+                                {
+                                    listTask.Add(Task.Run(() =>
+                                    {
+                                        Ultils.DeleteObject(JsonConvert.DeserializeObject<ImageFileDTO>(image)?.ObjectName);
+                                    }));
+                                }
+                                await Task.WhenAll(listTask);
+                            }
+                        }
                         if (images != null && images.Count > 0)
                         {
                             var listImageObject = new List<string>();
@@ -251,13 +270,13 @@ namespace Etailor.API.Service.Service
                             {
                                 tasksImage.Add(Task.Run(async () =>
                                 {
-                                    listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/Images", image, null));
+                                    listImageObject.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/Images", image, null));
                                 }));
                             }
 
                             await Task.WhenAll(tasksImage);
 
-                            dbTemplate.Image = JsonSerializer.Serialize(listImageObject);
+                            dbTemplate.Image = JsonConvert.SerializeObject(listImageObject);
                         }
                         else
                         {
@@ -266,7 +285,22 @@ namespace Etailor.API.Service.Service
                     }));
                     tasks.Add(Task.Run(async () =>
                     {
-
+                        if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
+                        {
+                            var listImageString = JsonConvert.DeserializeObject<List<string>>(dbTemplate.CollectionImage);
+                            if (listImageString != null && listImageString.Count > 0)
+                            {
+                                var listTask = new List<Task>();
+                                foreach (var image in listImageString)
+                                {
+                                    listTask.Add(Task.Run(() =>
+                                    {
+                                        Ultils.DeleteObject(JsonConvert.DeserializeObject<ImageFileDTO>(image)?.ObjectName);
+                                    }));
+                                }
+                                await Task.WhenAll(listTask);
+                            }
+                        }
                         if (collectionImages != null && collectionImages.Count > 0)
                         {
                             var listImageObject = new List<string>();
@@ -277,13 +311,13 @@ namespace Etailor.API.Service.Service
                             {
                                 tasksImage.Add(Task.Run(async () =>
                                 {
-                                    listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/CollectionImages", image, null));
+                                    listImageObject.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/CollectionImages", image, null));
                                 }));
                             }
 
                             await Task.WhenAll(tasksImage);
 
-                            dbTemplate.CollectionImage = JsonSerializer.Serialize(listImageObject);
+                            dbTemplate.CollectionImage = JsonConvert.SerializeObject(listImageObject);
                         }
                     }));
                     tasks.Add(Task.Run(() =>
@@ -316,8 +350,7 @@ namespace Etailor.API.Service.Service
                 return false;
             }
         }
-
-        public async Task<string> UpdateTemplate(string wwwroot, ProductTemplate productTemplate, IFormFile? thumbnailImage, List<IFormFile>? images, List<IFormFile>? collectionImages)
+        public async Task<string> UpdateTemplate(string wwwroot, ProductTemplate productTemplate, IFormFile? thumbnailImage, List<IFormFile>? images, List<string>? existOldImages, List<IFormFile>? collectionImages, List<string>? existOldCollectionImages)
         {
 
             var dbTemplate = productTemplateRepository.Get(productTemplate.Id);
@@ -387,79 +420,93 @@ namespace Etailor.API.Service.Service
                         {
                             if (thumbnailImage != null)
                             {
-                                dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, "ProductTemplates/ThumnailImages", thumbnailImage, dbTemplate.ThumbnailImage);
+                                dbTemplate.ThumbnailImage = await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/ThumnailImages", thumbnailImage, dbTemplate.ThumbnailImage);
                             }
                         }));
                 #endregion
 
                 #region SetImage
-                tasks.Add(Task.Run(async () =>
+                //tasks.Add(Task.Run(async () =>
+                //{
+                dbTemplate.Image = await Ultils.CheckExistImageAfterUpdate(dbTemplate.Image, existOldImages);
+
+                if (images != null && images.Count > 0)
                 {
-                    if (images != null)
+                    //var imageTasks = new List<Task>();
+                    var imageList = new List<string>();
+                    if (!string.IsNullOrEmpty(dbTemplate.Image))
                     {
-                        var imageTasks = new List<Task>();
                         if (!string.IsNullOrEmpty(dbTemplate.Image))
                         {
-                            var listOldImages = JsonSerializer.Deserialize<List<string>>(dbTemplate.Image);
-                            if (listOldImages != null && listOldImages.Count > 0)
+                            imageList.AddRange(JsonConvert.DeserializeObject<List<string>>(dbTemplate.Image));
+                        }
+                        if (images != null && images.Count > 0)
+                        {
+                            foreach (var image in images)
                             {
-                                foreach (var oldImage in listOldImages)
-                                {
-                                    imageTasks.Add(Task.Run(() =>
-                                    {
-                                        Ultils.DeleteObject(oldImage);
-                                    }));
-                                }
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/Images", image, null));
                             }
                         }
-                        var listImageObject = new List<string>();
-                        foreach (var image in images)
-                        {
-                            imageTasks.Add(Task.Run(async () =>
-                            {
-                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/Images", image, null));
-                            }));
-                        }
-                        await Task.WhenAll(imageTasks);
-
-                        dbTemplate.Image = JsonSerializer.Serialize(listImageObject);
                     }
-                }));
+                    else
+                    {
+                        if (images != null && images.Count > 0)
+                        {
+                            foreach (var image in images)
+                            {
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/Images", image, null));
+                            }
+                        }
+                    }
+                    //await Task.WhenAll(imageTasks);
+
+                    dbTemplate.Image = JsonConvert.SerializeObject(imageList);
+                }
+                else if ((images == null || images.Count == 0) && string.IsNullOrEmpty(dbTemplate.Image) && (existOldImages == null || existOldImages.Count == 0))
+                {
+                    throw new UserException("Vui lòng chọn ít nhất 1 hình ảnh cho mẫu sản phẩm");
+                }
+                //}));
                 #endregion
 
                 #region SetCollectionImage
-                tasks.Add(Task.Run(async () =>
+                //tasks.Add(Task.Run(async () =>
+                //{
+                dbTemplate.CollectionImage = await Ultils.CheckExistImageAfterUpdate(dbTemplate.CollectionImage, existOldCollectionImages);
+
+                if (images != null && images.Count > 0)
                 {
-                    if (collectionImages != null)
+                    //var imageTasks = new List<Task>();
+                    var imageList = new List<string>();
+                    if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
                     {
-                        var imageTasks = new List<Task>();
                         if (!string.IsNullOrEmpty(dbTemplate.CollectionImage))
                         {
-                            var listOldImages = JsonSerializer.Deserialize<List<string>>(dbTemplate.CollectionImage);
-                            if (listOldImages != null && listOldImages.Count > 0)
+                            imageList.AddRange(JsonConvert.DeserializeObject<List<string>>(dbTemplate.CollectionImage));
+                        }
+                        if (images != null && images.Count > 0)
+                        {
+                            foreach (var image in images)
                             {
-                                foreach (var oldImage in listOldImages)
-                                {
-                                    imageTasks.Add(Task.Run(() =>
-                                    {
-                                        Ultils.DeleteObject(oldImage);
-                                    }));
-                                }
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/CollectionImages", image, null));
                             }
                         }
-                        var listImageObject = new List<string>();
-                        foreach (var image in collectionImages)
-                        {
-                            imageTasks.Add(Task.Run(async () =>
-                            {
-                                listImageObject.Add(await Ultils.UploadImage(wwwroot, "ProductTemplates/CollectionImages", image, null));
-                            }));
-                        }
-                        await Task.WhenAll(imageTasks);
-
-                        dbTemplate.CollectionImage = JsonSerializer.Serialize(listImageObject);
                     }
-                }));
+                    else
+                    {
+                        if (images != null && images.Count > 0)
+                        {
+                            foreach (var image in images)
+                            {
+                                imageList.Add(await Ultils.UploadImage(wwwroot, $"ProductTemplates/{dbTemplate.Id}/CollectionImages", image, null));
+                            }
+                        }
+                    }
+                    //await Task.WhenAll(imageTasks);
+
+                    dbTemplate.CollectionImage = JsonConvert.SerializeObject(imageList);
+                }
+                //}));
                 #endregion
 
                 #region SetValue
@@ -480,7 +527,6 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
         }
-
         public async Task<IEnumerable<ProductTemplate>> GetByCategory(string id)
         {
             var templates = productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true);
@@ -491,40 +537,12 @@ namespace Etailor.API.Service.Service
                 {
                     listTask.Add(Task.Run(async () =>
                     {
-                        await Task.WhenAll(
-                            Task.Run(async () =>
-                                {
-                                    if (!string.IsNullOrEmpty(template.ThumbnailImage))
-                                    {
-                                        template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
-                                    }
-                                    template.CollectionImage = null;
-                                    template.Image = null;
-                                })
-                            //,
-                            //Task.Run(async () =>
-                            //    {
-                            //        if (!string.IsNullOrEmpty(template.Image))
-                            //        {
-                            //            var listImages = JsonSerializer.Deserialize<List<string>>(template.Image);
-                            //            if (listImages != null && listImages.Count() > 0)
-                            //            {
-                            //                var listTaskImages = new List<Task>();
-                            //                var listUrls = new List<string>();
-                            //                foreach (var image in listImages)
-                            //                {
-                            //                    listTaskImages.Add(Task.Run(async () =>
-                            //                    {
-                            //                        listUrls.Add(await Ultils.GetUrlImage(image));
-                            //                    }));
-                            //                }
-                            //                await Task.WhenAll(listTaskImages);
-
-                            //                template.Image = JsonSerializer.Serialize(listUrls);
-                            //            }
-                            //        }
-                            //    })
-                            );
+                        if (!string.IsNullOrEmpty(template.ThumbnailImage))
+                        {
+                            template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
+                        }
+                        template.CollectionImage = null;
+                        template.Image = null;
                     }));
                 }
                 await Task.WhenAll(listTask);
@@ -546,40 +564,12 @@ namespace Etailor.API.Service.Service
                 {
                     listTask.Add(Task.Run(async () =>
                     {
-                        await Task.WhenAll(
-                            Task.Run(async () =>
-                                {
-                                    if (!string.IsNullOrEmpty(template.ThumbnailImage))
-                                    {
-                                        template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
-                                    }
-                                    template.CollectionImage = null;
-                                    template.Image = null;
-                                })
-                            //,
-                            //Task.Run(async () =>
-                            //    {
-                            //        if (!string.IsNullOrEmpty(template.Image))
-                            //        {
-                            //            var listImages = JsonSerializer.Deserialize<List<string>>(template.Image);
-                            //            if (listImages != null && listImages.Count() > 0)
-                            //            {
-                            //                var listTaskImages = new List<Task>();
-                            //                var listUrls = new List<string>();
-                            //                foreach (var image in listImages)
-                            //                {
-                            //                    listTaskImages.Add(Task.Run(async () =>
-                            //                    {
-                            //                        listUrls.Add(await Ultils.GetUrlImage(image));
-                            //                    }));
-                            //                }
-                            //                await Task.WhenAll(listTaskImages);
-
-                            //                template.Image = JsonSerializer.Serialize(listUrls);
-                            //            }
-                            //        }
-                            //    })
-                            );
+                        if (!string.IsNullOrEmpty(template.ThumbnailImage))
+                        {
+                            template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
+                        }
+                        template.CollectionImage = null;
+                        template.Image = null;
                     }));
                 }
                 await Task.WhenAll(listTask);
@@ -596,63 +586,65 @@ namespace Etailor.API.Service.Service
             var template = productTemplateRepository.GetAll(x => x.UrlPath == urlPath && x.IsActive == true).FirstOrDefault();
             if (template != null)
             {
-                await Task.WhenAll(
-                        Task.Run(async () =>
-                        {
-                            if (!string.IsNullOrEmpty(template.ThumbnailImage))
-                            {
-                                template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
-                            }
-                        }),
-                        Task.Run(async () =>
-                        {
-                            if (!string.IsNullOrEmpty(template.Image))
-                            {
-                                var listImages = JsonSerializer.Deserialize<List<string>>(template.Image);
-                                if (listImages != null && listImages.Count() > 0)
-                                {
-                                    var listTaskImages = new List<Task>();
-                                    var listUrls = new List<string>();
-                                    foreach (var image in listImages)
-                                    {
-                                        listTaskImages.Add(Task.Run(async () =>
-                                        {
-                                            listUrls.Add(await Ultils.GetUrlImage(image));
-                                        }));
-                                    }
-                                    await Task.WhenAll(listTaskImages);
+                var tasks = new List<Task>();
 
-                                    template.Image = JsonSerializer.Serialize(listUrls);
-                                }
-                            }
-                        }),
-                        Task.Run(() =>
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.ThumbnailImage))
+                    {
+                        template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.Image))
+                    {
+                        var listImages = JsonConvert.DeserializeObject<List<string>>(template.Image);
+                        if (listImages != null && listImages.Count() > 0)
                         {
-                            template.Category = categoryRepository.Get(template.CategoryId);
-                        }),
-                        Task.Run(async () =>
-                        {
-                            if (!string.IsNullOrEmpty(template.CollectionImage))
+                            var listTaskImages = new List<Task>();
+                            var listUrls = new List<string>();
+                            foreach (var image in listImages)
                             {
-                                var listImages = JsonSerializer.Deserialize<List<string>>(template.CollectionImage);
-                                if (listImages != null && listImages.Count() > 0)
+                                listTaskImages.Add(Task.Run(async () =>
                                 {
-                                    var listTaskImages = new List<Task>();
-                                    var listUrls = new List<string>();
-                                    foreach (var image in listImages)
-                                    {
-                                        listTaskImages.Add(Task.Run(async () =>
-                                        {
-                                            listUrls.Add(await Ultils.GetUrlImage(image));
-                                        }));
-                                    }
-                                    await Task.WhenAll(listTaskImages);
-
-                                    template.CollectionImage = JsonSerializer.Serialize(listUrls);
-                                }
+                                    listUrls.Add(Ultils.GetUrlImage(image));
+                                }));
                             }
-                        })
-                        );
+                            await Task.WhenAll(listTaskImages);
+
+                            template.Image = JsonConvert.SerializeObject(listUrls);
+                        }
+                    }
+                }));
+                tasks.Add(Task.Run(() =>
+                {
+                    template.Category = categoryRepository.Get(template.CategoryId);
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.CollectionImage))
+                    {
+                        var listImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
+                        if (listImages != null && listImages.Count() > 0)
+                        {
+                            var listTaskImages = new List<Task>();
+                            var listUrls = new List<string>();
+                            foreach (var image in listImages)
+                            {
+                                listTaskImages.Add(Task.Run(async () =>
+                                {
+                                    listUrls.Add(Ultils.GetUrlImage(image));
+                                }));
+                            }
+                            await Task.WhenAll(listTaskImages);
+
+                            template.CollectionImage = JsonConvert.SerializeObject(listUrls);
+                        }
+                    }
+                }));
+
+                await Task.WhenAll(tasks);
 
                 return template;
             }
@@ -663,59 +655,56 @@ namespace Etailor.API.Service.Service
             var template = productTemplateRepository.Get(Id);
             if (template != null)
             {
-                await Task.WhenAll(
-                        Task.Run(async () =>
-                        {
-                            if (!string.IsNullOrEmpty(template.ThumbnailImage))
-                            {
-                                template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
-                            }
-                        }),
-                        Task.Run(async () =>
-                        {
-                            if (!string.IsNullOrEmpty(template.Image))
-                            {
-                                var listImages = JsonSerializer.Deserialize<List<string>>(template.Image);
-                                if (listImages != null && listImages.Count() > 0)
-                                {
-                                    var listTaskImages = new List<Task>();
-                                    var listUrls = new List<string>();
-                                    foreach (var image in listImages)
-                                    {
-                                        listTaskImages.Add(Task.Run(async () =>
-                                        {
-                                            listUrls.Add(await Ultils.GetUrlImage(image));
-                                        }));
-                                    }
-                                    await Task.WhenAll(listTaskImages);
+                var tasks = new List<Task>();
 
-                                    template.Image = JsonSerializer.Serialize(listUrls);
-                                }
-                            }
-                        }),
-                        Task.Run(async () =>
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.ThumbnailImage))
+                    {
+                        template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
+                    }
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.Image))
+                    {
+                        var listImages = JsonConvert.DeserializeObject<List<string>>(template.Image);
+                        if (listImages != null && listImages.Count() > 0)
                         {
-                            if (!string.IsNullOrEmpty(template.CollectionImage))
-                            {
-                                var listImages = JsonSerializer.Deserialize<List<string>>(template.CollectionImage);
-                                if (listImages != null && listImages.Count() > 0)
-                                {
-                                    var listTaskImages = new List<Task>();
-                                    var listUrls = new List<string>();
-                                    foreach (var image in listImages)
-                                    {
-                                        listTaskImages.Add(Task.Run(async () =>
-                                        {
-                                            listUrls.Add(await Ultils.GetUrlImage(image));
-                                        }));
-                                    }
-                                    await Task.WhenAll(listTaskImages);
+                            var listUrls = new List<string>();
 
-                                    template.CollectionImage = JsonSerializer.Serialize(listUrls);
-                                }
+                            foreach (var image in listImages)
+                            {
+                                listUrls.Add(Ultils.GetUrlImage(image));
                             }
-                        })
-                        );
+
+                            template.Image = JsonConvert.SerializeObject(listUrls);
+                        }
+                    }
+                }));
+                tasks.Add(Task.Run(() =>
+                {
+                    template.Category = categoryRepository.Get(template.CategoryId);
+                }));
+                tasks.Add(Task.Run(async () =>
+                {
+                    if (!string.IsNullOrEmpty(template.CollectionImage))
+                    {
+                        var listImages = JsonConvert.DeserializeObject<List<string>>(template.CollectionImage);
+                        if (listImages != null && listImages.Count() > 0)
+                        {
+                            var listUrls = new List<string>();
+                            foreach (var image in listImages)
+                            {
+                                listUrls.Add(Ultils.GetUrlImage(image));
+                            }
+                            template.CollectionImage = JsonConvert.SerializeObject(listUrls);
+                        }
+                    }
+                }));
+
+                await Task.WhenAll(tasks);
+
                 return template;
             }
             return null;
@@ -775,7 +764,7 @@ namespace Etailor.API.Service.Service
                                         {
                                             if (!string.IsNullOrEmpty(component.Image))
                                             {
-                                                component.Image = await Ultils.GetUrlImage(component.Image);
+                                                component.Image = Ultils.GetUrlImage(component.Image);
                                             }
                                             componentType.Components.Add(component);
                                         }));
@@ -821,11 +810,11 @@ namespace Etailor.API.Service.Service
                     var tasks = new List<Task>();
                     foreach (var template in templates)
                     {
-                        tasks.Add(Task.Run(async () =>
+                        tasks.Add(Task.Run(() =>
                         {
                             if (!string.IsNullOrEmpty(template.ThumbnailImage))
                             {
-                                template.ThumbnailImage = await Ultils.GetUrlImage(template.ThumbnailImage);
+                                template.ThumbnailImage = Ultils.GetUrlImage(template.ThumbnailImage);
                             }
                             template.Image = null;
                             template.CollectionImage = null;
@@ -838,6 +827,165 @@ namespace Etailor.API.Service.Service
             }
 
             return null;
+        }
+
+        public string ExportFile(string templateId)
+        {
+            var template = productTemplateRepository.Get(templateId);
+            if (template != null)
+            {
+                var category = categoryRepository.Get(template.CategoryId);
+                if (category != null && category.IsActive == true)
+                {
+                    var componentTypes = componentTypeRepository.GetAll(x => x.CategoryId == category.Id && x.IsActive == true);
+                    if (componentTypes != null && componentTypes.Any())
+                    {
+                        componentTypes = componentTypes.OrderBy(x => x.Name).ToList();
+
+                        // Set the license context
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                        FileInfo templateFile = new FileInfo("./wwwroot/File/Export/Output.xlsx");
+                        using (ExcelPackage excelPackage = new ExcelPackage(templateFile))
+                        {
+                            if (excelPackage.Workbook.Worksheets.Any(ws => ws.Name == "Sheet1"))
+                            {
+                                // Delete the sheet
+                                excelPackage.Workbook.Worksheets.Delete("Sheet1");
+                            }
+
+                            foreach (var componentType in componentTypes)
+                            {
+                                ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add($"{componentType.Name}");
+
+                                worksheet.View.ZoomScale = 150;
+
+                                worksheet.Cells[1, 1].Value = $"{componentType.Id}";
+                                worksheet.Cells[1, 1].Style.Font.Color.SetColor(System.Drawing.Color.White);
+                                worksheet.Cells[1, 2].Value = $"{componentType.Name}";
+                                worksheet.Cells["B1:D1"].Merge = true;
+
+                                worksheet.Cells[2, 1].Value = "STT";
+                                worksheet.Cells[2, 2].Value = "Tên kiểu";
+                                worksheet.Cells[2, 3].Value = "Hình ảnh";
+                                worksheet.Cells[2, 4].Value = "Kiểu mặc định (x)";
+
+                                for (int i = 3; i < 13; i++)
+                                {
+                                    worksheet.Cells[i, 1].Value = i - 2;
+                                    worksheet.Rows[i].Height = 50;
+                                }
+
+                                worksheet.Columns[1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Left;
+                                worksheet.Columns[1].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                worksheet.Columns[2].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                worksheet.Columns[3].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                worksheet.Columns[4].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                                worksheet.Columns[1].Width = 3.5;
+                                worksheet.Columns[3].Width = 25;
+
+                                worksheet.Columns[4].AutoFit();
+
+                                worksheet.Cells.Style.Locked = false;
+                                worksheet.Cells["A1:D2"].Style.Locked = true;
+                                worksheet.Protection.IsProtected = true;
+
+                                #region ExportData
+
+                                //var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
+                                //if (templateComponents != null && templateComponents.Any())
+                                //{
+                                //    templateComponents = templateComponents.OrderBy(x => x.Name).ToList();
+
+                                //}
+                                //else
+                                //{
+                                //    templateComponents = new List<Component>();
+                                //}
+
+                                //int startRow = 2; // Assuming data starts from row 2
+
+                                //if (templateComponents != null && templateComponents.Any(x => x.ComponentTypeId == componentType.Id))
+                                //{
+                                //    var componentOfType = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).ToList();
+
+                                //    for (int i = 0; i < componentOfType.Count; i++)
+                                //    {
+                                //        var row = startRow + i;
+                                //        worksheet.Rows[row].Height = 100;
+                                //        var colName = 1;
+                                //        worksheet.Columns[colName].AutoFit();
+                                //        var colImage = 2;
+                                //        worksheet.Columns[colImage].Width = 20;
+                                //        var colDefault = 3;
+                                //        worksheet.Columns[colDefault].AutoFit();
+                                //        var rowData = componentOfType[i];
+
+                                //        worksheet.Cells[row, colName].Value = rowData.Name;
+
+
+                                //        if (!string.IsNullOrEmpty(rowData.Image))
+                                //        {
+
+                                //            var fileDtp = JsonConvert.DeserializeObject<ImageFileDTO>(rowData.Image);
+
+                                //            byte[] imageBytes = Ultils.DownloadImageFromFirebase(fileDtp.ObjectName);
+
+                                //            var fileName = fileDtp.ObjectName.Split("/").Last();
+                                //            var filePath = $"./wwwroot/File/Template/{fileName}";
+                                //            File.WriteAllBytes(filePath, imageBytes);
+
+                                //            using (var fileStream = System.IO.File.OpenRead(filePath))
+                                //            {
+                                //                ExcelPicture picture = worksheet.Drawings.AddPicture(fileDtp.ObjectName, fileStream);
+
+                                //                picture.SetPosition(row - 1, 1, colImage - 1, 1); // Set the position of the image within the cell
+                                //                picture.SetSize(100, 100);
+                                //            }
+                                //            System.IO.File.Delete(filePath);
+
+                                //        }
+                                //        worksheet.Cells[startRow + i, 3].Value = rowData.Default;
+
+
+                                //    }
+
+
+                                //    ExcelRange range = worksheet.Cells[2, 1, componentOfType.Count + 1, 3];
+
+                                //    // Set border style
+                                //    var border = range.Style.Border;
+                                //    border.Bottom.Style = border.Left.Style = border.Top.Style = border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Medium; // Set border style to thin
+                                //    border.Bottom.Color.SetColor(System.Drawing.Color.Black); // Set border color to black
+                                //    border.Left.Color.SetColor(System.Drawing.Color.Black);
+                                //    border.Top.Color.SetColor(System.Drawing.Color.Black);
+                                //    border.Right.Color.SetColor(System.Drawing.Color.Black);
+
+                                //} 
+                                #endregion
+                                excelPackage.Save();
+                            }
+
+                            excelPackage.Save();
+                        }
+
+                        return "./wwwroot/File/Export/Output.xlsx";
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy bộ phận của loại bản mẫu");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy loại bản mẫu");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy bản mẫu");
+            }
         }
     }
 }
