@@ -274,12 +274,13 @@ namespace Etailor.API.Service.Service
 
         public IEnumerable<Discount> GetSuitableDiscounts(string orderId)
         {
-            return discountRepository.GetStoreProcedure(StoreProcName.Get_Suitable_Discout_For_Order, new Microsoft.Data.SqlClient.SqlParameter
+            var discounts = discountRepository.GetStoreProcedure(StoreProcName.Get_Suitable_Discout_For_Order, new Microsoft.Data.SqlClient.SqlParameter
             {
                 DbType = System.Data.DbType.String,
                 Value = orderId,
                 ParameterName = "@OrderId"
             });
+            return discounts;
         }
     }
 }
