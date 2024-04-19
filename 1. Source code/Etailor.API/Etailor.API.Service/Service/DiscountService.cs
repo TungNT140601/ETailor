@@ -56,7 +56,15 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Ngày kết thúc không được trước ngày bắt đầu giảm giá");
                 }
+                discount.StartDate = discount.StartDate.Value.Date;
                 discount.EndDate = discount.EndDate.Value.AddDays(1).AddSeconds(-1);
+
+                var intimeDiscounts = discountRepository.GetAll(x => x.EndDate < discount.StartDate && x.StartDate > discount.EndDate && x.IsActive == true);
+                if (intimeDiscounts != null && intimeDiscounts.Any())
+                {
+                    intimeDiscounts = null;
+                    throw new UserException("Đã có chương trình giảm giá trong khung thời gian này");
+                }
             }));
 
             tasks.Add(Task.Run(() =>
@@ -158,8 +166,15 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        existDiscount.StartDate = discount.StartDate.Value;
+                        existDiscount.StartDate = discount.StartDate.Value.Date;
                         existDiscount.EndDate = discount.EndDate.Value.AddDays(1).AddSeconds(-1);
+                    }
+
+                    var intimeDiscounts = discountRepository.GetAll(x => x.Id != existDiscount.Id && x.EndDate < existDiscount.StartDate && x.StartDate > existDiscount.EndDate && x.IsActive == true);
+                    if (intimeDiscounts != null && intimeDiscounts.Any())
+                    {
+                        intimeDiscounts = null;
+                        throw new UserException("Đã có chương trình giảm giá trong khung thời gian này");
                     }
                 }));
 

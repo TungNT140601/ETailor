@@ -23,6 +23,7 @@ namespace Etailor.API.Service.Service
     public class ProductService : IProductService
     {
         private readonly IProductBodySizeService productBodySizeService;
+        private readonly IProductBodySizeRepository productBodySizeRepository;
         private readonly IProductRepository productRepository;
         private readonly IProductTemplateRepository productTemplateRepository;
         private readonly ITemplateStateRepository templateStateRepository;
@@ -40,6 +41,7 @@ namespace Etailor.API.Service.Service
         private readonly IOrderService orderService;
         private readonly IStaffRepository staffRepository;
         private readonly IMasteryRepository masteryRepository;
+        private readonly IBodySizeRepository bodySizeRepository;
 
         public ProductService(
             IProductRepository productRepository,
@@ -59,7 +61,9 @@ namespace Etailor.API.Service.Service
             IOrderMaterialRepository orderMaterialRepository,
             IOrderService orderService,
             IStaffRepository staffRepository,
-            IMasteryRepository masteryRepository
+            IMasteryRepository masteryRepository,
+            IProductBodySizeRepository productBodySizeRepository,
+            IBodySizeRepository bodySizeRepository
         )
         {
             this.productRepository = productRepository;
@@ -80,6 +84,8 @@ namespace Etailor.API.Service.Service
             this.orderService = orderService;
             this.staffRepository = staffRepository;
             this.masteryRepository = masteryRepository;
+            this.productBodySizeRepository = productBodySizeRepository;
+            this.bodySizeRepository = bodySizeRepository;
         }
 
         public async Task<string> AddProduct(
@@ -1999,6 +2005,85 @@ namespace Etailor.API.Service.Service
                 }
             }
             return null;
+        }
+
+        public async Task<List<ProductBodySize>> GetBodySizeOfProduct(string productId, string orderId, string? cusId)
+        {
+            var dbOrder = orderRepository.Get(orderId);
+            if (dbOrder != null && dbOrder.Status > 0)
+            {
+                if (!string.IsNullOrEmpty(cusId) && dbOrder.CustomerId != cusId)
+                {
+                    throw new UserException("Không tìm thấy hóa đơn");
+                }
+
+                var dbProduct = productRepository.Get(productId);
+                if (dbProduct != null && dbProduct.IsActive == true && dbProduct.Status > 0)
+                {
+                    var productBodySizes = productBodySizeRepository.GetAll(x => x.ProductId == productId && x.IsActive == true);
+
+                    if (productBodySizes != null && productBodySizes.Any())
+                    {
+                        productBodySizes = productBodySizes.ToList();
+
+                        var bodySizeIds = string.Join(",", productBodySizes.Select(x => x.BodySizeId));
+                        var bodySizes = bodySizeRepository.GetAll(x => bodySizeIds.Contains(x.Id));
+                        if (bodySizes != null && bodySizes.Any())
+                        {
+                            bodySizes = bodySizes.ToList();
+
+                            var tasks = new List<Task>();
+                            var listProductBodySizes = new List<ProductBodySize>();
+                            foreach (var bodySize in bodySizes)
+                            {
+                                tasks.Add(Task.Run(() =>
+                                {
+                                    var productBodySize = productBodySizes.FirstOrDefault(x => x.BodySizeId == bodySize.Id);
+                                    if (productBodySize != null)
+                                    {
+                                        productBodySize.BodySize = bodySize;
+                                        listProductBodySizes.Add(productBodySize);
+                                    }
+                                    else
+                                    {
+                                        listProductBodySizes.Add(new ProductBodySize()
+                                        {
+                                            Id = Ultils.GenGuidString(),
+                                            ProductId = productId,
+                                            BodySizeId = bodySize.Id,
+                                            IsActive = true,
+                                            CreatedTime = DateTime.UtcNow.AddHours(7),
+                                            LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                            BodySize = bodySize,
+                                            Value = 0,
+                                            InactiveTime = null
+                                        });
+                                    }
+                                }));
+                            }
+
+                            await Task.WhenAll(tasks);
+                            return listProductBodySizes;
+                        }
+                        else
+                        {
+                            throw new UserException("Không tìm thấy số đo hệ thống");
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy số đo sản phẩm");
+                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy sản phẩm");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
         }
     }
 }
