@@ -242,7 +242,7 @@ namespace Etailor.API.Service.Service
                 {
                     var cus = customerRepository.Get(dbOrder.CustomerId);
 
-                    var discount = discountRepository.GetAll(x => code != null && x.Code != null && x.Code.Trim() == code.Trim()).FirstOrDefault();
+                    var discount = discountRepository.Get(code);
 
                     var usedDiscountCode = orderRepository.GetAll(x => x.Id != dbOrder.Id && ((dbOrder.CustomerId != cus.Id && x.CustomerId == cus.Id) || (dbOrder.CustomerId == cus.Id && x.CustomerId == cus.Id)) && x.DiscountCode == code && x.IsActive == true && x.Status != 0);
 

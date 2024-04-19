@@ -565,5 +565,44 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpGet("{productId}/order/{orderId}/bodySize")]
+        public async Task<IActionResult> GetBodySizeOfProduct(string productId, string orderId)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if ((role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(staffid, secrectKey)) || (role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(staffid, secrectKey)))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var bodySizes = await productService.GetBodySizeOfProduct(productId, orderId, role == RoleName.CUSTOMER ? staffid : null);
+                        return Ok(mapper.Map<List<ProductBodySizeTaskDetailVM>>(bodySizes));
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }

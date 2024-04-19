@@ -15,6 +15,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? StaffId { get; set; }
         public string? TemplateStageId { get; set; }
         public string? ProductId { get; set; }
+        public string? StageName { get; set; }
         public int? StageNum { get; set; }
         public int? TaskIndex { get; set; }
         public string? EvidenceImage { get; set; }

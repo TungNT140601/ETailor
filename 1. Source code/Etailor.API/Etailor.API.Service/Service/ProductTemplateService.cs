@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using OfficeOpenXml;
 using OfficeOpenXml.Drawing;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mime;
@@ -841,17 +842,6 @@ namespace Etailor.API.Service.Service
                     {
                         componentTypes = componentTypes.OrderBy(x => x.Name).ToList();
 
-                        var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
-                        if (templateComponents != null && templateComponents.Any())
-                        {
-                            templateComponents = templateComponents.OrderBy(x => x.Name).ToList();
-
-                        }
-                        else
-                        {
-                            templateComponents = new List<Component>();
-                        }
-
                         // Set the license context
                         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
@@ -866,79 +856,118 @@ namespace Etailor.API.Service.Service
 
                             foreach (var componentType in componentTypes)
                             {
-                                ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add($"{componentType.Name}|{componentType.Id}");
+                                ExcelWorksheet worksheet = excelPackage.Workbook.Worksheets.Add($"{componentType.Name}");
 
-                                // Set protection options to prevent renaming or deleting the sheet
-                                worksheet.Protection.AllowDeleteColumns = false;
-                                worksheet.Protection.AllowDeleteRows = false;
+                                worksheet.View.ZoomScale = 150;
 
-                                int startRow = 2; // Assuming data starts from row 2
+                                worksheet.Cells[1, 1].Value = $"{componentType.Id}";
+                                worksheet.Cells[1, 1].Style.Font.Color.SetColor(System.Drawing.Color.White);
+                                worksheet.Cells[1, 2].Value = $"{componentType.Name}";
+                                worksheet.Cells["B1:D1"].Merge = true;
 
-                                if (templateComponents != null && templateComponents.Any(x => x.ComponentTypeId == componentType.Id))
+                                worksheet.Cells[2, 1].Value = "STT";
+                                worksheet.Cells[2, 2].Value = "Tên kiểu";
+                                worksheet.Cells[2, 3].Value = "Hình ảnh";
+                                worksheet.Cells[2, 4].Value = "Kiểu mặc định (x)";
+
+                                for (int i = 3; i < 13; i++)
                                 {
-                                    var componentOfType = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).ToList();
-
-                                    for (int i = 0; i < componentOfType.Count; i++)
-                                    {
-                                        var row = startRow + i;
-                                        worksheet.Rows[row].Height = 100;
-                                        var colName = 1;
-                                        worksheet.Columns[colName].AutoFit();
-                                        var colImage = 2;
-                                        worksheet.Columns[colImage].Width = 20;
-                                        var colDefault = 3;
-                                        worksheet.Columns[colDefault].AutoFit();
-                                        var rowData = componentOfType[i];
-
-                                        worksheet.Cells[row, colName].Value = rowData.Name;
-
-
-                                        if (!string.IsNullOrEmpty(rowData.Image))
-                                        {
-                                            worksheet.Cells[row, colImage].Value = " ";
-
-                                            var fileDtp = JsonConvert.DeserializeObject<ImageFileDTO>(rowData.Image);
-
-                                            byte[] imageBytes = Ultils.DownloadImageFromFirebase(fileDtp.ObjectName);
-
-                                            var fileName = fileDtp.ObjectName.Split("/").Last();
-                                            var filePath = $"./wwwroot/File/Template/{fileName}";
-                                            File.WriteAllBytes(filePath, imageBytes);
-
-                                            using (var fileStream = System.IO.File.OpenRead(filePath))
-                                            {
-                                                ExcelPicture picture = worksheet.Drawings.AddPicture(fileDtp.ObjectName, fileStream);
-
-                                                picture.SetPosition(row - 1, 0, colImage - 1, 0); // Set the position of the image within the cell
-                                                picture.SetSize(100, 100);
-                                            }
-                                            System.IO.File.Delete(filePath);
-
-                                        }
-                                        worksheet.Cells[startRow + i, 3].Value = rowData.Default;
-
-
-                                    }
-
-
-                                    ExcelRange range = worksheet.Cells[2, 1, componentOfType.Count + 1, 3];
-
-                                    // Set border style
-                                    var border = range.Style.Border;
-                                    border.Bottom.Style = border.Left.Style = border.Top.Style = border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Medium; // Set border style to thin
-                                    border.Bottom.Color.SetColor(System.Drawing.Color.Black); // Set border color to black
-                                    border.Left.Color.SetColor(System.Drawing.Color.Black);
-                                    border.Top.Color.SetColor(System.Drawing.Color.Black);
-                                    border.Right.Color.SetColor(System.Drawing.Color.Black);
-
+                                    worksheet.Cells[i, 1].Value = i - 2;
+                                    worksheet.Rows[i].Height = 50;
                                 }
 
-                                worksheet.Protection.SetPassword("123456");
+                                worksheet.Columns[1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Left;
+                                worksheet.Columns[1].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                worksheet.Columns[2].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                worksheet.Columns[3].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+                                worksheet.Columns[4].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
+
+                                worksheet.Columns[1].Width = 3.5;
+                                worksheet.Columns[3].Width = 25;
+
+                                worksheet.Columns[4].AutoFit();
+
+                                worksheet.Cells.Style.Locked = false;
+                                worksheet.Cells["A1:D2"].Style.Locked = true;
                                 worksheet.Protection.IsProtected = true;
+
+                                #region ExportData
+
+                                //var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
+                                //if (templateComponents != null && templateComponents.Any())
+                                //{
+                                //    templateComponents = templateComponents.OrderBy(x => x.Name).ToList();
+
+                                //}
+                                //else
+                                //{
+                                //    templateComponents = new List<Component>();
+                                //}
+
+                                //int startRow = 2; // Assuming data starts from row 2
+
+                                //if (templateComponents != null && templateComponents.Any(x => x.ComponentTypeId == componentType.Id))
+                                //{
+                                //    var componentOfType = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).ToList();
+
+                                //    for (int i = 0; i < componentOfType.Count; i++)
+                                //    {
+                                //        var row = startRow + i;
+                                //        worksheet.Rows[row].Height = 100;
+                                //        var colName = 1;
+                                //        worksheet.Columns[colName].AutoFit();
+                                //        var colImage = 2;
+                                //        worksheet.Columns[colImage].Width = 20;
+                                //        var colDefault = 3;
+                                //        worksheet.Columns[colDefault].AutoFit();
+                                //        var rowData = componentOfType[i];
+
+                                //        worksheet.Cells[row, colName].Value = rowData.Name;
+
+
+                                //        if (!string.IsNullOrEmpty(rowData.Image))
+                                //        {
+
+                                //            var fileDtp = JsonConvert.DeserializeObject<ImageFileDTO>(rowData.Image);
+
+                                //            byte[] imageBytes = Ultils.DownloadImageFromFirebase(fileDtp.ObjectName);
+
+                                //            var fileName = fileDtp.ObjectName.Split("/").Last();
+                                //            var filePath = $"./wwwroot/File/Template/{fileName}";
+                                //            File.WriteAllBytes(filePath, imageBytes);
+
+                                //            using (var fileStream = System.IO.File.OpenRead(filePath))
+                                //            {
+                                //                ExcelPicture picture = worksheet.Drawings.AddPicture(fileDtp.ObjectName, fileStream);
+
+                                //                picture.SetPosition(row - 1, 1, colImage - 1, 1); // Set the position of the image within the cell
+                                //                picture.SetSize(100, 100);
+                                //            }
+                                //            System.IO.File.Delete(filePath);
+
+                                //        }
+                                //        worksheet.Cells[startRow + i, 3].Value = rowData.Default;
+
+
+                                //    }
+
+
+                                //    ExcelRange range = worksheet.Cells[2, 1, componentOfType.Count + 1, 3];
+
+                                //    // Set border style
+                                //    var border = range.Style.Border;
+                                //    border.Bottom.Style = border.Left.Style = border.Top.Style = border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Medium; // Set border style to thin
+                                //    border.Bottom.Color.SetColor(System.Drawing.Color.Black); // Set border color to black
+                                //    border.Left.Color.SetColor(System.Drawing.Color.Black);
+                                //    border.Top.Color.SetColor(System.Drawing.Color.Black);
+                                //    border.Right.Color.SetColor(System.Drawing.Color.Black);
+
+                                //} 
+                                #endregion
                                 excelPackage.Save();
                             }
 
-                            //excelPackage.SaveAs(new FileInfo("./wwwroot/File/Export/Output.xlsx"));
+                            excelPackage.Save();
                         }
 
                         return "./wwwroot/File/Export/Output.xlsx";

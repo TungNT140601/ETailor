@@ -477,6 +477,7 @@ namespace Etailor.API.Service.Service
                                                                                         TaskIndex = null,
                                                                                         Status = 1,
                                                                                         TemplateStageId = stage.Id,
+                                                                                        StageName = stage.Name,
                                                                                         ProductComponents = new List<ProductComponent>()
                                                                                     };
 

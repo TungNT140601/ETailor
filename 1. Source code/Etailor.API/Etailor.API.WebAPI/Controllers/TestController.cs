@@ -32,6 +32,10 @@ using System.IO;
 using Serilog;
 using Etailor.API.WebAPI.ViewModels;
 using Etailor.API.Repository.DataAccess;
+using OfficeOpenXml;
+using System.Collections.Generic;
+using OfficeOpenXml.Drawing;
+using static QRCoder.Base64QRCode;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -1126,6 +1130,187 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ImportFile(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+                else
+                {
+                    var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ".xls",
+                            ".xlsx"
+                        };
+
+                    var excelMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            "application/vnd.ms-excel",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        };
+
+                    string fileExtension = Path.GetExtension(file.FileName).ToLower();
+                    string mimeType = file.ContentType.ToLower();
+
+                    if (allowedExtensions.Contains(fileExtension) && excelMimeTypes.Contains(mimeType))
+                    {
+                        var list = new List<ComponentTypeOrderVM>();
+
+                        // Set the license context
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                        using (var stream = new MemoryStream())
+                        {
+                            await file.CopyToAsync(stream);
+
+                            using (var package = new ExcelPackage(stream))
+                            {
+                                if (package.Workbook.Worksheets.Any())
+                                {
+                                    var tasks = new List<Task>();
+                                    foreach (var worksheet in package.Workbook.Worksheets)
+                                    {
+                                        //tasks.Add(Task.Run(() =>
+                                        //{
+                                        var sheetName = worksheet.Name;
+
+                                        var drawings = worksheet.Drawings;
+
+                                        if (sheetName.Contains("|"))
+                                        {
+                                            var name = sheetName.Split("|")[0];
+                                            var id = sheetName.Split("|")[1];
+
+                                            var componentType = new ComponentTypeOrderVM
+                                            {
+                                                Name = name,
+                                                Id = id,
+                                                Components = new List<ComponentOrderVM>()
+                                            };
+
+                                            var startRow = 3;
+
+                                            int end = worksheet.Dimension.Rows + 1;
+
+                                            for (int i = startRow; i <= end; i++)
+                                            {
+                                                if (worksheet.Cells[i, 2].Value == null)
+                                                {
+                                                    break;
+                                                }
+                                                var componentName = worksheet.Cells[i, 2].Value?.ToString();
+                                                var componentImage = "";
+
+                                                var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 2);
+
+                                                if (picture != null)
+                                                {
+                                                    var fileName = Ultils.GenerateRandomString(20) + "." + picture.Image.Type?.ToString().ToLower();
+                                                    componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
+
+                                                    // Saving the image to the specified path
+                                                    System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
+
+                                                    System.IO.File.Delete(componentImage);
+
+                                                    componentImage = await Ultils.UploadImageExcell(_wwwrootPath, "DemoExcell", picture);
+
+                                                }
+                                                var componentDefault = worksheet.Cells[i, 4].Value;
+
+                                                componentType.Components.Add(new ComponentOrderVM
+                                                {
+                                                    Name = componentName,
+                                                    Image = componentImage,
+                                                    Default = (bool?)componentDefault
+                                                });
+                                            }
+
+                                            list.Add(componentType);
+                                        }
+                                        //}));
+                                    }
+                                    await Task.WhenAll(tasks);
+                                }
+
+                                return Ok(list);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest("Invalid file format");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetFolderLog()
+        {
+            try
+            {
+                var startDate = new DateTime(2024, 03, 09);
+                var yesterday = DateTime.Now.AddDays(-1);
+
+                var zipFile = Path.Combine(_wwwrootPath, "Log", "Check", $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmssffff")}.zip");
+                var zipFileDictionary = Path.Combine(_wwwrootPath, "Log", "Check", "ZipFolder");
+
+                if (!System.IO.Directory.Exists(zipFileDictionary))
+                {
+                    System.IO.Directory.CreateDirectory(zipFileDictionary);
+                }
+
+                string[] filesPaths = System.IO.Directory.GetFiles(Path.Combine(_wwwrootPath, "Log", "Check"));
+
+                foreach (var path in filesPaths)
+                {
+                    if (System.IO.File.Exists(path))
+                    {
+                        System.IO.File.Copy(path, Path.Combine(zipFileDictionary, Path.GetFileName(path)), overwrite: true);
+                    }
+                }
+
+                ZipFile.CreateFromDirectory(zipFileDictionary, zipFile);
+
+                byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(zipFile);
+
+                System.IO.File.Delete(zipFile);
+
+                System.IO.Directory.Delete(zipFileDictionary, true);
+
+
+                return File(fileBytes, "application/octet-stream", Path.GetFileName(zipFile));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+        private string GetImageExtensionFromType(string imageType)
+        {
+            // Adjust this method based on the actual format of picture.Type
+            // This is an example assuming picture.Type returns MIME types
+            switch (imageType.ToLower())
+            {
+                case "image/jpeg":
+                    return "jpeg";
+                case "image/png":
+                    return "png";
+                // Add more cases as necessary
+                default:
+                    return "img"; // Default extension
             }
         }
     }

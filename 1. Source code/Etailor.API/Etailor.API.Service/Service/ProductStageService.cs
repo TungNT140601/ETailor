@@ -99,6 +99,7 @@ namespace Etailor.API.Service.Service
                                                         var productStage = new ProductStage()
                                                         {
                                                             Id = Ultils.GenGuidString(),
+                                                            StageName = stage.Name,
                                                             Deadline = null,
                                                             StartTime = null,
                                                             FinishTime = null,

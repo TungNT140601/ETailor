@@ -78,33 +78,55 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpGet("order/{orderId}")]
+        public IActionResult GetSuitableDiscount(string orderId)
+        {
+            try
+            {
+                var discounts = discountService.GetSuitableDiscounts(orderId);
+                return Ok(mapper.Map<IEnumerable<DiscountVM>>(discounts?.ToList()));
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateDiscount([FromBody] DiscountCreateVM discount)
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return await discountService.CreateDiscount(mapper.Map<Discount>(discount)) ? Ok("Tạo mới phiếu giảm giá thành công") : BadRequest("Tạo mới phiếu giảm giá thất bại");
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await discountService.CreateDiscount(mapper.Map<Discount>(discount)) ? Ok("Tạo mới chương trình giảm giá thành công") : BadRequest("Tạo mới chương trình giảm giá thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -125,28 +147,28 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return await discountService.UpdateDiscount(mapper.Map<Discount>(discount)) ? Ok("Cập nhật phiếu giảm giá thành công") : BadRequest("Cập nhật phiếu giảm giá thất bại");
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return await discountService.UpdateDiscount(mapper.Map<Discount>(discount)) ? Ok("Cập nhật chương trình giảm giá thành công") : BadRequest("Cập nhật chương trình giảm giá thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -167,28 +189,28 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                return discountService.DeleteDiscount(id) ? Ok("Xóa phiếu giảm giá thành công") : BadRequest("Xóa phiếu giảm giá thất bại");
-                //    }
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return discountService.DeleteDiscount(id) ? Ok("Xóa chương trình giảm giá thành công") : BadRequest("Xóa chương trình giảm giá thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -228,7 +250,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return await orderService.ApplyDiscount(orderId, code) ? Ok("Áp mã giảm giá thành công") : BadRequest("Áp mã giảm giá thất bại");
+                        return await orderService.ApplyDiscount(orderId, code) ? Ok("Áp dụng chương trình giảm giá thành công") : BadRequest("Áp dụng chương trình giảm giá thất bại");
                     }
                 }
             }
