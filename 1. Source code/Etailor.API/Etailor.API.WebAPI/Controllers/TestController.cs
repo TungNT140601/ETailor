@@ -1256,6 +1256,48 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetFolderLog()
+        {
+            try
+            {
+                var startDate = new DateTime(2024, 03, 09);
+                var yesterday = DateTime.Now.AddDays(-1);
+
+                var zipFile = Path.Combine(_wwwrootPath, "Log", "Check", $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmssffff")}.zip");
+                var zipFileDictionary = Path.Combine(_wwwrootPath, "Log", "Check", "ZipFolder");
+
+                if (!System.IO.Directory.Exists(zipFileDictionary))
+                {
+                    System.IO.Directory.CreateDirectory(zipFileDictionary);
+                }
+
+                string[] filesPaths = System.IO.Directory.GetFiles(Path.Combine(_wwwrootPath, "Log", "Check"));
+
+                foreach (var path in filesPaths)
+                {
+                    if (System.IO.File.Exists(path))
+                    {
+                        System.IO.File.Copy(path, Path.Combine(zipFileDictionary, Path.GetFileName(path)), overwrite: true);
+                    }
+                }
+
+                ZipFile.CreateFromDirectory(zipFileDictionary, zipFile);
+
+                byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(zipFile);
+
+                System.IO.File.Delete(zipFile);
+
+                System.IO.Directory.Delete(zipFileDictionary, true);
+
+
+                return File(fileBytes, "application/octet-stream", Path.GetFileName(zipFile));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
         private string GetImageExtensionFromType(string imageType)
         {
             // Adjust this method based on the actual format of picture.Type

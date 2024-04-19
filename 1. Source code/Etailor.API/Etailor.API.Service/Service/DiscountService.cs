@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Etailor.API.Repository.StoreProcModels;
 
 namespace Etailor.API.Service.Service
 {
@@ -254,6 +255,16 @@ namespace Etailor.API.Service.Service
         public IEnumerable<Discount> GetDiscounts(string? search)
         {
             return discountRepository.GetAll(x => (search == null || (search != null && (x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) || x.Code.Trim().ToLower().Contains(search.Trim().ToLower())) && x.IsActive == true);
+        }
+
+        public IEnumerable<Discount> GetSuitableDiscounts(string orderId)
+        {
+            return discountRepository.GetStoreProcedure(StoreProcName.Get_Suitable_Discout_For_Order, new Microsoft.Data.SqlClient.SqlParameter
+            {
+                DbType = System.Data.DbType.String,
+                Value = orderId,
+                ParameterName = "@OrderId"
+            });
         }
     }
 }

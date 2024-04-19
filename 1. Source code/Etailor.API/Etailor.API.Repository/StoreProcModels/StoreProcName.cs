@@ -18,6 +18,7 @@ namespace Etailor.API.Repository.StoreProcModels
         public static string Get_Active_Orders_Products = "GetActiveOrdersProducts";
         public static string Insert_Chat_List = "InsertChatList";
         public static string Check_Order_Paid = "CheckOrderPaid";
+        public static string Get_Suitable_Discout_For_Order = "GetSuitableDiscoutForOrder";
     }
     public class SpResult
     {

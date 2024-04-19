@@ -78,6 +78,28 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
+        [HttpGet("order/{orderId}")]
+        public IActionResult GetSuitableDiscount(string orderId)
+        {
+            try
+            {
+                var discounts = discountService.GetSuitableDiscounts(orderId);
+                return Ok(mapper.Map<IEnumerable<DiscountVM>>(discounts));
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateDiscount([FromBody] DiscountCreateVM discount)
         {
