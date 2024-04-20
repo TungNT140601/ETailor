@@ -24,6 +24,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? FabricMaterialId { get; set; }
         public string? StaffMakerId { get; set; }
         public int? Index { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
         public DateTime? LastestUpdatedTime { get; set; }
