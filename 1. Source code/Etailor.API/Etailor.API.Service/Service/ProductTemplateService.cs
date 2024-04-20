@@ -88,6 +88,13 @@ namespace Etailor.API.Service.Service
                 }));
                 tasks.Add(Task.Run(() =>
                 {
+                    if (productTemplate.AveDateForComplete == null || productTemplate.AveDateForComplete <= 0)
+                    {
+                        throw new UserException("Vui lòng nhập số ngày hoàn thành trung bình");
+                    }
+                }));
+                tasks.Add(Task.Run(() =>
+                {
                     if (productTemplate.Price == null || productTemplate.Price == 0)
                     {
                         throw new UserException("Vui lòng nhập giá tham khảo sản phẩm cho mẫu sản phẩm");
@@ -508,6 +515,18 @@ namespace Etailor.API.Service.Service
                 }
                 //}));
                 #endregion
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (productTemplate.AveDateForComplete == null || productTemplate.AveDateForComplete <= 0)
+                    {
+                        throw new UserException("Vui lòng nhập số ngày hoàn thành trung bình");
+                    }
+                    else
+                    {
+                        dbTemplate.AveDateForComplete = productTemplate.AveDateForComplete;
+                    }
+                }));
 
                 #region SetValue
                 tasks.Add(Task.Run(() =>
