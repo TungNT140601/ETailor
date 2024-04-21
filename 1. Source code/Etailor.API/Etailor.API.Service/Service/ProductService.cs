@@ -93,172 +93,169 @@ namespace Etailor.API.Service.Service
 
         public async Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
+            #region InitProduct
             var tasks = new List<Task>();
 
             product.Id = Ultils.GenGuidString();
 
-            if (product.ProductTemplateId == null)
+            try
             {
-                throw new UserException("Vui lòng chọn bản mẫu cho sản phẩm");
-            }
-
-            var template = productTemplateRepository.Get(product.ProductTemplateId);
-
-            if (template == null || template.IsActive == false)
-            {
-                throw new UserException("Không tìm thấy bản mẫu");
-            }
-
-            //các bộ phận của bản mẫu
-            var templateComponentTypes = componentTypeRepository.GetAll(x =>
-                x.CategoryId == template.CategoryId && x.IsActive == true
-            );
-            if (templateComponentTypes != null && templateComponentTypes.Any())
-            {
-                templateComponentTypes = templateComponentTypes.ToList();
-            }
-
-            //các kiểu bộ phận của bản mẫu
-            var templateComponents = componentRepository.GetAll(x =>
-                x.ProductTemplateId == template.Id && x.IsActive == true
-            );
-            if (templateComponents != null && templateComponents.Any())
-            {
-                templateComponents = templateComponents.ToList();
-            }
-            #region InitProduct
-
-            tasks.Add(
-                Task.Run(async () =>
+                var templateId = new SqlParameter("@ProductTemplateId", System.Data.SqlDbType.NVarChar)
                 {
-                    var saveOrderComponents = new List<ProductComponent>();
+                    Value = product.ProductTemplateId != null ? product.ProductTemplateId : DBNull.Value
+                };
 
-                    if (templateComponentTypes != null && templateComponentTypes.Any())
+                //các bộ phận của bản mẫu
+                var templateComponentTypes = componentTypeRepository.GetStoreProcedure(StoreProcName.Get_Template_Component_Types, templateId);
+                if (templateComponentTypes != null && templateComponentTypes.Any())
+                {
+                    templateComponentTypes = templateComponentTypes.ToList();
+                }
+
+                //các kiểu bộ phận của bản mẫu
+                var templateComponents = componentRepository.GetStoreProcedure(StoreProcName.Get_Template_Components, templateId);
+                if (templateComponents != null && templateComponents.Any())
+                {
+                    templateComponents = templateComponents.ToList();
+                }
+
+
+                tasks.Add(
+                    Task.Run(async () =>
                     {
-                        do
+                        var saveOrderComponents = new List<ProductComponent>();
+
+                        if (templateComponentTypes != null && templateComponentTypes.Any())
                         {
-                            saveOrderComponents = new List<ProductComponent>();
-                            var insideTasks = new List<Task>();
-                            foreach (var type in templateComponentTypes)
+                            do
                             {
-                                insideTasks.Add(
-                                    Task.Run(async () =>
-                                    {
-                                        var componentIds = string.Join(",", productComponents.Select(c => c.ComponentId));
-                                        var productComponentAdds = templateComponents.Where(x =>
-                                            x.ComponentTypeId == type.Id
-                                            && componentIds.Contains(x.Id)
-                                        );
-                                        var component = new Component();
-                                        if (
-                                            productComponentAdds != null
-                                            && productComponentAdds.Any()
-                                        )
+                                saveOrderComponents = new List<ProductComponent>();
+                                var insideTasks = new List<Task>();
+                                foreach (var type in templateComponentTypes)
+                                {
+                                    insideTasks.Add(
+                                        Task.Run(async () =>
                                         {
-                                            if (productComponentAdds.Count() > 1)
+                                            var componentIds = string.Join(",", productComponents.Select(c => c.ComponentId));
+                                            var productComponentAdds = templateComponents.Where(x =>
+                                                x.ComponentTypeId == type.Id
+                                                && componentIds.Contains(x.Id)
+                                            );
+                                            var component = new Component();
+                                            if (
+                                                productComponentAdds != null
+                                                && productComponentAdds.Any()
+                                            )
                                             {
-                                                throw new UserException(
-                                                    "Chỉ được chọn 1 kiểu cho 1 bộ phận"
+                                                if (productComponentAdds.Count() > 1)
+                                                {
+                                                    throw new UserException(
+                                                        "Chỉ được chọn 1 kiểu cho 1 bộ phận"
+                                                    );
+                                                }
+                                                else
+                                                {
+                                                    component = productComponentAdds.First();
+                                                }
+                                            }
+                                            else
+                                            {
+                                                component = templateComponents.FirstOrDefault(x =>
+                                                    x.ComponentTypeId == type.Id
+                                                    && x.Default == true
+                                                );
+                                            }
+                                            if (component != null)
+                                            {
+                                                var productComponent =
+                                                    productComponents.FirstOrDefault(x =>
+                                                        x.ComponentId == component.Id
+                                                    );
+                                                if (
+                                                    productComponent != null
+                                                    && !string.IsNullOrEmpty(
+                                                        productComponent.NoteImage
+                                                    )
+                                                )
+                                                {
+                                                    var listStringImage = JsonConvert.DeserializeObject<List<string>>(productComponent.NoteImage);
+                                                    var listImage = new List<string>();
+                                                    if (listStringImage != null && listStringImage.Count > 0)
+                                                    {
+                                                        var insideTask1s = new List<Task>();
+                                                        foreach (var item in listStringImage)
+                                                        {
+                                                            insideTask1s.Add(
+                                                                Task.Run(async () =>
+                                                                {
+                                                                    var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                                    if (!string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
+                                                                    {
+                                                                        listImage.Add(
+                                                                            await Ultils.UploadImageBase64(
+                                                                                wwwroot,
+                                                                                $"Product/{product.Id}/Component/{component.Id}",
+                                                                                image.Base64String,
+                                                                                image.FileName,
+                                                                                image.ContentType,
+                                                                                null
+                                                                            )
+                                                                        );
+                                                                    }
+                                                                })
+                                                            );
+                                                        }
+                                                        await Task.WhenAll(insideTask1s);
+
+                                                        productComponent.NoteImage =
+                                                            JsonConvert.SerializeObject(listImage);
+                                                    }
+                                                }
+                                                saveOrderComponents.Add(
+                                                    new ProductComponent()
+                                                    {
+                                                        ComponentId = component.Id,
+                                                        Id = Ultils.GenGuidString(),
+                                                        LastestUpdatedTime =
+                                                            DateTime.UtcNow.AddHours(7),
+                                                        Name = component.Name,
+                                                        Image = "",
+                                                        ProductStageId = null,
+                                                        Note = productComponent?.Note,
+                                                        NoteImage = productComponent?.NoteImage
+                                                    }
                                                 );
                                             }
                                             else
                                             {
-                                                component = productComponentAdds.First();
-                                            }
-                                        }
-                                        else
-                                        {
-                                            component = templateComponents.FirstOrDefault(x =>
-                                                x.ComponentTypeId == type.Id
-                                                && x.Default == true
-                                            );
-                                        }
-                                        if (component != null)
-                                        {
-                                            var productComponent =
-                                                productComponents.FirstOrDefault(x =>
-                                                    x.ComponentId == component.Id
+                                                throw new UserException(
+                                                    $"Không tìm thấy kiểu bộ phận: {type.Name}"
                                                 );
-                                            if (
-                                                productComponent != null
-                                                && !string.IsNullOrEmpty(
-                                                    productComponent.NoteImage
-                                                )
-                                            )
-                                            {
-                                                var listStringImage = JsonConvert.DeserializeObject<List<string>>(productComponent.NoteImage);
-                                                var listImage = new List<string>();
-                                                if (listStringImage != null && listStringImage.Count > 0)
-                                                {
-                                                    var insideTask1s = new List<Task>();
-                                                    foreach (var item in listStringImage)
-                                                    {
-                                                        insideTask1s.Add(
-                                                            Task.Run(async () =>
-                                                            {
-                                                                var image = JsonConvert.DeserializeObject<FileDTO>(item);
-                                                                if (!string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
-                                                                {
-                                                                    listImage.Add(
-                                                                        await Ultils.UploadImageBase64(
-                                                                            wwwroot,
-                                                                            $"Product/{product.Id}/Component/{component.Id}",
-                                                                            image.Base64String,
-                                                                            image.FileName,
-                                                                            image.ContentType,
-                                                                            null
-                                                                        )
-                                                                    );
-                                                                }
-                                                            })
-                                                        );
-                                                    }
-                                                    await Task.WhenAll(insideTask1s);
-
-                                                    productComponent.NoteImage =
-                                                        JsonConvert.SerializeObject(listImage);
-                                                }
                                             }
-                                            saveOrderComponents.Add(
-                                                new ProductComponent()
-                                                {
-                                                    ComponentId = component.Id,
-                                                    Id = Ultils.GenGuidString(),
-                                                    LastestUpdatedTime =
-                                                        DateTime.UtcNow.AddHours(7),
-                                                    Name = component.Name,
-                                                    Image = "",
-                                                    ProductStageId = null,
-                                                    Note = productComponent?.Note,
-                                                    NoteImage = productComponent?.NoteImage
-                                                }
-                                            );
-                                        }
-                                        else
-                                        {
-                                            throw new UserException(
-                                                $"Không tìm thấy kiểu bộ phận: {type.Name}"
-                                            );
-                                        }
-                                    })
-                                );
-                            }
-                            await Task.WhenAll(insideTasks);
-                        } while (saveOrderComponents.Count < templateComponentTypes.Count());
-                    }
-                    else
-                    {
-                        throw new UserException("Không tìm thấy kiểu bộ phận");
-                    }
+                                        })
+                                    );
+                                }
+                                await Task.WhenAll(insideTasks);
+                            } while (saveOrderComponents.Count < templateComponentTypes.Count());
+                        }
+                        else
+                        {
+                            throw new UserException("Không tìm thấy kiểu bộ phận");
+                        }
 
-                    product.SaveOrderComponents = JsonConvert.SerializeObject(
-                        saveOrderComponents
-                    );
-                })
-            );
+                        product.SaveOrderComponents = JsonConvert.SerializeObject(
+                            saveOrderComponents
+                        );
+                    })
+                );
+
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception ex)
+            {
+                throw new UserException(ex.Message);
+            }
             #endregion
-
-            await Task.WhenAll(tasks);
 
             #region SetupProcParam
             var orderIdParam = new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar)
@@ -332,910 +329,483 @@ namespace Etailor.API.Service.Service
 
         public async Task<string> UpdateProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
-            var dbOrder = orderRepository.Get(orderId);
-            if (dbOrder != null)
-            {
-                if (dbOrder.Status >= 2)
-                {
-                    throw new UserException("Đơn hàng đã duyệt. Không thể chỉnh sửa");
-                }
-                else
-                {
-                    var dbProduct = productRepository.Get(product.Id);
-                    if (dbProduct != null && dbProduct.IsActive == true)
-                    {
-                        if (dbProduct.Status >= 2)
-                        {
-                            throw new UserException(
-                                "Sản phẩm trong giai đoạn thực hiện. Không thể chỉnh sửa"
-                            );
-                        }
-                        else
-                        {
-                            if (product.ProductTemplateId != dbProduct.ProductTemplateId)
-                            {
-                                throw new UserException("Không thể thay đổi bản mẫu của sản phẩm");
-                            }
-                            else
-                            {
-                                #region GetData
-                                var tasks = new List<Task>();
-                                //bản mẫu
-                                var template = productTemplateRepository.Get(
-                                    product.ProductTemplateId
-                                );
+            throw new UserException("Nhắc tk Tùng sửa cái proc UpdateProduct lại");
 
-                                // các bộ phận của bản mẫu
-                                var templateComponentTypes = componentTypeRepository.GetAll(x =>
-                                    x.CategoryId == template.CategoryId && x.IsActive == true
-                                );
+            var dbProduct = productRepository.Get(product.Id);
+            if (dbProduct == null)
+            {
+                throw new UserException("Không tìm thấy sản phẩm");
+            }
+
+            var tasks = new List<Task>();
+            try
+            {
+
+                var templateId = new SqlParameter("@ProductTemplateId", System.Data.SqlDbType.NVarChar)
+                {
+                    Value = product.ProductTemplateId != null ? product.ProductTemplateId : DBNull.Value
+                };
+
+                //các bộ phận của bản mẫu
+                var templateComponentTypes = componentTypeRepository.GetStoreProcedure(StoreProcName.Get_Template_Component_Types, templateId);
+                if (templateComponentTypes != null && templateComponentTypes.Any())
+                {
+                    templateComponentTypes = templateComponentTypes.ToList();
+                }
+
+                //các kiểu bộ phận của bản mẫu
+                var templateComponents = componentRepository.GetStoreProcedure(StoreProcName.Get_Template_Components, templateId);
+                if (templateComponents != null && templateComponents.Any())
+                {
+                    templateComponents = templateComponents.ToList();
+                }
+
+                tasks.Add(
+                    Task.Run(async () =>
+                    {
+                        if (!string.IsNullOrEmpty(dbProduct.SaveOrderComponents))
+                        {
+                            var newSaveOrderComponents = new List<ProductComponent>();
+                            var saveOrderComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(dbProduct.SaveOrderComponents);
+
+                            if (saveOrderComponents != null && saveOrderComponents.Any())
+                            {
                                 if (templateComponentTypes != null && templateComponentTypes.Any())
                                 {
-                                    templateComponentTypes = templateComponentTypes.ToList();
-                                }
-                                else
-                                {
-                                    throw new UserException("Không tìm thấy bộ phận của bản mẫu");
-                                }
+                                    foreach (var templateComponentType in templateComponentTypes)
+                                    {
+                                        var components = templateComponents.Where(x => x.ComponentTypeId == templateComponentType.Id);
+                                        if (components != null)
+                                        {
+                                            var saveOrderComponent = saveOrderComponents.FirstOrDefault(x => components.Select(c => c.Id).Contains(x.ComponentId));
+                                            var newOrderComponent =
+                                                productComponents.FirstOrDefault(x => components.Select(c => c.Id).Contains(x.ComponentId));
+                                            if (saveOrderComponent == null && newOrderComponent == null)
+                                            {
+                                                var defaultComponent = components.FirstOrDefault(x => x.Default == true);
 
-                                // các kiểu bộ phận của bản mẫu
-                                var templateComponents = componentRepository.GetAll(x =>
-                                    x.ProductTemplateId == template.Id && x.IsActive == true
-                                );
-                                if (templateComponents != null && templateComponents.Any())
-                                {
-                                    templateComponents = templateComponents.ToList();
+                                                if (defaultComponent == null)
+                                                {
+                                                    defaultComponent = components.First();
+                                                }
+
+                                                newSaveOrderComponents.Add(new ProductComponent()
+                                                {
+                                                    Id = Ultils.GenGuidString(),
+                                                    ComponentId = defaultComponent.Id,
+                                                    Name = defaultComponent.Name,
+                                                    Image = "",
+                                                    ProductStageId = null,
+                                                    LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                                    Note = null,
+                                                    NoteImage = null
+                                                }
+                                                );
+                                            }
+                                            else if (saveOrderComponent != null && newOrderComponent == null)
+                                            {
+                                                newSaveOrderComponents.Add(saveOrderComponent);
+                                            }
+                                            else if (saveOrderComponent == null && newOrderComponent != null)
+                                            {
+                                                var selectedComponent = components.FirstOrDefault(x => x.Id == newOrderComponent.ComponentId);
+                                                if (selectedComponent != null)
+                                                {
+                                                    if (!string.IsNullOrEmpty(newOrderComponent.NoteImage)
+                                                    )
+                                                    {
+                                                        var listStringImage = JsonConvert.DeserializeObject<List<string>>(newOrderComponent.NoteImage);
+                                                        var listImage = new List<string>();
+                                                        if (listStringImage != null && listStringImage.Count > 0)
+                                                        {
+                                                            var insideTask1s = new List<Task>();
+                                                            foreach (var item in listStringImage)
+                                                            {
+                                                                insideTask1s.Add(Task.Run(async () =>
+                                                                {
+                                                                    var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                                    listImage.Add(await Ultils.UploadImageBase64(wwwroot, $"Product/{product.Id}/Component/{selectedComponent.Id}", image.Base64String, image.FileName, image.ContentType, null));
+                                                                }));
+                                                            }
+                                                            await Task.WhenAll(insideTask1s);
+
+                                                            newOrderComponent.NoteImage = JsonConvert.SerializeObject(listImage);
+                                                        }
+                                                    }
+                                                    newSaveOrderComponents.Add(new ProductComponent()
+                                                    {
+                                                        Id = Ultils.GenGuidString(),
+                                                        ComponentId = selectedComponent.Id,
+                                                        Name = selectedComponent.Name,
+                                                        Image = "",
+                                                        ProductStageId = null,
+                                                        LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                                        Note = newOrderComponent.Note,
+                                                        NoteImage = newOrderComponent.NoteImage
+                                                    });
+                                                }
+                                                else
+                                                {
+                                                    throw new UserException($"Không tìm thấy kiểu bộ phận: {templateComponentType.Name}");
+                                                }
+                                            }
+                                            else if (saveOrderComponent != null && newOrderComponent != null)
+                                            {
+                                                var selectedComponent = components.FirstOrDefault(x => x.Id == newOrderComponent.ComponentId);
+                                                if (selectedComponent != null)
+                                                {
+                                                    if (saveOrderComponent.ComponentId != selectedComponent.Id)
+                                                    {
+                                                        saveOrderComponent.ComponentId = selectedComponent.Id;
+                                                        saveOrderComponent.Name = selectedComponent.Name;
+                                                    }
+                                                    saveOrderComponent.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                                    saveOrderComponent.Note = newOrderComponent.Note;
+
+                                                    if (!string.IsNullOrEmpty(newOrderComponent.NoteImage))
+                                                    {
+                                                        var listImage = new List<string>();
+
+                                                        var listStringImage = JsonConvert.DeserializeObject<List<string>>(newOrderComponent.NoteImage);
+                                                        if (listStringImage != null && listStringImage.Any())
+                                                        {
+                                                            var listOldImageUrl = listStringImage.Where(x => x.Contains("http")).ToList();
+                                                            if (listOldImageUrl != null && listOldImageUrl.Count > 0)
+                                                            {
+                                                                if (!string.IsNullOrEmpty(saveOrderComponent.NoteImage))
+                                                                {
+                                                                    var listOldImage = JsonConvert.DeserializeObject<List<string>>(saveOrderComponent.NoteImage);
+                                                                    if (listOldImage != null && listOldImage.Count > 0)
+                                                                    {
+                                                                        var checkOldImageTasks = new List<Task>();
+                                                                        foreach (var item in listOldImage)
+                                                                        {
+                                                                            checkOldImageTasks.Add(Task.Run(() =>
+                                                                            {
+                                                                                var imageObject = JsonConvert.DeserializeObject<ImageFileDTO>(item);
+                                                                                if (listOldImageUrl.Contains(imageObject.ObjectUrl))
+                                                                                {
+                                                                                    listImage.Add(item);
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    Ultils.DeleteObject(imageObject.ObjectName);
+                                                                                }
+                                                                            }));
+                                                                        }
+                                                                        await Task.WhenAll(checkOldImageTasks);
+                                                                    }
+                                                                }
+                                                            }
+
+                                                            var listNewImageFile = listStringImage.Where(x => !x.Contains("http")).ToList();
+                                                            if (listNewImageFile != null && listNewImageFile.Count > 0)
+                                                            {
+                                                                var insideTask1s = new List<Task>();
+                                                                foreach (var item in listNewImageFile)
+                                                                {
+                                                                    insideTask1s.Add(Task.Run(async () =>
+                                                                    {
+                                                                        var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                                        listImage.Add(await Ultils.UploadImageBase64(
+                                                                                wwwroot,
+                                                                                $"Product/{product.Id}/Component/{selectedComponent.Id}",
+                                                                                image.Base64String,
+                                                                                image.FileName,
+                                                                                image.ContentType,
+                                                                                null
+                                                                            )
+                                                                        );
+                                                                    }));
+                                                                }
+                                                                await Task.WhenAll(insideTask1s);
+                                                            }
+                                                        }
+                                                        if (listImage.Count > 0)
+                                                        {
+                                                            saveOrderComponent.NoteImage = JsonConvert.SerializeObject(listImage);
+                                                        }
+                                                        else
+                                                        {
+                                                            saveOrderComponent.NoteImage = null;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        if (!string.IsNullOrEmpty(saveOrderComponent.NoteImage))
+                                                        {
+                                                            var listOldImage = JsonConvert.DeserializeObject<List<string>>(saveOrderComponent.NoteImage);
+                                                            if (listOldImage != null && listOldImage.Count > 0)
+                                                            {
+                                                                var deleteOldImageTasks = new List<Task>();
+                                                                foreach (var item in listOldImage)
+                                                                {
+                                                                    deleteOldImageTasks.Add(Task.Run(() =>
+                                                                    {
+                                                                        var imageObject =
+                                                                            JsonConvert.DeserializeObject<ImageFileDTO>(
+                                                                                item
+                                                                            );
+                                                                        Ultils.DeleteObject(
+                                                                            imageObject.ObjectName
+                                                                        );
+                                                                    }));
+                                                                }
+                                                                await Task.WhenAll(
+                                                                    deleteOldImageTasks
+                                                                );
+                                                            }
+                                                        }
+                                                        saveOrderComponent.NoteImage =
+                                                            null;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    throw new UserException(
+                                                        $"Không tìm thấy kiểu bộ phận: {templateComponentType.Name}"
+                                                    );
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            throw new UserException(
+                                                $"Không tìm thấy kiểu bộ phận: {templateComponentType.Name}"
+                                            );
+                                        }
+                                    }
                                 }
                                 else
                                 {
                                     throw new UserException(
-                                        "Không tìm thấy kiểu bộ phận của bản mẫu"
+                                        "Không tìm thấy kiểu bộ phận"
                                     );
                                 }
 
-                                var material = materialRepository.Get(materialId);
+                                dbProduct.SaveOrderComponents =
+                                    JsonConvert.SerializeObject(
+                                        saveOrderComponents
+                                    );
+                            }
+                            else
+                            {
+                                saveOrderComponents = new List<ProductComponent>();
 
-                                var materialCategory = materialCategoryRepository.Get(
-                                    material != null ? material.MaterialCategoryId : null
-                                );
-
-                                var sameProductMaterials = productRepository.GetAll(x =>
-                                    x.OrderId == orderId
-                                    && x.FabricMaterialId == materialId
-                                    && x.IsActive == true
-                                    && x.Status > 0
-                                );
-                                if (sameProductMaterials != null && sameProductMaterials.Any())
+                                if (
+                                    templateComponentTypes != null
+                                    && templateComponentTypes.Any()
+                                )
                                 {
-                                    sameProductMaterials = sameProductMaterials.ToList();
-                                }
-                                var sameProductMaterialdbs = productRepository.GetAll(x =>
-                                    x.OrderId == orderId
-                                    && x.FabricMaterialId == dbProduct.FabricMaterialId
-                                    && x.IsActive == true
-                                    && x.Status > 0
-                                );
-                                if (sameProductMaterialdbs != null && sameProductMaterialdbs.Any())
-                                {
-                                    sameProductMaterialdbs = sameProductMaterialdbs.ToList();
-                                }
-
-                                var orderMaterials = orderMaterialRepository.GetAll(x =>
-                                    x.OrderId == orderId
-                                    && (
-                                        x.MaterialId == materialId
-                                        || x.MaterialId == dbProduct.FabricMaterialId
-                                    )
-                                    && x.IsActive == true
-                                );
-                                if (orderMaterials != null && orderMaterials.Any())
-                                {
-                                    orderMaterials = orderMaterials.ToList();
-                                }
-                                var addOrderMaterial = new OrderMaterial();
-                                var updateOrderMaterial = new OrderMaterial();
-                                #endregion
-
-                                tasks.Add(
-                                    Task.Run(() =>
+                                    do
                                     {
-                                        if (product.FabricMaterialId != null && product.FabricMaterialId != dbProduct.FabricMaterialId)
+                                        saveOrderComponents =
+                                            new List<ProductComponent>();
+                                        var insideTasks = new List<Task>();
+                                        foreach (var type in templateComponentTypes)
                                         {
-                                            if (sameProductMaterialdbs == null || !sameProductMaterialdbs.Any(x => x.Id != product.Id))
-                                            {
-                                                var oldMaterial = orderMaterials.FirstOrDefault(x => x.MaterialId == dbProduct.FabricMaterialId);
-                                                if (oldMaterial != null)
+                                            insideTasks.Add(
+                                                Task.Run(async () =>
                                                 {
-                                                    if (!orderMaterialRepository.Delete(oldMaterial.Id))
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
-                                                    }
-                                                }
-
-                                                if (sameProductMaterials == null || !sameProductMaterials.Any())
-                                                {
-                                                    var orderMaterial = new OrderMaterial()
-                                                    {
-                                                        Id = Ultils.GenGuidString(),
-                                                        MaterialId = materialId,
-                                                        OrderId = orderId,
-                                                        Value = (decimal)materialQuantity,
-                                                        IsActive = true,
-                                                        CreatedTime = DateTime.UtcNow.AddHours(7),
-                                                        LastestUpdatedTime =
-                                                            DateTime.UtcNow.AddHours(7),
-                                                        IsCusMaterial = false,
-                                                        Image = null,
-                                                        InactiveTime = null
-                                                    };
-
-                                                    if (
-                                                        !orderMaterialRepository.Create(
-                                                            orderMaterial
+                                                    var componentIds = string.Join(
+                                                        ",",
+                                                        productComponents.Select(
+                                                            c => c.ComponentId
                                                         )
-                                                    )
-                                                    {
-                                                        throw new SystemsException(
-                                                            "Lỗi trong quá trình tạo order materials",
-                                                            nameof(ProductService)
-                                                        );
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    })
-                                );
-
-                                tasks.Add(
-                                    Task.Run(() =>
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(product.Name))
-                                        {
-                                            dbProduct.Name = product.Name;
-                                        }
-                                    })
-                                );
-
-                                tasks.Add(
-                                    Task.Run(() =>
-                                    {
-                                        if (!string.IsNullOrWhiteSpace(product.Note))
-                                        {
-                                            dbProduct.Note = product.Note;
-                                        }
-                                    })
-                                );
-
-                                tasks.Add(
-                                    Task.Run(() =>
-                                    {
-                                        dbProduct.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                                    })
-                                );
-
-                                //    tasks.Add(
-                                //        Task.Run(() =>
-                                //        {
-                                //            if (isCusMaterial)
-                                //            {
-                                //                dbProduct.Price = template.Price;
-                                //            }
-                                //            else
-                                //            {
-                                //                dbProduct.Price =
-                                //                    template.Price
-                                //                    + Math.Abs(
-                                //                        Math.Round(
-                                //(decimal)(
-                                //    (double)(
-                                //        materialCategory != null
-                                //            ? materialCategory.PricePerUnit
-                                //            : 0
-                                //    ) * materialQuantity
-                                //),
-                                //2
-                                //                        )
-                                //                    );
-                                //            }
-                                //        })
-                                //    );
-
-                                tasks.Add(
-                                    Task.Run(async () =>
-                                    {
-                                        if (!string.IsNullOrEmpty(dbProduct.SaveOrderComponents))
-                                        {
-                                            var newSaveOrderComponents =
-                                                new List<ProductComponent>();
-                                            var saveOrderComponents = JsonConvert.DeserializeObject<
-                                                List<ProductComponent>
-                                            >(dbProduct.SaveOrderComponents);
-
-                                            if (
-                                                saveOrderComponents != null
-                                                && saveOrderComponents.Any()
-                                            )
-                                            {
-                                                if (
-                                                    templateComponentTypes != null
-                                                    && templateComponentTypes.Any()
-                                                )
-                                                {
-                                                    foreach (
-                                                        var templateComponentType in templateComponentTypes
-                                                    )
-                                                    {
-                                                        var components = templateComponents.Where(
+                                                    );
+                                                    var productComponentAdds =
+                                                        templateComponents.Where(
                                                             x =>
                                                                 x.ComponentTypeId
-                                                                == templateComponentType.Id
+                                                                    == type.Id
+                                                                && componentIds.Contains(
+                                                                    x.Id
+                                                                )
                                                         );
-                                                        if (components != null)
+                                                    var component = new Component();
+                                                    if (
+                                                        productComponentAdds != null
+                                                        && productComponentAdds.Any()
+                                                    )
+                                                    {
+                                                        if (
+                                                            productComponentAdds.Count()
+                                                            > 1
+                                                        )
                                                         {
-                                                            var saveOrderComponent =
-                                                                saveOrderComponents.FirstOrDefault(
-                                                                    x =>
-                                                                        components
-                                                                            .Select(c => c.Id)
-                                                                            .Contains(x.ComponentId)
-                                                                );
-                                                            var newOrderComponent =
-                                                                productComponents.FirstOrDefault(
-                                                                    x =>
-                                                                        components
-                                                                            .Select(c => c.Id)
-                                                                            .Contains(x.ComponentId)
-                                                                );
-                                                            if (
-                                                                saveOrderComponent == null
-                                                                && newOrderComponent == null
-                                                            )
-                                                            {
-                                                                var defaultComponent =
-                                                                    components.FirstOrDefault(x =>
-                                                                        x.Default == true
-                                                                    );
-
-                                                                if (defaultComponent == null)
-                                                                {
-                                                                    defaultComponent =
-                                                                        components.First();
-                                                                }
-
-                                                                newSaveOrderComponents.Add(
-                                                                    new ProductComponent()
-                                                                    {
-                                                                        Id = Ultils.GenGuidString(),
-                                                                        ComponentId =
-                                                                            defaultComponent.Id,
-                                                                        Name =
-                                                                            defaultComponent.Name,
-                                                                        Image = "",
-                                                                        ProductStageId = null,
-                                                                        LastestUpdatedTime =
-                                                                            DateTime.UtcNow.AddHours(
-                                                                                7
-                                                                            ),
-                                                                        Note = null,
-                                                                        NoteImage = null
-                                                                    }
-                                                                );
-                                                            }
-                                                            else if (
-                                                                saveOrderComponent != null
-                                                                && newOrderComponent == null
-                                                            )
-                                                            {
-                                                                newSaveOrderComponents.Add(
-                                                                    saveOrderComponent
-                                                                );
-                                                            }
-                                                            else if (
-                                                                saveOrderComponent == null
-                                                                && newOrderComponent != null
-                                                            )
-                                                            {
-                                                                var selectedComponent =
-                                                                    components.FirstOrDefault(x =>
-                                                                        x.Id
-                                                                        == newOrderComponent.ComponentId
-                                                                    );
-                                                                if (selectedComponent != null)
-                                                                {
-                                                                    if (
-                                                                        !string.IsNullOrEmpty(
-                                                                            newOrderComponent.NoteImage
-                                                                        )
-                                                                    )
-                                                                    {
-                                                                        var listStringImage =
-                                                                            JsonConvert.DeserializeObject<
-                                                                                List<string>
-                                                                            >(
-                                                                                newOrderComponent.NoteImage
-                                                                            );
-                                                                        var listImage =
-                                                                            new List<string>();
-                                                                        if (
-                                                                            listStringImage != null
-                                                                            && listStringImage.Count
-                                                                                > 0
-                                                                        )
-                                                                        {
-                                                                            var insideTask1s =
-                                                                                new List<Task>();
-                                                                            foreach (
-                                                                                var item in listStringImage
-                                                                            )
-                                                                            {
-                                                                                insideTask1s.Add(
-                                                                                    Task.Run(
-                                                                                        async () =>
-                                                                                        {
-                                                                                            var image =
-                                                                                                JsonConvert.DeserializeObject<FileDTO>(
-                                                                                                    item
-                                                                                                );
-                                                                                            listImage.Add(
-                                                                                                await Ultils.UploadImageBase64(
-                                                                                                    wwwroot,
-                                                                                                    $"Product/{product.Id}/Component/{selectedComponent.Id}",
-                                                                                                    image.Base64String,
-                                                                                                    image.FileName,
-                                                                                                    image.ContentType,
-                                                                                                    null
-                                                                                                )
-                                                                                            );
-                                                                                        }
-                                                                                    )
-                                                                                );
-                                                                            }
-                                                                            await Task.WhenAll(
-                                                                                insideTask1s
-                                                                            );
-
-                                                                            newOrderComponent.NoteImage =
-                                                                                JsonConvert.SerializeObject(
-                                                                                    listImage
-                                                                                );
-                                                                        }
-                                                                    }
-                                                                    newSaveOrderComponents.Add(
-                                                                        new ProductComponent()
-                                                                        {
-                                                                            Id =
-                                                                                Ultils.GenGuidString(),
-                                                                            ComponentId =
-                                                                                selectedComponent.Id,
-                                                                            Name =
-                                                                                selectedComponent.Name,
-                                                                            Image = "",
-                                                                            ProductStageId = null,
-                                                                            LastestUpdatedTime =
-                                                                                DateTime.UtcNow.AddHours(
-                                                                                    7
-                                                                                ),
-                                                                            Note =
-                                                                                newOrderComponent.Note,
-                                                                            NoteImage =
-                                                                                newOrderComponent.NoteImage
-                                                                        }
-                                                                    );
-                                                                }
-                                                                else
-                                                                {
-                                                                    throw new UserException(
-                                                                        $"Không tìm thấy kiểu bộ phận: {templateComponentType.Name}"
-                                                                    );
-                                                                }
-                                                            }
-                                                            else if (
-                                                                saveOrderComponent != null
-                                                                && newOrderComponent != null
-                                                            )
-                                                            {
-                                                                var selectedComponent =
-                                                                    components.FirstOrDefault(x =>
-                                                                        x.Id
-                                                                        == newOrderComponent.ComponentId
-                                                                    );
-                                                                if (selectedComponent != null)
-                                                                {
-                                                                    if (
-                                                                        saveOrderComponent.ComponentId
-                                                                        != selectedComponent.Id
-                                                                    )
-                                                                    {
-                                                                        saveOrderComponent.ComponentId =
-                                                                            selectedComponent.Id;
-                                                                        saveOrderComponent.Name =
-                                                                            selectedComponent.Name;
-                                                                    }
-                                                                    saveOrderComponent.LastestUpdatedTime =
-                                                                        DateTime.UtcNow.AddHours(7);
-                                                                    saveOrderComponent.Note =
-                                                                        newOrderComponent.Note;
-
-                                                                    if (
-                                                                        !string.IsNullOrEmpty(
-                                                                            newOrderComponent.NoteImage
-                                                                        )
-                                                                    )
-                                                                    {
-                                                                        var listImage =
-                                                                            new List<string>();
-
-                                                                        var listStringImage =
-                                                                            JsonConvert.DeserializeObject<
-                                                                                List<string>
-                                                                            >(
-                                                                                newOrderComponent.NoteImage
-                                                                            );
-                                                                        if (
-                                                                            listStringImage != null
-                                                                            && listStringImage.Any()
-                                                                        )
-                                                                        {
-                                                                            var listOldImageUrl =
-                                                                                listStringImage
-                                                                                    .Where(x =>
-                                                                                        x.Contains(
-                                                                                            "http"
-                                                                                        )
-                                                                                    )
-                                                                                    .ToList();
-                                                                            if (
-                                                                                listOldImageUrl
-                                                                                    != null
-                                                                                && listOldImageUrl.Count
-                                                                                    > 0
-                                                                            )
-                                                                            {
-                                                                                if (
-                                                                                    !string.IsNullOrEmpty(
-                                                                                        saveOrderComponent.NoteImage
-                                                                                    )
-                                                                                )
-                                                                                {
-                                                                                    var listOldImage =
-                                                                                        JsonConvert.DeserializeObject<
-                                                                                            List<string>
-                                                                                        >(
-                                                                                            saveOrderComponent.NoteImage
-                                                                                        );
-                                                                                    if (
-                                                                                        listOldImage
-                                                                                            != null
-                                                                                        && listOldImage.Count
-                                                                                            > 0
-                                                                                    )
-                                                                                    {
-                                                                                        var checkOldImageTasks =
-                                                                                            new List<Task>();
-                                                                                        foreach (
-                                                                                            var item in listOldImage
-                                                                                        )
-                                                                                        {
-                                                                                            checkOldImageTasks.Add(
-                                                                                                Task.Run(
-                                                                                                    () =>
-                                                                                                    {
-                                                                                                        var imageObject =
-                                                                                                            JsonConvert.DeserializeObject<ImageFileDTO>(
-                                                                                                                item
-                                                                                                            );
-                                                                                                        if (
-                                                                                                            listOldImageUrl.Contains(
-                                                                                                                imageObject.ObjectUrl
-                                                                                                            )
-                                                                                                        )
-                                                                                                        {
-                                                                                                            listImage.Add(
-                                                                                                                item
-                                                                                                            );
-                                                                                                        }
-                                                                                                        else
-                                                                                                        {
-                                                                                                            Ultils.DeleteObject(
-                                                                                                                imageObject.ObjectName
-                                                                                                            );
-                                                                                                        }
-                                                                                                    }
-                                                                                                )
-                                                                                            );
-                                                                                        }
-                                                                                        await Task.WhenAll(
-                                                                                            checkOldImageTasks
-                                                                                        );
-                                                                                    }
-                                                                                }
-                                                                            }
-
-                                                                            var listNewImageFile =
-                                                                                listStringImage
-                                                                                    .Where(x =>
-                                                                                        !x.Contains(
-                                                                                            "http"
-                                                                                        )
-                                                                                    )
-                                                                                    .ToList();
-                                                                            if (
-                                                                                listNewImageFile
-                                                                                    != null
-                                                                                && listNewImageFile.Count
-                                                                                    > 0
-                                                                            )
-                                                                            {
-                                                                                var insideTask1s =
-                                                                                    new List<Task>();
-                                                                                foreach (
-                                                                                    var item in listNewImageFile
-                                                                                )
-                                                                                {
-                                                                                    insideTask1s.Add(
-                                                                                        Task.Run(
-                                                                                            async () =>
-                                                                                            {
-                                                                                                var image =
-                                                                                                    JsonConvert.DeserializeObject<FileDTO>(
-                                                                                                        item
-                                                                                                    );
-                                                                                                listImage.Add(
-                                                                                                    await Ultils.UploadImageBase64(
-                                                                                                        wwwroot,
-                                                                                                        $"Product/{product.Id}/Component/{selectedComponent.Id}",
-                                                                                                        image.Base64String,
-                                                                                                        image.FileName,
-                                                                                                        image.ContentType,
-                                                                                                        null
-                                                                                                    )
-                                                                                                );
-                                                                                            }
-                                                                                        )
-                                                                                    );
-                                                                                }
-                                                                                await Task.WhenAll(
-                                                                                    insideTask1s
-                                                                                );
-                                                                            }
-                                                                        }
-                                                                        if (listImage.Count > 0)
-                                                                        {
-                                                                            saveOrderComponent.NoteImage =
-                                                                                JsonConvert.SerializeObject(
-                                                                                    listImage
-                                                                                );
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            saveOrderComponent.NoteImage =
-                                                                                null;
-                                                                        }
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        if (
-                                                                            !string.IsNullOrEmpty(
-                                                                                saveOrderComponent.NoteImage
-                                                                            )
-                                                                        )
-                                                                        {
-                                                                            var listOldImage =
-                                                                                JsonConvert.DeserializeObject<
-                                                                                    List<string>
-                                                                                >(
-                                                                                    saveOrderComponent.NoteImage
-                                                                                );
-                                                                            if (
-                                                                                listOldImage != null
-                                                                                && listOldImage.Count
-                                                                                    > 0
-                                                                            )
-                                                                            {
-                                                                                var deleteOldImageTasks =
-                                                                                    new List<Task>();
-                                                                                foreach (
-                                                                                    var item in listOldImage
-                                                                                )
-                                                                                {
-                                                                                    deleteOldImageTasks.Add(
-                                                                                        Task.Run(
-                                                                                            () =>
-                                                                                            {
-                                                                                                var imageObject =
-                                                                                                    JsonConvert.DeserializeObject<ImageFileDTO>(
-                                                                                                        item
-                                                                                                    );
-                                                                                                Ultils.DeleteObject(
-                                                                                                    imageObject.ObjectName
-                                                                                                );
-                                                                                            }
-                                                                                        )
-                                                                                    );
-                                                                                }
-                                                                                await Task.WhenAll(
-                                                                                    deleteOldImageTasks
-                                                                                );
-                                                                            }
-                                                                        }
-                                                                        saveOrderComponent.NoteImage =
-                                                                            null;
-                                                                    }
-                                                                }
-                                                                else
-                                                                {
-                                                                    throw new UserException(
-                                                                        $"Không tìm thấy kiểu bộ phận: {templateComponentType.Name}"
-                                                                    );
-                                                                }
-                                                            }
+                                                            throw new UserException(
+                                                                "Chỉ được chọn 1 kiểu cho 1 bộ phận"
+                                                            );
                                                         }
                                                         else
                                                         {
-                                                            throw new UserException(
-                                                                $"Không tìm thấy kiểu bộ phận: {templateComponentType.Name}"
-                                                            );
+                                                            component =
+                                                                productComponentAdds.First();
                                                         }
                                                     }
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException(
-                                                        "Không tìm thấy kiểu bộ phận"
-                                                    );
-                                                }
-
-                                                dbProduct.SaveOrderComponents =
-                                                    JsonConvert.SerializeObject(
-                                                        saveOrderComponents
-                                                    );
-                                            }
-                                            else
-                                            {
-                                                saveOrderComponents = new List<ProductComponent>();
-
-                                                if (
-                                                    templateComponentTypes != null
-                                                    && templateComponentTypes.Any()
-                                                )
-                                                {
-                                                    do
+                                                    else
                                                     {
-                                                        saveOrderComponents =
-                                                            new List<ProductComponent>();
-                                                        var insideTasks = new List<Task>();
-                                                        foreach (var type in templateComponentTypes)
+                                                        component =
+                                                            templateComponents.FirstOrDefault(
+                                                                x =>
+                                                                    x.ComponentTypeId
+                                                                        == type.Id
+                                                                    && x.Default
+                                                                        == true
+                                                            );
+                                                    }
+
+                                                    if (component != null)
+                                                    {
+                                                        var productComponent =
+                                                            productComponents.FirstOrDefault(
+                                                                x =>
+                                                                    x.ComponentId
+                                                                    == component.Id
+                                                            );
+                                                        if (
+                                                            productComponent != null
+                                                            && !string.IsNullOrEmpty(
+                                                                productComponent.NoteImage
+                                                            )
+                                                        )
                                                         {
-                                                            insideTasks.Add(
-                                                                Task.Run(async () =>
+                                                            var listStringImage =
+                                                                JsonConvert.DeserializeObject<
+                                                                    List<string>
+                                                                >(
+                                                                    productComponent.NoteImage
+                                                                );
+                                                            var listImage =
+                                                                new List<string>();
+                                                            if (
+                                                                listStringImage
+                                                                    != null
+                                                                && listStringImage.Count
+                                                                    > 0
+                                                            )
+                                                            {
+                                                                var insideTask1s =
+                                                                    new List<Task>();
+                                                                foreach (
+                                                                    var item in listStringImage
+                                                                )
                                                                 {
-                                                                    var componentIds = string.Join(
-                                                                        ",",
-                                                                        productComponents.Select(
-                                                                            c => c.ComponentId
+                                                                    insideTask1s.Add(
+                                                                        Task.Run(
+                                                                            async () =>
+                                                                            {
+                                                                                var image =
+                                                                                    JsonConvert.DeserializeObject<FileDTO>(
+                                                                                        item
+                                                                                    );
+                                                                                listImage.Add(
+                                                                                    await Ultils.UploadImageBase64(
+                                                                                        wwwroot,
+                                                                                        $"Product/{product.Id}/Component/{component.Id}",
+                                                                                        image.Base64String,
+                                                                                        image.FileName,
+                                                                                        image.ContentType,
+                                                                                        null
+                                                                                    )
+                                                                                );
+                                                                            }
                                                                         )
                                                                     );
-                                                                    var productComponentAdds =
-                                                                        templateComponents.Where(
-                                                                            x =>
-                                                                                x.ComponentTypeId
-                                                                                    == type.Id
-                                                                                && componentIds.Contains(
-                                                                                    x.Id
-                                                                                )
-                                                                        );
-                                                                    var component = new Component();
-                                                                    if (
-                                                                        productComponentAdds != null
-                                                                        && productComponentAdds.Any()
-                                                                    )
-                                                                    {
-                                                                        if (
-                                                                            productComponentAdds.Count()
-                                                                            > 1
-                                                                        )
-                                                                        {
-                                                                            throw new UserException(
-                                                                                "Chỉ được chọn 1 kiểu cho 1 bộ phận"
-                                                                            );
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            component =
-                                                                                productComponentAdds.First();
-                                                                        }
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        component =
-                                                                            templateComponents.FirstOrDefault(
-                                                                                x =>
-                                                                                    x.ComponentTypeId
-                                                                                        == type.Id
-                                                                                    && x.Default
-                                                                                        == true
-                                                                            );
-                                                                    }
+                                                                }
+                                                                await Task.WhenAll(
+                                                                    insideTask1s
+                                                                );
 
-                                                                    if (component != null)
-                                                                    {
-                                                                        var productComponent =
-                                                                            productComponents.FirstOrDefault(
-                                                                                x =>
-                                                                                    x.ComponentId
-                                                                                    == component.Id
-                                                                            );
-                                                                        if (
-                                                                            productComponent != null
-                                                                            && !string.IsNullOrEmpty(
-                                                                                productComponent.NoteImage
-                                                                            )
-                                                                        )
-                                                                        {
-                                                                            var listStringImage =
-                                                                                JsonConvert.DeserializeObject<
-                                                                                    List<string>
-                                                                                >(
-                                                                                    productComponent.NoteImage
-                                                                                );
-                                                                            var listImage =
-                                                                                new List<string>();
-                                                                            if (
-                                                                                listStringImage
-                                                                                    != null
-                                                                                && listStringImage.Count
-                                                                                    > 0
-                                                                            )
-                                                                            {
-                                                                                var insideTask1s =
-                                                                                    new List<Task>();
-                                                                                foreach (
-                                                                                    var item in listStringImage
-                                                                                )
-                                                                                {
-                                                                                    insideTask1s.Add(
-                                                                                        Task.Run(
-                                                                                            async () =>
-                                                                                            {
-                                                                                                var image =
-                                                                                                    JsonConvert.DeserializeObject<FileDTO>(
-                                                                                                        item
-                                                                                                    );
-                                                                                                listImage.Add(
-                                                                                                    await Ultils.UploadImageBase64(
-                                                                                                        wwwroot,
-                                                                                                        $"Product/{product.Id}/Component/{component.Id}",
-                                                                                                        image.Base64String,
-                                                                                                        image.FileName,
-                                                                                                        image.ContentType,
-                                                                                                        null
-                                                                                                    )
-                                                                                                );
-                                                                                            }
-                                                                                        )
-                                                                                    );
-                                                                                }
-                                                                                await Task.WhenAll(
-                                                                                    insideTask1s
-                                                                                );
-
-                                                                                productComponent.NoteImage =
-                                                                                    JsonConvert.SerializeObject(
-                                                                                        listImage
-                                                                                    );
-                                                                            }
-                                                                        }
-                                                                        saveOrderComponents.Add(
-                                                                            new ProductComponent()
-                                                                            {
-                                                                                ComponentId =
-                                                                                    component.Id,
-                                                                                Id =
-                                                                                    Ultils.GenGuidString(),
-                                                                                LastestUpdatedTime =
-                                                                                    DateTime.UtcNow.AddHours(
-                                                                                        7
-                                                                                    ),
-                                                                                Name =
-                                                                                    component.Name,
-                                                                                Image = "",
-                                                                                ProductStageId =
-                                                                                    null,
-                                                                                Note =
-                                                                                    productComponent?.Note,
-                                                                                NoteImage =
-                                                                                    productComponent?.NoteImage
-                                                                            }
-                                                                        );
-                                                                    }
-                                                                    else
-                                                                    {
-                                                                        throw new UserException(
-                                                                            $"Không tìm thấy kiểu bộ phận: {type.Name}"
-                                                                        );
-                                                                    }
-                                                                })
-                                                            );
+                                                                productComponent.NoteImage =
+                                                                    JsonConvert.SerializeObject(
+                                                                        listImage
+                                                                    );
+                                                            }
                                                         }
-                                                        await Task.WhenAll(insideTasks);
-                                                    } while (
-                                                        saveOrderComponents.Count
-                                                        != templateComponentTypes.Count()
-                                                    );
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException(
-                                                        "Không tìm thấy kiểu bộ phận"
-                                                    );
-                                                }
-
-                                                dbProduct.SaveOrderComponents =
-                                                    JsonConvert.SerializeObject(
-                                                        saveOrderComponents
-                                                    );
-                                            }
-                                        }
-                                    })
-                                );
-
-                                await Task.WhenAll(tasks);
-
-                                if (productRepository.Update(dbProduct.Id, dbProduct))
-                                {
-                                    if (await orderService.CheckOrderPaid(dbProduct.OrderId))
-                                    {
-                                        if (
-                                            await productBodySizeService.UpdateProductBodySize(
-                                                product.Id,
-                                                template.Id,
-                                                profileId,
-                                                dbOrder.CustomerId
-                                            )
-                                        )
-                                        {
-                                            product.ReferenceProfileBodyId = profileId;
-
-                                            return productRepository.Update(dbProduct.Id, dbProduct)
-                                                ? dbProduct.Id
-                                                : null;
-                                        }
-                                        else
-                                        {
-                                            throw new SystemsException(
-                                                $"Error in {nameof(ProductService)}: Lỗi trong quá trình tạo số đo sản phẩm",
-                                                nameof(ProductService)
+                                                        saveOrderComponents.Add(
+                                                            new ProductComponent()
+                                                            {
+                                                                ComponentId =
+                                                                    component.Id,
+                                                                Id =
+                                                                    Ultils.GenGuidString(),
+                                                                LastestUpdatedTime =
+                                                                    DateTime.UtcNow.AddHours(
+                                                                        7
+                                                                    ),
+                                                                Name =
+                                                                    component.Name,
+                                                                Image = "",
+                                                                ProductStageId =
+                                                                    null,
+                                                                Note =
+                                                                    productComponent?.Note,
+                                                                NoteImage =
+                                                                    productComponent?.NoteImage
+                                                            }
+                                                        );
+                                                    }
+                                                    else
+                                                    {
+                                                        throw new UserException(
+                                                            $"Không tìm thấy kiểu bộ phận: {type.Name}"
+                                                        );
+                                                    }
+                                                })
                                             );
                                         }
-                                    }
-                                    else
-                                    {
-                                        throw new SystemsException(
-                                            $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn",
-                                            nameof(ProductService)
-                                        );
-                                    }
+                                        await Task.WhenAll(insideTasks);
+                                    } while (
+                                        saveOrderComponents.Count
+                                        != templateComponentTypes.Count()
+                                    );
                                 }
                                 else
                                 {
-                                    throw new SystemsException(
-                                        $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm",
-                                        nameof(ProductService)
+                                    throw new UserException(
+                                        "Không tìm thấy kiểu bộ phận"
                                     );
                                 }
-                                return null;
+
+                                dbProduct.SaveOrderComponents =
+                                    JsonConvert.SerializeObject(
+                                        saveOrderComponents
+                                    );
                             }
                         }
-                    }
-                    else
-                    {
-                        throw new UserException("Không tìm thấy sản phẩm");
-                    }
+                    })
+                );
+
+                await Task.WhenAll(tasks);
+
+
+            }
+            catch (Exception ex)
+            {
+                throw new UserException(ex.Message);
+            }
+
+            if (productRepository.Update(dbProduct.Id, dbProduct))
+            {
+                if (await orderService.CheckOrderPaid(dbProduct.OrderId))
+                {
+
+                }
+                else
+                {
+                    throw new SystemsException(
+                        $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn",
+                        nameof(ProductService)
+                    );
                 }
             }
             else
             {
-                throw new UserException("Không tìm thấy hóa đơn");
+                throw new SystemsException(
+                    $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm",
+                    nameof(ProductService)
+                );
             }
         }
 
