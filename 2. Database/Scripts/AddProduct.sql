@@ -173,6 +173,8 @@ BEGIN
             NULL,
             NULL)
 
+    UPDATE ProductBodySize SET IsActive = 0 WHERE ProductId = @ProductId;
+
     DECLARE @BodySizeId NVARCHAR(30);
     DECLARE @Value DECIMAL(18,0);
 

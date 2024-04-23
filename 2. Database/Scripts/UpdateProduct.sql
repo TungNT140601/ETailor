@@ -2,7 +2,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE   PROCEDURE [dbo].[UpdateProduct]
+ALTER   PROCEDURE [dbo].[UpdateProduct]
     @OrderId NVARCHAR(30),
     @ProductId NVARCHAR(30),
     @ProductTemplateId NVARCHAR(30) NULL,
@@ -158,46 +158,19 @@ BEGIN
         END;
     END;
 
-    INSERT INTO [dbo].[Product]
-        ([Id]
-        ,[OrderId]
-        ,[ProductTemplateId]
-        ,[Name]
-        ,[Note]
-        ,[Status]
-        ,[EvidenceImage]
-        ,[FinishTime]
-        ,[CreatedTime]
-        ,[LastestUpdatedTime]
-        ,[InactiveTime]
-        ,[IsActive]
-        ,[Price]
-        ,[SaveOrderComponents]
-        ,[FabricMaterialId]
-        ,[ReferenceProfileBodyId]
-        ,[Index]
-        ,[StaffMakerId]
-        ,[PlannedTime])
-    VALUES
-        (@ProductId,
-            @OrderId,
-            @ProductTemplateId,
-            @NewProductName,
-            @NewNote,
-            1,
-            NULL,
-            NULL,
-            DATEADD(HOUR, 7, GETUTCDATE()),
-            DATEADD(HOUR, 7, GETUTCDATE()),
-            NULL,
-            1,
-            @ProducPrice,
-            @NewSaveOrderComponents,
-            @NewFabricMaterialId,
-            @NewProfileBodyId,
-            NULL,
-            NULL,
-            NULL)
+    UPDATE [dbo].[Product]
+    SET [Name] = @NewProductName
+        ,[Note] = @NewNote
+        ,[Status] = 1
+        ,[LastestUpdatedTime] = DATEADD(HOUR, 7, GETUTCDATE())
+        ,[IsActive] = 1
+        ,[Price] = @ProducPrice
+        ,[SaveOrderComponents] = @NewSaveOrderComponents
+        ,[FabricMaterialId] = @NewFabricMaterialId
+        ,[ReferenceProfileBodyId] = @NewProfileBodyId
+    WHERE Id = @ProductId;
+
+    UPDATE ProductBodySize SET IsActive = 0 WHERE ProductId = @ProductId;
 
     DECLARE @BodySizeId NVARCHAR(30);
     DECLARE @Value DECIMAL(18,0);
