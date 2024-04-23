@@ -79,7 +79,7 @@ namespace Etailor.API.Service.Service
                                 var dbOrderMaterial = dbOrderMaterials.FirstOrDefault(x => x.MaterialId == orderMaterial.MaterialId);
                                 if (dbOrderMaterial != null)
                                 {
-                                    dbOrderMaterial.IsCusMaterial = orderMaterial.IsCusMaterial;
+                                    dbOrderMaterial.IsCusMaterial = orderMaterial.IsCusMaterial.HasValue ? orderMaterial.IsCusMaterial.Value ? true : false : false;
                                     dbOrderMaterial.Value = orderMaterial.Value;
 
                                     updateOrderMaterials.Add(dbOrderMaterial);
