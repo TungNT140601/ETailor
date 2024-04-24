@@ -261,7 +261,7 @@ namespace Etailor.API.Ultity
 
                 if (System.IO.File.Exists(filePathNew))
                 {
-                    message.Attachments.Add(new Attachment($"./wwwroot/Log/Check/log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}.txt"));
+                    message.Attachments.Add(new Attachment($"./wwwroot/Log/Check/log{DateTime.UtcNow.AddDays(-1).AddHours(7).ToString("yyyyMMdd")}.txt"));
                     message.Body = $"Log at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss:ffff")}; \n";
                     message.IsBodyHtml = false;
 

@@ -81,6 +81,13 @@ namespace Etailor.API.Service.Service
                 }));
                 tasks.Add(Task.Run(() =>
                 {
+                    if (productTemplate.AveDateForComplete == null || productTemplate.AveDateForComplete <= 0)
+                    {
+                        throw new UserException("Số ngày trung bình để hoàn thành bản mẫu không hợp lệ");
+                    }
+                }));
+                tasks.Add(Task.Run(() =>
+                {
                     if (string.IsNullOrWhiteSpace(productTemplate.Description))
                     {
                         productTemplate.Description = "";
@@ -389,6 +396,18 @@ namespace Etailor.API.Service.Service
                             }
                         }));
                 #endregion
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (productTemplate.AveDateForComplete == null || productTemplate.AveDateForComplete <= 0)
+                    {
+                        throw new UserException("Số ngày trung bình để hoàn thành bản mẫu không hợp lệ");
+                    }
+                    else
+                    {
+                        dbTemplate.AveDateForComplete = productTemplate.AveDateForComplete;
+                    }
+                }));
 
                 #region SetDesc
                 tasks.Add(Task.Run(() =>

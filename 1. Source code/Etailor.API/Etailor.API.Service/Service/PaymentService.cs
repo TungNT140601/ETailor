@@ -46,15 +46,29 @@ namespace Etailor.API.Service.Service
             }
             else
             {
-                if (payType == 1 && amount.HasValue)
+                if (payType == 1)
                 {
-                    if (paymentRepository.GetAll(x => x.OrderId == order.Id && x.PayType == 1 && x.Status == 0).Any())
+                    if (amount.HasValue)
                     {
-                        throw new UserException("Hóa đơn này đã được thanh toán cọc.");
+                        if (paymentRepository.GetAll(x => x.OrderId == order.Id && x.PayType == 1 && x.Status == 0).Any())
+                        {
+                            throw new UserException("Hóa đơn này đã được thanh toán cọc.");
+                        }
+                        else if (amount < 5000 || (order.DiscountId != null && amount.Value > order.AfterDiscountPrice) || (order.DiscountId == null && amount.Value > order.TotalPrice))
+                        {
+                            throw new UserException("Số tiền cọc không hợp lệ.");
+                        }
                     }
-                    else if (amount < 5000 || (order.DiscountId != null && amount.Value > order.AfterDiscountPrice) || (order.DiscountId == null && amount.Value > order.TotalPrice))
+                    else
                     {
-                        throw new UserException("Số tiền cọc không hợp lệ.");
+                        if (order.AfterDiscountPrice.HasValue && order.AfterDiscountPrice.Value > 0)
+                        {
+                            amount = Math.Round(((order.AfterDiscountPrice.Value * (decimal)0.3) / 1000), 0) * 1000;
+                        }
+                        else
+                        {
+                            amount = Math.Round(((order.TotalPrice.Value * (decimal)0.3) / 1000), 0) * 1000;
+                        }
                     }
                 }
                 else if (payType == 0)

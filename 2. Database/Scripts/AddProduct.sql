@@ -222,7 +222,15 @@ BEGIN
     CLOSE ProductBodySizeCursor;
     DEALLOCATE ProductBodySizeCursor;
 
-    
-    SELECT 1 AS ReturnValue; -- Instead of RETURN 1;
+    DECLARE @DayToFinish INT = dbo.CalculateNumOfDateToFinish(@ProductId);
+    IF @DayToFinish > 0
+    BEGIN
+    UPDATE Product
+    SET PlannedTime = DATEADD(DAY,@DayToFinish, CreatedTime)
+    WHERE Id = @ProductId
+    END;
+
+    SELECT 1 AS ReturnValue;
+-- Instead of RETURN 1;
 END;
 GO
