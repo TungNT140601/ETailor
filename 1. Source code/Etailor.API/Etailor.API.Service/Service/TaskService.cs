@@ -1575,12 +1575,14 @@ namespace Etailor.API.Service.Service
                                         await Task.WhenAll(tasks2);
                                     }
 
-                                    if ((images == null || !images.Any()) && string.IsNullOrEmpty(productStage.EvidenceImage))
+                                    if (imageUrls != null && imageUrls.Any())
+                                    {
+                                        productStage.EvidenceImage = JsonConvert.SerializeObject(imageUrls);
+                                    }
+                                    else
                                     {
                                         throw new UserException("Cần phải có ít nhất 1 hình ảnh chứng minh công đoạn");
                                     }
-
-                                    productStage.EvidenceImage = JsonConvert.SerializeObject(imageUrls);
                                 }));
 
                                 tasks.Add(Task.Run(() =>
