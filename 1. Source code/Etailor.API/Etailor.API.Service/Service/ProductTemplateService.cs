@@ -88,6 +88,13 @@ namespace Etailor.API.Service.Service
                 }));
                 tasks.Add(Task.Run(() =>
                 {
+                    if (productTemplate.Gender == null || (productTemplate.Gender < -1 && productTemplate.Gender > 1))
+                    {
+                        productTemplate.Gender = -1;
+                    }
+                }));
+                tasks.Add(Task.Run(() =>
+                {
                     if (string.IsNullOrWhiteSpace(productTemplate.Description))
                     {
                         productTemplate.Description = "";
@@ -221,6 +228,17 @@ namespace Etailor.API.Service.Service
                                 dbTemplate.Name = productTemplate.Name;
                                 dbTemplate.UrlPath = productTemplate.UrlPath;
                             }
+                        }
+                    }));
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (productTemplate.Gender == null || (productTemplate.Gender < -1 && productTemplate.Gender > 1))
+                        {
+                            dbTemplate.Gender = -1;
+                        }
+                        else
+                        {
+                            dbTemplate.Gender = productTemplate.Gender;
                         }
                     }));
                     tasks.Add(Task.Run(() =>
@@ -406,6 +424,18 @@ namespace Etailor.API.Service.Service
                     else
                     {
                         dbTemplate.AveDateForComplete = productTemplate.AveDateForComplete;
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    if (productTemplate.Gender == null || (productTemplate.Gender < -1 && productTemplate.Gender > 1))
+                    {
+                        dbTemplate.Gender = -1;
+                    }
+                    else
+                    {
+                        dbTemplate.Gender = productTemplate.Gender;
                     }
                 }));
 

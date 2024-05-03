@@ -21,6 +21,7 @@ namespace Etailor.API.Repository.EntityModels
         public string? ThumbnailImage { get; set; }
         public string? Image { get; set; }
         public string? CollectionImage { get; set; }
+        public int? Gender { get; set; } = -1;
         public int? AveDateForComplete { get; set; }
         public string? UrlPath { get; set; }
         public DateTime? CreatedTime { get; set; }

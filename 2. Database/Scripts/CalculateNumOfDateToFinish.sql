@@ -1,4 +1,8 @@
-ALTER FUNCTION CalculateNumOfDateToFinish(
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER FUNCTION [dbo].[CalculateNumOfDateToFinish](
     @ProductId NVARCHAR(30)
 )
 RETURNS INT
@@ -10,10 +14,15 @@ BEGIN
     DECLARE @AveDateForComplete INT;
     DECLARE @TotalNotFinishProduct INT;
     DECLARE @TotalStaffHasMastery INT;
+    DECLARE @ProductCreateTime DATETIME;
+    DECLARE @TotalDaysNeeded FLOAT = 0;
+    DECLARE @AveDate FLOAT;
+    DECLARE @EffectiveStaff INT;
+    DECLARE @ProductCount INT;
 
-    SELECT @OrderId = OrderId, @ProductTemplateId = ProductTemplateId
-    FROM Product
-    WHERE Id = @ProductId AND IsActive = 1 AND [Status] > 0
+    SELECT @OrderId = O.Id, @ProductTemplateId = P.ProductTemplateId, @OrderCreateTime = O.CreatedTime, @ProductCreateTime = P.CreatedTime
+    FROM Product P INNER JOIN [Order] O ON (P.OrderId = O.Id AND P.IsActive = 1 AND O.IsActive = 1 AND P.Status > 0 AND P.Status < 5 AND O.Status > 0 AND O.Status < 8)
+    WHERE P.Id = @ProductId;
 
     IF @OrderId IS NULL
         RETURN -1;
@@ -46,7 +55,11 @@ BEGIN
 
     SELECT @TotalNotFinishProduct = COUNT(*)
     FROM Product P INNER JOIN [Order] O ON P.OrderId = O.Id
-    WHERE P.IsActive = 1 AND P.[Status] > 0 AND P.[Status] < 5
+    WHERE P.IsActive = 1 AND P.[Status] > 0 AND P.[Status] < 5 AND P.ProductTemplateId IN (
+            SELECT Id
+        FROM [dbo].[ProductTemplate]
+        WHERE CategoryId = @CategoryId
+        )
         AND ((O.[Status] > 0 AND O.[Status] < 8 AND O.IsActive = 1 AND O.CreatedTime < @OrderCreateTime) OR O.Id = @OrderId)
 
 
@@ -54,17 +67,54 @@ BEGIN
     RETURN -4;
     --/'Không có staff phù hợp'
 
-    DECLARE @Date DECIMAL(18,3);
+    DECLARE CategoryCursor CURSOR FOR
+        SELECT PT.CategoryId
+    FROM ProductTemplate PT INNER JOIN Product P ON PT.Id = P.ProductTemplateId
+        INNER JOIN [Order] O ON P.OrderId = O.Id
+    WHERE ((P.Status > 0 AND P.Status < 5
+        AND P.IsActive = 1 AND P.CreatedTime < @ProductCreateTime) OR P.Id = @ProductId)
+        AND ((O.Status > 0 AND O.Status < 8 AND O.IsActive = 1 AND O.CreatedTime < @OrderCreateTime) OR O.Id = @OrderId)
+    GROUP BY PT.CategoryId;
 
-    IF(@TotalNotFinishProduct >= @TotalStaffHasMastery)
-    BEGIN
-        SET @Date = (@TotalNotFinishProduct / @TotalStaffHasMastery + 1) * @AveDateForComplete;
-    END;
-    ELSE
-    BEGIN
-        SET @Date = @AveDateForComplete;
+    OPEN CategoryCursor;
+
+    FETCH NEXT FROM CategoryCursor INTO @CategoryId;
+
+    WHILE @@FETCH_STATUS = 0
+        BEGIN
+        -- Calculate days needed for the current category
+        SELECT @AveDate = AveDateForComplete, @ProductCount = SUM(ProductCount)
+        FROM (
+            SELECT PT.AveDateForComplete, COUNT(*) AS ProductCount
+            FROM Product P INNER JOIN ProductTemplate PT ON P.ProductTemplateId = PT.Id
+                INNER JOIN [Order] O ON P.OrderId = O.Id
+            WHERE PT.CategoryId = @CategoryId
+                AND ((P.Status > 0 AND P.Status < 5
+                AND P.IsActive = 1 AND P.CreatedTime < @ProductCreateTime) OR P.Id = @ProductId)
+                AND ((O.Status > 0 AND O.Status < 8 AND O.IsActive = 1 AND O.CreatedTime < @OrderCreateTime) OR O.Id = @OrderId)
+            GROUP BY PT.AveDateForComplete
+        ) AS DataProduct
+        GROUP BY AveDateForComplete;
+
+        -- Calculate effective staff for the current category
+        SELECT @EffectiveStaff = COUNT(DISTINCT M.StaffId)
+        FROM Mastery M
+            JOIN Staff S ON M.StaffId = S.Id
+        WHERE M.CategoryId = @CategoryId AND S.IsActive = 1;
+
+        -- Accumulate total days needed, adjusted for effective staff
+        IF(@ProductCount > @EffectiveStaff)
+        SET @TotalDaysNeeded += @AveDate * (@ProductCount / @EffectiveStaff + 1);
+        -- SET @TotalDaysNeeded += (@AveDate / NULLIF(@EffectiveStaff, 0));
+        ELSE
+        SET @TotalDaysNeeded += @AveDate
+
+        FETCH NEXT FROM CategoryCursor INTO @CategoryId;
     END;
 
-    RETURN CEILING(@Date);
+    CLOSE CategoryCursor;
+    DEALLOCATE CategoryCursor;
+
+    RETURN CEILING(@TotalDaysNeeded);
 END
 GO
