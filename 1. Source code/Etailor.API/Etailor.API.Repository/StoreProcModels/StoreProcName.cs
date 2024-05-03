@@ -21,6 +21,7 @@ namespace Etailor.API.Repository.StoreProcModels
         public static string Get_Suitable_Discout_For_Order = "GetSuitableDiscoutForOrder";
         public static string Get_Template_Components = "GetTemplateComponents";
         public static string Get_Template_Component_Types = "GetTemplateComponentTypes";
+        public static string Create_Manager_Notification = "CreateManagerNotification";
     }
     public class SpResult
     {
