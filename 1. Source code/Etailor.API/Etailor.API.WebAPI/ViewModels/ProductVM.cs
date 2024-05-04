@@ -12,6 +12,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public int? Status { get; set; }
         public string? EvidenceImage { get; set; }
         public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
     }
     public class ProductAllTaskVM
     {
@@ -103,6 +104,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? FabricMaterialId { get; set; }
         public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public DateTime? Deadline { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public int? Index { get; set; }
     }
 
