@@ -36,6 +36,7 @@ using OfficeOpenXml;
 using System.Collections.Generic;
 using OfficeOpenXml.Drawing;
 using static QRCoder.Base64QRCode;
+using AutoMapper;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -54,12 +55,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly INotificationService notificationService;
         private readonly IProductTemplateService productTemplateService;
         private readonly ETailor_DBContext dBContext;
+        private readonly IMapper mapper;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
             , ITaskService taskService, INotificationService notificationService
-            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService)
+            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService
+            , IMapper mapper)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -74,6 +77,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.notificationService = notificationService;
             this.dBContext = dBContext;
             this.productTemplateService = productTemplateService;
+            this.mapper = mapper;
         }
 
         #region SendMail
@@ -1298,6 +1302,30 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTask(string id)
+        {
+            try
+            {
+                if (id == null)
+                {
+                    return NotFound("Id sản phẩm không tồn tại");
+                }
+                else
+                {
+                    var task = await taskService.GetTask(id);
+
+                    return Ok(mapper.Map<TaskDetailByStaffVM>(task));
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         private string GetImageExtensionFromType(string imageType)
         {
             // Adjust this method based on the actual format of picture.Type

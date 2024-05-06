@@ -106,7 +106,7 @@ namespace Etailor.API.Service.Service
                         product.Order = order;
                     }
                 }));
-                tasks.Add(Task.Run(async () =>
+                tasks.Add(Task.Run(() =>
                 {
                     if (product.FabricMaterial == null)
                     {
@@ -125,7 +125,7 @@ namespace Etailor.API.Service.Service
                         product.FabricMaterial.Image = string.Empty;
                     }
                 }));
-                tasks.Add(Task.Run(async () =>
+                tasks.Add(Task.Run(() =>
                 {
                     if (product.ProductTemplate == null)
                     {
@@ -156,6 +156,30 @@ namespace Etailor.API.Service.Service
                         if (productComponents != null && productComponents.Any())
                         {
                             productComponents = productComponents.ToList();
+
+                            var productStageMaterials = productStageMaterialRepository.GetAll(x => productStages.Select(c => c.Id).Contains(x.ProductStageId));
+
+                            var materialStages = new List<Material>();
+
+                            if (productStageMaterials != null && productStageMaterials.Any())
+                            {
+                                productStageMaterials = productStageMaterials.ToList();
+
+                                materialStages = materialRepository.GetAll(x => productStageMaterials.Select(c => c.MaterialId).Contains(x.Id))?.ToList();
+
+                                if (materialStages != null && materialStages.Any())
+                                {
+                                    materialStages = materialStages.ToList();
+                                }
+                                else
+                                {
+                                    materialStages = new List<Material>();
+                                }
+                            }
+                            else
+                            {
+                                productStageMaterials = new List<ProductStageMaterial>();
+                            }
 
                             var productTemplateComponents = componentRepository.GetAll(x => productComponents != null && productComponents.Any() && productComponents.Select(c => c.ComponentId).Contains(x.Id));
 
@@ -194,59 +218,89 @@ namespace Etailor.API.Service.Service
                                                 {
                                                     var insideTasks2 = new List<Task>();
 
-                                                    if (stage.ProductComponents == null || !stage.ProductComponents.Any())
+                                                    insideTasks2.Add(Task.Run(async () =>
                                                     {
-                                                        stage.ProductComponents = productComponents.Where(x => x.ProductStageId == stage.Id).ToList();
-                                                    }
+                                                        stage.ProductStageMaterials = productStageMaterials?.Where(x => x.ProductStageId == stage.Id)?.ToList();
 
-                                                    foreach (var component in stage.ProductComponents)
-                                                    {
-                                                        insideTasks2.Add(Task.Run(async () =>
+                                                        if (stage.ProductStageMaterials != null && stage.ProductStageMaterials.Any())
                                                         {
-                                                            if (component.Component == null)
+                                                            var insideTasks3 = new List<Task>();
+                                                            foreach (var stageMaterial in stage.ProductStageMaterials)
                                                             {
-                                                                component.Component = productTemplateComponents.FirstOrDefault(x => x.Id == component.ComponentId);
-                                                            }
-                                                            if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                            {
-                                                                component.Component.Image = Ultils.GetUrlImage(component.Component.Image);
-                                                            }
-                                                            else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                            {
-
-                                                            }
-                                                            else
-                                                            {
-                                                                component.Component.Image = string.Empty;
-                                                            }
-
-                                                            if (!string.IsNullOrWhiteSpace(component.NoteImage))
-                                                            {
-                                                                var noteImage = JsonConvert.DeserializeObject<List<string>>(component.NoteImage);
-                                                                if (noteImage != null && noteImage.Any())
+                                                                insideTasks3.Add(Task.Run(() =>
                                                                 {
-                                                                    var noteImages = new List<string>();
-                                                                    var insideTasks3 = new List<Task>();
-                                                                    foreach (var image in noteImage)
+                                                                    stageMaterial.Material = materialStages.FirstOrDefault(x => x.Id == stageMaterial.MaterialId);
+                                                                    if (stageMaterial.Material != null && !string.IsNullOrEmpty(stageMaterial.Material.Image))
                                                                     {
-                                                                        insideTasks3.Add(Task.Run(async () =>
-                                                                        {
-                                                                            if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                                            {
-                                                                                noteImages.Add(Ultils.GetUrlImage(image));
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                noteImages.Add(image);
-                                                                            }
-                                                                        }));
+                                                                        stageMaterial.Material.Image = Ultils.GetUrlImage(stageMaterial.Material.Image);
                                                                     }
-                                                                    await Task.WhenAll(insideTasks3);
-                                                                    component.NoteImage = JsonConvert.SerializeObject(noteImages);
-                                                                }
+                                                                }));
                                                             }
-                                                        }));
-                                                    }
+                                                            await Task.WhenAll(insideTasks3);
+                                                        }
+                                                    }));
+
+                                                    insideTasks2.Add(Task.Run(async () =>
+                                                    {
+                                                        if (stage.ProductComponents == null || !stage.ProductComponents.Any())
+                                                        {
+                                                            stage.ProductComponents = productComponents.Where(x => x.ProductStageId == stage.Id).ToList();
+                                                        }
+
+                                                        var insideTasks3 = new List<Task>();
+
+                                                        foreach (var component in stage.ProductComponents)
+                                                        {
+                                                            insideTasks3.Add(Task.Run(async () =>
+                                                            {
+                                                                if (component.Component == null)
+                                                                {
+                                                                    component.Component = productTemplateComponents.FirstOrDefault(x => x.Id == component.ComponentId);
+                                                                }
+                                                                if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                                {
+                                                                    component.Component.Image = Ultils.GetUrlImage(component.Component.Image);
+                                                                }
+                                                                else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                                {
+
+                                                                }
+                                                                else
+                                                                {
+                                                                    component.Component.Image = string.Empty;
+                                                                }
+
+                                                                if (!string.IsNullOrWhiteSpace(component.NoteImage))
+                                                                {
+                                                                    var noteImage = JsonConvert.DeserializeObject<List<string>>(component.NoteImage);
+                                                                    if (noteImage != null && noteImage.Any())
+                                                                    {
+                                                                        var noteImages = new List<string>();
+                                                                        var insideTasks4 = new List<Task>();
+                                                                        foreach (var image in noteImage)
+                                                                        {
+                                                                            insideTasks4.Add(Task.Run(async () =>
+                                                                            {
+                                                                                if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                                                {
+                                                                                    noteImages.Add(Ultils.GetUrlImage(image));
+                                                                                }
+                                                                                else
+                                                                                {
+                                                                                    noteImages.Add(image);
+                                                                                }
+                                                                            }));
+                                                                        }
+                                                                        await Task.WhenAll(insideTasks4);
+                                                                        component.NoteImage = JsonConvert.SerializeObject(noteImages);
+                                                                    }
+                                                                }
+                                                            }));
+                                                        }
+
+                                                        await Task.WhenAll(insideTasks3);
+                                                    }));
+
                                                     await Task.WhenAll(insideTasks2);
                                                 }));
                                             }
