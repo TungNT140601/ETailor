@@ -124,6 +124,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public DateTime? PlannedTime { get; set; }
         public FabricMaterialVM? FabricMaterial { get; set; }
         public ProductTemplateTaskDetailVM? ProductTemplate { get; set; }
+        public List<ComponentTypeOrderVM>? ComponentTypeOrders { get; set; }
         public ICollection<ProductBodySizeTaskDetailVM>? ProductBodySizes { get; set; }
         public ICollection<ProductStageTaskDetailVM>? ProductStages { get; set; }
     }

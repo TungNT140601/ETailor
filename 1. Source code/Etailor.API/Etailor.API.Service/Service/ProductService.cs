@@ -1317,5 +1317,26 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không tìm thấy hóa đơn");
             }
         }
+
+        public async Task<IEnumerable<ComponentType>> GetProductComponent(string templateId)
+        {
+            var template = productTemplateRepository.Get(templateId);
+            if (template == null)
+            {
+                throw new UserException("Bản mẫu không tìm thấy");
+            }
+            else
+            {
+
+                var componentTypes = componentTypeRepository.GetAll(x => x.CategoryId == template.CategoryId && x.IsActive == true);
+                if (componentTypes != null && componentTypes.Any())
+                {
+                    componentTypes = componentTypes.ToList();
+
+                    return componentTypes;
+                }
+                return null;
+            }
+        }
     }
 }

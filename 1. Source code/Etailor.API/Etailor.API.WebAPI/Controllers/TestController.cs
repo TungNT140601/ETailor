@@ -37,6 +37,7 @@ using System.Collections.Generic;
 using OfficeOpenXml.Drawing;
 using static QRCoder.Base64QRCode;
 using AutoMapper;
+using System.Data;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -1317,7 +1318,99 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var task = await taskService.GetTask(id);
 
-                    return Ok(mapper.Map<TaskDetailByStaffVM>(task));
+                    var taskVM = mapper.Map<TaskDetailByStaffVM>(task);
+
+                    if (taskVM != null && taskVM.ProductStages != null && taskVM.ProductStages.Any())
+                    {
+                        return Ok(taskVM);
+                    }
+                    else if (taskVM != null && (taskVM.ProductStages == null || !taskVM.ProductStages.Any()))
+                    {
+                        var tasks = new List<Task>();
+
+                        if (!string.IsNullOrWhiteSpace(task.SaveOrderComponents))
+                        {
+                            var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(task.SaveOrderComponents);
+
+                            if (productComponents != null && productComponents.Any() && productComponents.Count > 0)
+                            {
+                                var componentIds = productComponents.Select(c => c.ComponentId).ToList();
+
+                                taskVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>((await productTemplateService.GetTemplateComponent(task.ProductTemplateId))?.ToList());
+
+                                if (taskVM.ComponentTypeOrders != null && taskVM.ComponentTypeOrders.Any() && taskVM.ComponentTypeOrders.Count > 0)
+                                {
+                                    foreach (var component in taskVM.ComponentTypeOrders)
+                                    {
+                                        tasks.Add(Task.Run(async () =>
+                                        {
+                                            var insideTasks = new List<Task>();
+
+                                            insideTasks.Add(Task.Run(() =>
+                                            {
+                                                component.Component_Id = $"component_{component.Id}";
+                                                component.Note_Id = $"productComponent_{component.Id}";
+                                            }));
+
+                                            insideTasks.Add(Task.Run(() =>
+                                            {
+                                                component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                            }));
+
+                                            insideTasks.Add(Task.Run(async () =>
+                                            {
+                                                var componentNote = productComponents.FirstOrDefault(x => component.Components.Select(c => c.Id).Contains(x.ComponentId));
+                                                if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
+                                                {
+                                                    component.Selected_Component_Id = componentNote.ComponentId;
+
+                                                    component.NoteObject = new ComponentNoteVM();
+
+                                                    if (!string.IsNullOrEmpty(componentNote.Note))
+                                                    {
+                                                        component.NoteObject.Note = componentNote.Note;
+                                                    }
+
+                                                    if (!string.IsNullOrEmpty(componentNote.NoteImage))
+                                                    {
+                                                        var listImageDTO = JsonConvert.DeserializeObject<List<string>>(componentNote.NoteImage);
+                                                        if (listImageDTO != null && listImageDTO.Any())
+                                                        {
+                                                            var listImageUrl = new List<string>();
+                                                            var insideTasks1 = new List<Task>();
+                                                            foreach (var img in listImageDTO)
+                                                            {
+                                                                insideTasks1.Add(Task.Run(() =>
+                                                                {
+                                                                    listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                }));
+                                                            }
+                                                            await Task.WhenAll(insideTasks1);
+                                                            component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    component.NoteObject = null;
+                                                }
+                                            }));
+
+                                            await Task.WhenAll(insideTasks);
+                                        }));
+                                    }
+                                }
+                            }
+                        }
+
+                        await Task.WhenAll(tasks);
+
+                        return Ok(taskVM);
+                    }
+                    else
+                    {
+                        return NotFound();
+                    }
                 }
             }
             catch (Exception ex)

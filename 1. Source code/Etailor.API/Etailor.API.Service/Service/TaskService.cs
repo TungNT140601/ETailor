@@ -94,8 +94,9 @@ namespace Etailor.API.Service.Service
                 var fabricMaterial = materialRepository.Get(product.FabricMaterialId);
                 var template = productTemplateRepository.Get(product.ProductTemplateId);
                 var productStages = productStageRepository.GetAll(x => x.ProductId == productId && x.IsActive == true);
+                var productBodySizes = productBodySizeRepository.GetAll(x => product != null && x.ProductId == productId);
 
-                if (!(order != null && order.Status > 2 && order.IsActive == true))
+                if (!(order != null && order.Status >= 1 && order.IsActive == true))
                 {
                     return null;
                 }
@@ -187,164 +188,163 @@ namespace Etailor.API.Service.Service
                             {
                                 productTemplateComponents = productTemplateComponents.ToList();
 
-                                var productBodySizes = productBodySizeRepository.GetAll(x => product != null && x.ProductId == productId);
+                                await Task.WhenAll(tasks);
 
-                                if (productBodySizes != null && productBodySizes.Any())
+                                tasks.Add(Task.Run(() =>
                                 {
-                                    productBodySizes = productBodySizes.ToList();
-
-                                    var bodySizes = bodySizeRepository.GetAll(x => productBodySizes != null && productBodySizes.Any() && productBodySizes.Select(c => c.BodySizeId).Contains(x.Id));
-
-                                    if (bodySizes != null && bodySizes.Any())
+                                    if (product.ProductStages == null)
                                     {
-                                        bodySizes = bodySizes.ToList();
-
-                                        await Task.WhenAll(tasks);
-
-                                        tasks.Add(Task.Run(() =>
-                                        {
-                                            if (product.ProductStages == null)
-                                            {
-                                                product.ProductStages = productStages.ToList();
-                                            }
-                                        }));
-
-                                        tasks.Add(Task.Run(async () =>
-                                        {
-                                            var insideTasks1 = new List<Task>();
-                                            foreach (var stage in product.ProductStages)
-                                            {
-                                                insideTasks1.Add(Task.Run(async () =>
-                                                {
-                                                    var insideTasks2 = new List<Task>();
-
-                                                    insideTasks2.Add(Task.Run(async () =>
-                                                    {
-                                                        stage.ProductStageMaterials = productStageMaterials?.Where(x => x.ProductStageId == stage.Id)?.ToList();
-
-                                                        if (stage.ProductStageMaterials != null && stage.ProductStageMaterials.Any())
-                                                        {
-                                                            var insideTasks3 = new List<Task>();
-                                                            foreach (var stageMaterial in stage.ProductStageMaterials)
-                                                            {
-                                                                insideTasks3.Add(Task.Run(() =>
-                                                                {
-                                                                    stageMaterial.Material = materialStages.FirstOrDefault(x => x.Id == stageMaterial.MaterialId);
-                                                                    if (stageMaterial.Material != null && !string.IsNullOrEmpty(stageMaterial.Material.Image))
-                                                                    {
-                                                                        stageMaterial.Material.Image = Ultils.GetUrlImage(stageMaterial.Material.Image);
-                                                                    }
-                                                                }));
-                                                            }
-                                                            await Task.WhenAll(insideTasks3);
-                                                        }
-                                                    }));
-
-                                                    insideTasks2.Add(Task.Run(async () =>
-                                                    {
-                                                        if (stage.ProductComponents == null || !stage.ProductComponents.Any())
-                                                        {
-                                                            stage.ProductComponents = productComponents.Where(x => x.ProductStageId == stage.Id).ToList();
-                                                        }
-
-                                                        var insideTasks3 = new List<Task>();
-
-                                                        foreach (var component in stage.ProductComponents)
-                                                        {
-                                                            insideTasks3.Add(Task.Run(async () =>
-                                                            {
-                                                                if (component.Component == null)
-                                                                {
-                                                                    component.Component = productTemplateComponents.FirstOrDefault(x => x.Id == component.ComponentId);
-                                                                }
-                                                                if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                                {
-                                                                    component.Component.Image = Ultils.GetUrlImage(component.Component.Image);
-                                                                }
-                                                                else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                                {
-
-                                                                }
-                                                                else
-                                                                {
-                                                                    component.Component.Image = string.Empty;
-                                                                }
-
-                                                                if (!string.IsNullOrWhiteSpace(component.NoteImage))
-                                                                {
-                                                                    var noteImage = JsonConvert.DeserializeObject<List<string>>(component.NoteImage);
-                                                                    if (noteImage != null && noteImage.Any())
-                                                                    {
-                                                                        var noteImages = new List<string>();
-                                                                        var insideTasks4 = new List<Task>();
-                                                                        foreach (var image in noteImage)
-                                                                        {
-                                                                            insideTasks4.Add(Task.Run(async () =>
-                                                                            {
-                                                                                if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                                                {
-                                                                                    noteImages.Add(Ultils.GetUrlImage(image));
-                                                                                }
-                                                                                else
-                                                                                {
-                                                                                    noteImages.Add(image);
-                                                                                }
-                                                                            }));
-                                                                        }
-                                                                        await Task.WhenAll(insideTasks4);
-                                                                        component.NoteImage = JsonConvert.SerializeObject(noteImages);
-                                                                    }
-                                                                }
-                                                            }));
-                                                        }
-
-                                                        await Task.WhenAll(insideTasks3);
-                                                    }));
-
-                                                    await Task.WhenAll(insideTasks2);
-                                                }));
-                                            }
-                                            await Task.WhenAll(insideTasks1);
-                                        }));
-                                        tasks.Add(Task.Run(async () =>
-                                        {
-                                            var insideTasks1 = new List<Task>();
-                                            insideTasks1.Add(Task.Run(() =>
-                                            {
-                                                if (product.ProductBodySizes == null)
-                                                {
-                                                    product.ProductBodySizes = productBodySizes.ToList();
-                                                }
-                                            }));
-                                            insideTasks1.Add(Task.Run(async () =>
-                                            {
-                                                var insideTasks2 = new List<Task>();
-                                                foreach (var productBodySize in product.ProductBodySizes)
-                                                {
-                                                    insideTasks2.Add(Task.Run(() =>
-                                                    {
-                                                        if (productBodySize.BodySize == null)
-                                                        {
-                                                            productBodySize.BodySize = bodySizes.FirstOrDefault(x => x.Id == productBodySize.BodySizeId);
-                                                        }
-                                                    }));
-                                                }
-                                                await Task.WhenAll(insideTasks2);
-                                            }));
-                                            await Task.WhenAll(insideTasks1);
-                                        }));
-
-                                        await Task.WhenAll(tasks);
-
-                                        product.ProductStages = product.ProductStages.OrderBy(x => x.StageNum).ToList();
-
-                                        return product;
+                                        product.ProductStages = productStages.ToList();
                                     }
-                                }
+                                }));
+
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    var insideTasks1 = new List<Task>();
+                                    foreach (var stage in product.ProductStages)
+                                    {
+                                        insideTasks1.Add(Task.Run(async () =>
+                                        {
+                                            var insideTasks2 = new List<Task>();
+
+                                            insideTasks2.Add(Task.Run(async () =>
+                                            {
+                                                stage.ProductStageMaterials = productStageMaterials?.Where(x => x.ProductStageId == stage.Id)?.ToList();
+
+                                                if (stage.ProductStageMaterials != null && stage.ProductStageMaterials.Any())
+                                                {
+                                                    var insideTasks3 = new List<Task>();
+                                                    foreach (var stageMaterial in stage.ProductStageMaterials)
+                                                    {
+                                                        insideTasks3.Add(Task.Run(() =>
+                                                        {
+                                                            stageMaterial.Material = materialStages.FirstOrDefault(x => x.Id == stageMaterial.MaterialId);
+                                                            if (stageMaterial.Material != null && !string.IsNullOrEmpty(stageMaterial.Material.Image))
+                                                            {
+                                                                stageMaterial.Material.Image = Ultils.GetUrlImage(stageMaterial.Material.Image);
+                                                            }
+                                                        }));
+                                                    }
+                                                    await Task.WhenAll(insideTasks3);
+                                                }
+                                            }));
+
+                                            insideTasks2.Add(Task.Run(async () =>
+                                            {
+                                                if (stage.ProductComponents == null || !stage.ProductComponents.Any())
+                                                {
+                                                    stage.ProductComponents = productComponents.Where(x => x.ProductStageId == stage.Id).ToList();
+                                                }
+
+                                                var insideTasks3 = new List<Task>();
+
+                                                foreach (var component in stage.ProductComponents)
+                                                {
+                                                    insideTasks3.Add(Task.Run(async () =>
+                                                    {
+                                                        if (component.Component == null)
+                                                        {
+                                                            component.Component = productTemplateComponents.FirstOrDefault(x => x.Id == component.ComponentId);
+                                                        }
+                                                        if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                        {
+                                                            component.Component.Image = Ultils.GetUrlImage(component.Component.Image);
+                                                        }
+                                                        else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                        {
+
+                                                        }
+                                                        else
+                                                        {
+                                                            component.Component.Image = string.Empty;
+                                                        }
+
+                                                        if (!string.IsNullOrWhiteSpace(component.NoteImage))
+                                                        {
+                                                            var noteImage = JsonConvert.DeserializeObject<List<string>>(component.NoteImage);
+                                                            if (noteImage != null && noteImage.Any())
+                                                            {
+                                                                var noteImages = new List<string>();
+                                                                var insideTasks4 = new List<Task>();
+                                                                foreach (var image in noteImage)
+                                                                {
+                                                                    insideTasks4.Add(Task.Run(async () =>
+                                                                    {
+                                                                        if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                                        {
+                                                                            noteImages.Add(Ultils.GetUrlImage(image));
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            noteImages.Add(image);
+                                                                        }
+                                                                    }));
+                                                                }
+                                                                await Task.WhenAll(insideTasks4);
+                                                                component.NoteImage = JsonConvert.SerializeObject(noteImages);
+                                                            }
+                                                        }
+                                                    }));
+                                                }
+
+                                                await Task.WhenAll(insideTasks3);
+                                            }));
+
+                                            await Task.WhenAll(insideTasks2);
+                                        }));
+                                    }
+                                    await Task.WhenAll(insideTasks1);
+                                }));
                             }
                         }
                     }
+
+                    if (productBodySizes != null && productBodySizes.Any())
+                    {
+                        productBodySizes = productBodySizes.ToList();
+
+                        var bodySizes = bodySizeRepository.GetAll(x => productBodySizes != null && productBodySizes.Any() && productBodySizes.Select(c => c.BodySizeId).Contains(x.Id));
+
+                        if (bodySizes != null && bodySizes.Any())
+                        {
+                            bodySizes = bodySizes.ToList();
+
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                var insideTasks1 = new List<Task>();
+                                insideTasks1.Add(Task.Run(() =>
+                                {
+                                    if (product.ProductBodySizes == null)
+                                    {
+                                        product.ProductBodySizes = productBodySizes.ToList();
+                                    }
+                                }));
+                                insideTasks1.Add(Task.Run(async () =>
+                                {
+                                    var insideTasks2 = new List<Task>();
+                                    foreach (var productBodySize in product.ProductBodySizes)
+                                    {
+                                        insideTasks2.Add(Task.Run(() =>
+                                        {
+                                            if (productBodySize.BodySize == null)
+                                            {
+                                                productBodySize.BodySize = bodySizes.FirstOrDefault(x => x.Id == productBodySize.BodySizeId);
+                                            }
+                                        }));
+                                    }
+                                    await Task.WhenAll(insideTasks2);
+                                }));
+                                await Task.WhenAll(insideTasks1);
+                            }));
+
+                            await Task.WhenAll(tasks);
+
+                            product.ProductStages = product.ProductStages.OrderBy(x => x.StageNum).ToList();
+                        }
+                    }
                 }
+
+                return product;
             }
 
             return null;
@@ -2025,8 +2025,71 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public bool MaterialDistributionForProductStageComponent(string taskId, string stageId, string componentId, string materialId, decimal quantity)
+        public async Task<bool> SetMaterialForTask(string taskId, string stageId, List<ProductStageMaterial> stageMaterials)
         {
+            if (stageMaterials != null && stageMaterials.Any())
+            {
+                var tasks = new List<Task>();
+                var paramsSql = new List<SqlParameter>();
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    var dataTable = new DataTable();
+                    dataTable.Columns.Add("MaterialId", typeof(string));
+                    dataTable.Columns.Add("Value", typeof(decimal));
+
+                    var insideTasks = new List<Task>();
+                    foreach (var stageMaterial in stageMaterials)
+                    {
+                        insideTasks.Add(Task.Run(() =>
+                        {
+                            dataTable.Rows.Add(!string.IsNullOrEmpty(stageMaterial.MaterialId) ? stageMaterial.MaterialId : DBNull.Value, stageMaterial.Quantity.HasValue ? stageMaterial.Quantity : DBNull.Value);
+                        }));
+                    }
+                    await Task.WhenAll(insideTasks);
+
+                    paramsSql.Add(new SqlParameter("@StageMaterials", SqlDbType.Structured)
+                    {
+                        TypeName = "dbo.MaterialStageType",
+                        Value = dataTable
+                    });
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    paramsSql.Add(new SqlParameter("@StageId", SqlDbType.NVarChar)
+                    {
+                        Value = stageId
+                    });
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    paramsSql.Add(new SqlParameter("@TaskId", SqlDbType.NVarChar)
+                    {
+                        Value = taskId
+                    });
+                }));
+
+                await Task.WhenAll(tasks);
+
+                var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Set_Material_For_Task,
+                    paramsSql.Find(x => x.ParameterName == "@TaskId"),
+                    paramsSql.Find(x => x.ParameterName == "@StageId"),
+                    paramsSql.Find(x => x.ParameterName == "@StageMaterials")
+                    );
+
+                switch (result)
+                {
+                    case 1: return true;
+
+                    default: throw new SystemsException("Lỗi trong quá trình cập nhật vật liệu", nameof(TaskService.SetMaterialForTask));
+                }
+            }
+            else
+            {
+                throw new UserException("Không có vật liệu");
+            }
             var product = productRepository.Get(taskId);
             if (product != null && product.IsActive == true)
             {
@@ -2055,211 +2118,8 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Hóa đơn đã hoàn thành");
                     }
 
-                    var productStages = productStageRepository.GetAll(x => x.IsActive == true && x.ProductId == taskId && x.Status != 0);
-                    if (productStages != null && productStages.Any())
-                    {
-                        productStages = productStages.ToList();
-                        if (productStages.Any(x => x.Id == stageId))
-                        {
-                            var productStage = productStages.Single(x => x.Id == stageId);
+                    throw new UserException("Đang sửa code");
 
-                            var stageComponent = productComponentRepository.GetAll(x => x.ProductStageId == stageId && x.ComponentId == componentId)?.FirstOrDefault();
-
-                            if (stageComponent != null)
-                            {
-                                var material = materialRepository.Get(materialId);
-                                if (material != null && material.IsActive == true)
-                                {
-                                    var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.MaterialId == materialId && x.IsActive == true);
-
-                                    if (orderMaterials != null && orderMaterials.Any())
-                                    {
-                                        orderMaterials = orderMaterials.ToList();
-                                    }
-
-                                    var stageMaterials = productStageMaterialRepository.GetAll(x => x.ProductStageId == productStage.Id && x.MaterialId == materialId)?.FirstOrDefault();
-                                    if (stageMaterials != null)
-                                    {
-                                        stageMaterials.Quantity += quantity;
-
-                                        if (orderMaterials != null && orderMaterials.Any() && product.FabricMaterialId == materialId)
-                                        {
-                                            if (orderMaterials.Any(x => x.IsCusMaterial == true))
-                                            {
-                                                var cusMaterial = orderMaterials.First(c => c.IsCusMaterial == true);
-                                                if (cusMaterial.Value - cusMaterial.ValueUsed >= quantity)
-                                                {
-                                                    cusMaterial.ValueUsed += quantity;
-                                                    return orderMaterialRepository.Update(cusMaterial.Id, cusMaterial);
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu của khách đưa không đủ");
-                                                }
-                                            }
-                                            else if (orderMaterials.Any(x => x.IsCusMaterial == false))
-                                            {
-                                                var orderMaterial = orderMaterials.First(c => c.IsCusMaterial == false);
-                                                orderMaterial.ValueUsed += quantity;
-                                                orderMaterial.Value += quantity;
-
-                                                if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                                {
-                                                    material.Quantity = material.Quantity - quantity;
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                                }
-                                                if (materialRepository.Update(materialId, material))
-                                                {
-                                                    if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
-                                                    {
-                                                        return productStageMaterialRepository.Update(stageMaterials.Id, stageMaterials);
-                                                    }
-                                                    else
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                }
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Không tìm thấy nguyên vật liệu");
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                            {
-                                                material.Quantity = material.Quantity - quantity;
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                            }
-                                            if (materialRepository.Update(materialId, material))
-                                            {
-                                                return productStageMaterialRepository.Update(stageMaterials.Id, stageMaterials);
-                                            }
-                                            else
-                                            {
-                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        stageMaterials = new ProductStageMaterial
-                                        {
-                                            Id = Ultils.GenGuidString(),
-                                            ProductStageId = stageId,
-                                            MaterialId = materialId,
-                                            Quantity = quantity
-                                        };
-
-                                        if (orderMaterials != null && orderMaterials.Any() && product.FabricMaterialId == materialId)
-                                        {
-                                            if (orderMaterials.Any(x => x.IsCusMaterial == true))
-                                            {
-                                                var cusMaterial = orderMaterials.First(c => c.IsCusMaterial == true);
-                                                if (cusMaterial.Value - cusMaterial.ValueUsed >= quantity)
-                                                {
-                                                    cusMaterial.ValueUsed += quantity;
-                                                    if (orderMaterialRepository.Update(cusMaterial.Id, cusMaterial))
-                                                    {
-                                                        return productStageMaterialRepository.Create(stageMaterials);
-                                                    }
-                                                    else
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu của khách đưa không đủ");
-                                                }
-                                            }
-                                            else if (orderMaterials.Any(x => x.IsCusMaterial == false))
-                                            {
-                                                var orderMaterial = orderMaterials.First(c => c.IsCusMaterial == false);
-                                                orderMaterial.ValueUsed += quantity;
-                                                orderMaterial.Value += quantity;
-
-                                                if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                                {
-                                                    material.Quantity = material.Quantity - quantity;
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                                }
-
-                                                if (materialRepository.Update(materialId, material))
-                                                {
-                                                    if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
-                                                    {
-                                                        return productStageMaterialRepository.Create(stageMaterials);
-                                                    }
-                                                    else
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                }
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Không tìm thấy nguyên vật liệu");
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                            {
-                                                material.Quantity = material.Quantity - quantity;
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                            }
-                                            if (materialRepository.Update(materialId, material))
-                                            {
-                                                return productStageMaterialRepository.Create(stageMaterials);
-                                            }
-                                            else
-                                            {
-                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    throw new UserException("Không tìm thấy nguyên vật liệu");
-                                }
-                            }
-                            else
-                            {
-                                throw new UserException("Không tìm thấy thành phần");
-                            }
-                        }
-                        else
-                        {
-                            throw new UserException("Không tìm thấy công đoạn");
-                        }
-                    }
-                    else
-                    {
-                        throw new UserException("Sản phẩm chưa có công đoạn");
-                    }
                 }
                 else
                 {
