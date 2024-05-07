@@ -1,5 +1,6 @@
 ﻿using Etailor.API.Repository.DataAccess;
 using Etailor.API.Repository.Interface;
+using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -239,7 +240,7 @@ namespace Etailor.API.Repository.Repository
             try
             {
                 Expression<Func<T, bool>> predicate = x => where(x);
-                return await dbSet.Where(predicate).ToListAsync();
+                return await dbSet.Where(predicate).AsNoTracking().ToListAsync();
             }
             catch (Exception ex)
             {
@@ -407,7 +408,7 @@ namespace Etailor.API.Repository.Repository
             {
                 if (parameters == null || parameters.Length == 0)
                 {
-                    return dbSet.FromSqlRaw(storeProcedure);
+                    return dbSet.FromSqlRaw(storeProcedure).AsNoTracking();
                 }
                 else
                 {
@@ -419,7 +420,46 @@ namespace Etailor.API.Repository.Repository
 
                     sqlQueryString = sqlQueryString.Remove(sqlQueryString.Length - 2);
 
-                    return dbSet.FromSqlRaw(sqlQueryString, parameters);
+                    return dbSet.FromSqlRaw(sqlQueryString, parameters).AsNoTracking();
+                }
+            }
+            catch (UserException ex)
+            {
+                throw new UserException(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                throw new SystemsException(ex.Message, nameof(T));
+            }
+        }
+
+        public async Task<int> GetStoreProcedureReturnInt(string storeProcedure, params SqlParameter[]? parameters)
+        {
+            try
+            {
+                if (parameters == null || parameters.Length == 0)
+                {
+                    var result = await dBContext.Set<SpResult>().FromSqlRaw(storeProcedure)
+                                           .AsNoTracking()
+                                           .ToListAsync();
+
+                    return result.FirstOrDefault().ReturnValue;
+                }
+                else
+                {
+                    var sqlQueryString = $"EXEC {storeProcedure} ";
+                    foreach (var param in parameters)
+                    {
+                        sqlQueryString += $"{param.ParameterName}, ";
+                    }
+
+                    sqlQueryString = sqlQueryString.Remove(sqlQueryString.Length - 2);
+
+                    var result = await dBContext.Set<SpResult>().FromSqlRaw(sqlQueryString, parameters)
+                                           .AsNoTracking()
+                                           .ToListAsync();
+
+                    return result.FirstOrDefault().ReturnValue;
                 }
             }
             catch (UserException ex)

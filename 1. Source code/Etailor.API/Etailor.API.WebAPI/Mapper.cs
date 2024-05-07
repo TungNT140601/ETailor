@@ -121,6 +121,8 @@ namespace Etailor.API.WebAPI
             CreateMap<ProductStage, ProductStageTaskDetailVM>().ReverseMap();
 
             CreateMap<Notification, NotificationVM>().ReverseMap();
+
+            CreateMap<ProductStageMaterial, ProductStageMaterialVM>().ReverseMap();
         }
     }
 }

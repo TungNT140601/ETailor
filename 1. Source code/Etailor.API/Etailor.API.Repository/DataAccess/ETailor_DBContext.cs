@@ -320,7 +320,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Id).HasMaxLength(30);
 
-                entity.Property(e => e.Address).HasMaxLength(255);
+                entity.Property(e => e.Address).HasColumnType("nvarchar(max)");
 
                 entity.Property(e => e.Avatar).HasColumnType("text");
 
@@ -352,7 +352,7 @@ namespace Etailor.API.Repository.DataAccess
                     .HasColumnName("OTPUsed")
                     .HasDefaultValueSql("((0))");
 
-                entity.Property(e => e.Password).HasMaxLength(255);
+                entity.Property(e => e.Password).HasColumnType("nvarchar(max)");
 
                 entity.Property(e => e.Phone).HasMaxLength(10);
 

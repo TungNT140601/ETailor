@@ -9,7 +9,7 @@ namespace Etailor.API.Service.Interface
 {
     public interface IProductService
     {
-        Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity);
+        Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity, int quantity);
 
         Task<string> UpdateProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity);
         Task<bool> UpdateProductPrice(string orderId, string productId, decimal? price);
@@ -20,5 +20,6 @@ namespace Etailor.API.Service.Interface
         Task<IEnumerable<Product>> GetProductsByOrderIds(List<string> orderIds);
         Task<IEnumerable<Product>> GetProductsByOrderIdOfCus(string orderId, string cusId);
         Task<List<ProductBodySize>> GetBodySizeOfProduct(string productId, string orderId, string? cusId);
+        Task<IEnumerable<ComponentType>> GetProductComponent(string templateId);
     }
 }

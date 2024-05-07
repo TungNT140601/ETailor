@@ -36,6 +36,8 @@ using OfficeOpenXml;
 using System.Collections.Generic;
 using OfficeOpenXml.Drawing;
 using static QRCoder.Base64QRCode;
+using AutoMapper;
+using System.Data;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -54,12 +56,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly INotificationService notificationService;
         private readonly IProductTemplateService productTemplateService;
         private readonly ETailor_DBContext dBContext;
+        private readonly IMapper mapper;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
             , ITaskService taskService, INotificationService notificationService
-            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService)
+            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService
+            , IMapper mapper)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -74,6 +78,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.notificationService = notificationService;
             this.dBContext = dBContext;
             this.productTemplateService = productTemplateService;
+            this.mapper = mapper;
         }
 
         #region SendMail
@@ -1298,6 +1303,122 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTask(string id)
+        {
+            try
+            {
+                if (id == null)
+                {
+                    return NotFound("Id sản phẩm không tồn tại");
+                }
+                else
+                {
+                    var task = await taskService.GetTask(id);
+
+                    var taskVM = mapper.Map<TaskDetailByStaffVM>(task);
+
+                    if (taskVM != null && taskVM.ProductStages != null && taskVM.ProductStages.Any())
+                    {
+                        return Ok(taskVM);
+                    }
+                    else if (taskVM != null && (taskVM.ProductStages == null || !taskVM.ProductStages.Any()))
+                    {
+                        var tasks = new List<Task>();
+
+                        if (!string.IsNullOrWhiteSpace(task.SaveOrderComponents))
+                        {
+                            var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(task.SaveOrderComponents);
+
+                            if (productComponents != null && productComponents.Any() && productComponents.Count > 0)
+                            {
+                                var componentIds = productComponents.Select(c => c.ComponentId).ToList();
+
+                                taskVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>((await productTemplateService.GetTemplateComponent(task.ProductTemplateId))?.ToList());
+
+                                if (taskVM.ComponentTypeOrders != null && taskVM.ComponentTypeOrders.Any() && taskVM.ComponentTypeOrders.Count > 0)
+                                {
+                                    foreach (var component in taskVM.ComponentTypeOrders)
+                                    {
+                                        tasks.Add(Task.Run(async () =>
+                                        {
+                                            var insideTasks = new List<Task>();
+
+                                            insideTasks.Add(Task.Run(() =>
+                                            {
+                                                component.Component_Id = $"component_{component.Id}";
+                                                component.Note_Id = $"productComponent_{component.Id}";
+                                            }));
+
+                                            insideTasks.Add(Task.Run(() =>
+                                            {
+                                                component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                            }));
+
+                                            insideTasks.Add(Task.Run(async () =>
+                                            {
+                                                var componentNote = productComponents.FirstOrDefault(x => component.Components.Select(c => c.Id).Contains(x.ComponentId));
+                                                if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
+                                                {
+                                                    component.Selected_Component_Id = componentNote.ComponentId;
+
+                                                    component.NoteObject = new ComponentNoteVM();
+
+                                                    if (!string.IsNullOrEmpty(componentNote.Note))
+                                                    {
+                                                        component.NoteObject.Note = componentNote.Note;
+                                                    }
+
+                                                    if (!string.IsNullOrEmpty(componentNote.NoteImage))
+                                                    {
+                                                        var listImageDTO = JsonConvert.DeserializeObject<List<string>>(componentNote.NoteImage);
+                                                        if (listImageDTO != null && listImageDTO.Any())
+                                                        {
+                                                            var listImageUrl = new List<string>();
+                                                            var insideTasks1 = new List<Task>();
+                                                            foreach (var img in listImageDTO)
+                                                            {
+                                                                insideTasks1.Add(Task.Run(() =>
+                                                                {
+                                                                    listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                }));
+                                                            }
+                                                            await Task.WhenAll(insideTasks1);
+                                                            component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    component.NoteObject = null;
+                                                }
+                                            }));
+
+                                            await Task.WhenAll(insideTasks);
+                                        }));
+                                    }
+                                }
+                            }
+                        }
+
+                        await Task.WhenAll(tasks);
+
+                        return Ok(taskVM);
+                    }
+                    else
+                    {
+                        return NotFound();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         private string GetImageExtensionFromType(string imageType)
         {
             // Adjust this method based on the actual format of picture.Type

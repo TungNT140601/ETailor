@@ -1,15 +1,18 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
 using Etailor.API.Repository.Repository;
+using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -40,6 +43,7 @@ namespace Etailor.API.Service.Service
         private readonly IProductStageMaterialRepository productStageMaterialRepository;
         private readonly ISignalRService signalRService;
         private readonly INotificationService notificationService;
+        private readonly INotificationRepository notificationRepository;
 
         public TaskService(IProductRepository productRepository, IProductStageRepository productStageRepository
             , IProductComponentRepository productComponentRepository, IOrderRepository orderRepository
@@ -51,7 +55,7 @@ namespace Etailor.API.Service.Service
             , IProfileBodyRepository profileBodyRepository, IOrderMaterialRepository orderMaterialRepository
             , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository
             , IProductStageMaterialRepository productStageMaterialRepository, ISignalRService signalRService
-            , INotificationService notificationService)
+            , INotificationService notificationService, INotificationRepository notificationRepository)
         {
             this.productRepository = productRepository;
             this.productStageRepository = productStageRepository;
@@ -75,6 +79,7 @@ namespace Etailor.API.Service.Service
             this.productStageMaterialRepository = productStageMaterialRepository;
             this.signalRService = signalRService;
             this.notificationService = notificationService;
+            this.notificationRepository = notificationRepository;
         }
 
         public async Task<Product> GetTask(string productId)
@@ -89,8 +94,9 @@ namespace Etailor.API.Service.Service
                 var fabricMaterial = materialRepository.Get(product.FabricMaterialId);
                 var template = productTemplateRepository.Get(product.ProductTemplateId);
                 var productStages = productStageRepository.GetAll(x => x.ProductId == productId && x.IsActive == true);
+                var productBodySizes = productBodySizeRepository.GetAll(x => product != null && x.ProductId == productId);
 
-                if (!(order != null && order.Status > 2 && order.IsActive == true))
+                if (!(order != null && order.Status >= 1 && order.IsActive == true))
                 {
                     return null;
                 }
@@ -101,7 +107,7 @@ namespace Etailor.API.Service.Service
                         product.Order = order;
                     }
                 }));
-                tasks.Add(Task.Run(async () =>
+                tasks.Add(Task.Run(() =>
                 {
                     if (product.FabricMaterial == null)
                     {
@@ -120,7 +126,7 @@ namespace Etailor.API.Service.Service
                         product.FabricMaterial.Image = string.Empty;
                     }
                 }));
-                tasks.Add(Task.Run(async () =>
+                tasks.Add(Task.Run(() =>
                 {
                     if (product.ProductTemplate == null)
                     {
@@ -146,11 +152,35 @@ namespace Etailor.API.Service.Service
                     {
                         productStages = productStages.OrderBy(x => x.StageNum).ToList();
 
-                        var productComponents = productComponentRepository.GetAll(x => productStages != null && productStages.Any() && productStages.Select(c => c.Id).Contains(x.ProductStageId));
+                        var productComponents = productComponentRepository.GetAll(x => productStages.Select(c => c.Id).Contains(x.ProductStageId));
 
                         if (productComponents != null && productComponents.Any())
                         {
                             productComponents = productComponents.ToList();
+
+                            var productStageMaterials = productStageMaterialRepository.GetAll(x => productStages.Select(c => c.Id).Contains(x.ProductStageId));
+
+                            var materialStages = new List<Material>();
+
+                            if (productStageMaterials != null && productStageMaterials.Any())
+                            {
+                                productStageMaterials = productStageMaterials.ToList();
+
+                                materialStages = materialRepository.GetAll(x => productStageMaterials.Select(c => c.MaterialId).Contains(x.Id))?.ToList();
+
+                                if (materialStages != null && materialStages.Any())
+                                {
+                                    materialStages = materialStages.ToList();
+                                }
+                                else
+                                {
+                                    materialStages = new List<Material>();
+                                }
+                            }
+                            else
+                            {
+                                productStageMaterials = new List<ProductStageMaterial>();
+                            }
 
                             var productTemplateComponents = componentRepository.GetAll(x => productComponents != null && productComponents.Any() && productComponents.Select(c => c.ComponentId).Contains(x.Id));
 
@@ -158,135 +188,163 @@ namespace Etailor.API.Service.Service
                             {
                                 productTemplateComponents = productTemplateComponents.ToList();
 
-                                var productBodySizes = productBodySizeRepository.GetAll(x => product != null && x.ProductId == productId);
+                                await Task.WhenAll(tasks);
 
-                                if (productBodySizes != null && productBodySizes.Any())
+                                tasks.Add(Task.Run(() =>
                                 {
-                                    productBodySizes = productBodySizes.ToList();
-
-                                    var bodySizes = bodySizeRepository.GetAll(x => productBodySizes != null && productBodySizes.Any() && productBodySizes.Select(c => c.BodySizeId).Contains(x.Id));
-
-                                    if (bodySizes != null && bodySizes.Any())
+                                    if (product.ProductStages == null)
                                     {
-                                        bodySizes = bodySizes.ToList();
+                                        product.ProductStages = productStages.ToList();
+                                    }
+                                }));
 
-                                        await Task.WhenAll(tasks);
-
-                                        tasks.Add(Task.Run(() =>
+                                tasks.Add(Task.Run(async () =>
+                                {
+                                    var insideTasks1 = new List<Task>();
+                                    foreach (var stage in product.ProductStages)
+                                    {
+                                        insideTasks1.Add(Task.Run(async () =>
                                         {
-                                            if (product.ProductStages == null)
-                                            {
-                                                product.ProductStages = productStages.ToList();
-                                            }
-                                        }));
+                                            var insideTasks2 = new List<Task>();
 
-                                        tasks.Add(Task.Run(async () =>
-                                        {
-                                            var insideTasks1 = new List<Task>();
-                                            foreach (var stage in product.ProductStages)
+                                            insideTasks2.Add(Task.Run(async () =>
                                             {
-                                                insideTasks1.Add(Task.Run(async () =>
+                                                stage.ProductStageMaterials = productStageMaterials?.Where(x => x.ProductStageId == stage.Id)?.ToList();
+
+                                                if (stage.ProductStageMaterials != null && stage.ProductStageMaterials.Any())
                                                 {
-                                                    var insideTasks2 = new List<Task>();
-                                                    insideTasks2.Add(Task.Run(() =>
+                                                    var insideTasks3 = new List<Task>();
+                                                    foreach (var stageMaterial in stage.ProductStageMaterials)
                                                     {
-                                                        if (stage.ProductComponents == null)
+                                                        insideTasks3.Add(Task.Run(() =>
                                                         {
-                                                            stage.ProductComponents = productComponents.Where(x => x.ProductStageId == stage.Id).ToList();
-                                                        }
-                                                    }));
-                                                    foreach (var component in stage.ProductComponents)
-                                                    {
-                                                        insideTasks2.Add(Task.Run(async () =>
-                                                        {
-                                                            if (component.Component == null)
+                                                            stageMaterial.Material = materialStages.FirstOrDefault(x => x.Id == stageMaterial.MaterialId);
+                                                            if (stageMaterial.Material != null && !string.IsNullOrEmpty(stageMaterial.Material.Image))
                                                             {
-                                                                component.Component = productTemplateComponents.FirstOrDefault(x => x.Id == component.ComponentId);
-                                                            }
-                                                            if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                            {
-                                                                component.Component.Image = Ultils.GetUrlImage(component.Component.Image);
-                                                            }
-                                                            else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                            {
-
-                                                            }
-                                                            else
-                                                            {
-                                                                component.Component.Image = string.Empty;
-                                                            }
-
-                                                            if (!string.IsNullOrWhiteSpace(component.NoteImage))
-                                                            {
-                                                                var noteImage = JsonConvert.DeserializeObject<List<string>>(component.NoteImage);
-                                                                if (noteImage != null && noteImage.Any())
-                                                                {
-                                                                    var noteImages = new List<string>();
-                                                                    var insideTasks3 = new List<Task>();
-                                                                    foreach (var image in noteImage)
-                                                                    {
-                                                                        insideTasks3.Add(Task.Run(async () =>
-                                                                        {
-                                                                            if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
-                                                                            {
-                                                                                noteImages.Add(Ultils.GetUrlImage(image));
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                noteImages.Add(image);
-                                                                            }
-                                                                        }));
-                                                                    }
-                                                                    await Task.WhenAll(insideTasks3);
-                                                                    component.NoteImage = JsonConvert.SerializeObject(noteImages);
-                                                                }
+                                                                stageMaterial.Material.Image = Ultils.GetUrlImage(stageMaterial.Material.Image);
                                                             }
                                                         }));
                                                     }
-                                                    await Task.WhenAll(insideTasks2);
-                                                }));
-                                            }
-                                            await Task.WhenAll(insideTasks1);
-                                        }));
-                                        tasks.Add(Task.Run(async () =>
-                                        {
-                                            var insideTasks1 = new List<Task>();
-                                            insideTasks1.Add(Task.Run(() =>
-                                            {
-                                                if (product.ProductBodySizes == null)
-                                                {
-                                                    product.ProductBodySizes = productBodySizes.ToList();
+                                                    await Task.WhenAll(insideTasks3);
                                                 }
                                             }));
-                                            insideTasks1.Add(Task.Run(async () =>
+
+                                            insideTasks2.Add(Task.Run(async () =>
                                             {
-                                                var insideTasks2 = new List<Task>();
-                                                foreach (var productBodySize in product.ProductBodySizes)
+                                                if (stage.ProductComponents == null || !stage.ProductComponents.Any())
                                                 {
-                                                    insideTasks2.Add(Task.Run(() =>
+                                                    stage.ProductComponents = productComponents.Where(x => x.ProductStageId == stage.Id).ToList();
+                                                }
+
+                                                var insideTasks3 = new List<Task>();
+
+                                                foreach (var component in stage.ProductComponents)
+                                                {
+                                                    insideTasks3.Add(Task.Run(async () =>
                                                     {
-                                                        if (productBodySize.BodySize == null)
+                                                        if (component.Component == null)
                                                         {
-                                                            productBodySize.BodySize = bodySizes.FirstOrDefault(x => x.Id == productBodySize.BodySizeId);
+                                                            component.Component = productTemplateComponents.FirstOrDefault(x => x.Id == component.ComponentId);
+                                                        }
+                                                        if (!string.IsNullOrEmpty(component.Component.Image) && !component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                        {
+                                                            component.Component.Image = Ultils.GetUrlImage(component.Component.Image);
+                                                        }
+                                                        else if (component.Component.Image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                        {
+
+                                                        }
+                                                        else
+                                                        {
+                                                            component.Component.Image = string.Empty;
+                                                        }
+
+                                                        if (!string.IsNullOrWhiteSpace(component.NoteImage))
+                                                        {
+                                                            var noteImage = JsonConvert.DeserializeObject<List<string>>(component.NoteImage);
+                                                            if (noteImage != null && noteImage.Any())
+                                                            {
+                                                                var noteImages = new List<string>();
+                                                                var insideTasks4 = new List<Task>();
+                                                                foreach (var image in noteImage)
+                                                                {
+                                                                    insideTasks4.Add(Task.Run(async () =>
+                                                                    {
+                                                                        if (!image.StartsWith("https://firebasestorage.googleapis.com/"))
+                                                                        {
+                                                                            noteImages.Add(Ultils.GetUrlImage(image));
+                                                                        }
+                                                                        else
+                                                                        {
+                                                                            noteImages.Add(image);
+                                                                        }
+                                                                    }));
+                                                                }
+                                                                await Task.WhenAll(insideTasks4);
+                                                                component.NoteImage = JsonConvert.SerializeObject(noteImages);
+                                                            }
                                                         }
                                                     }));
                                                 }
-                                                await Task.WhenAll(insideTasks2);
+
+                                                await Task.WhenAll(insideTasks3);
                                             }));
-                                            await Task.WhenAll(insideTasks1);
+
+                                            await Task.WhenAll(insideTasks2);
                                         }));
-
-                                        await Task.WhenAll(tasks);
-
-                                        product.ProductStages = product.ProductStages.OrderBy(x => x.StageNum).ToList();
-
-                                        return product;
                                     }
-                                }
+                                    await Task.WhenAll(insideTasks1);
+                                }));
                             }
                         }
                     }
+
+                    if (productBodySizes != null && productBodySizes.Any())
+                    {
+                        productBodySizes = productBodySizes.ToList();
+
+                        var bodySizes = bodySizeRepository.GetAll(x => productBodySizes != null && productBodySizes.Any() && productBodySizes.Select(c => c.BodySizeId).Contains(x.Id));
+
+                        if (bodySizes != null && bodySizes.Any())
+                        {
+                            bodySizes = bodySizes.ToList();
+
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                var insideTasks1 = new List<Task>();
+                                insideTasks1.Add(Task.Run(() =>
+                                {
+                                    if (product.ProductBodySizes == null)
+                                    {
+                                        product.ProductBodySizes = productBodySizes.ToList();
+                                    }
+                                }));
+                                insideTasks1.Add(Task.Run(async () =>
+                                {
+                                    var insideTasks2 = new List<Task>();
+                                    foreach (var productBodySize in product.ProductBodySizes)
+                                    {
+                                        insideTasks2.Add(Task.Run(() =>
+                                        {
+                                            if (productBodySize.BodySize == null)
+                                            {
+                                                productBodySize.BodySize = bodySizes.FirstOrDefault(x => x.Id == productBodySize.BodySizeId);
+                                            }
+                                        }));
+                                    }
+                                    await Task.WhenAll(insideTasks2);
+                                }));
+                                await Task.WhenAll(insideTasks1);
+                            }));
+
+                            await Task.WhenAll(tasks);
+
+                            product.ProductStages = product.ProductStages.OrderBy(x => x.StageNum).ToList();
+                        }
+                    }
                 }
+
+                return product;
             }
 
             return null;
@@ -461,55 +519,64 @@ namespace Etailor.API.Service.Service
 
                                                                             foreach (var stage in productTemplateStagees)
                                                                             {
-                                                                                stageTasks.Add(Task.Run(() =>
+                                                                                stageTasks.Add(Task.Run(async () =>
+                                                                            {
+                                                                                var productStage = new ProductStage()
                                                                                 {
-                                                                                    var productStage = new ProductStage()
-                                                                                    {
-                                                                                        Id = Ultils.GenGuidString(),
-                                                                                        Deadline = null,
-                                                                                        StartTime = null,
-                                                                                        FinishTime = null,
-                                                                                        InactiveTime = null,
-                                                                                        IsActive = true,
-                                                                                        ProductId = product.Id,
-                                                                                        StaffId = null,
-                                                                                        StageNum = stage.StageNum,
-                                                                                        TaskIndex = null,
-                                                                                        Status = 1,
-                                                                                        TemplateStageId = stage.Id,
-                                                                                        StageName = stage.Name,
-                                                                                        ProductComponents = new List<ProductComponent>()
-                                                                                    };
+                                                                                    Id = Ultils.GenGuidString(),
+                                                                                    Deadline = null,
+                                                                                    StartTime = null,
+                                                                                    FinishTime = null,
+                                                                                    InactiveTime = null,
+                                                                                    IsActive = true,
+                                                                                    ProductId = product.Id,
+                                                                                    StaffId = null,
+                                                                                    StageNum = stage.StageNum,
+                                                                                    TaskIndex = null,
+                                                                                    Status = 1,
+                                                                                    TemplateStageId = stage.Id,
+                                                                                    StageName = stage.Name,
+                                                                                    ProductComponents = new List<ProductComponent>()
+                                                                                };
 
-                                                                                    var componentTypesInStage = stageComponents.Where(x => x.TemplateStageId == stage.Id);
-                                                                                    if (componentTypesInStage != null && componentTypesInStage.Any())
-                                                                                    {
-                                                                                        componentTypesInStage = componentTypesInStage.ToList();
+                                                                                var componentTypesInStage = stageComponents.Where(x => x.TemplateStageId == stage.Id);
+                                                                                if (componentTypesInStage != null && componentTypesInStage.Any())
+                                                                                {
+                                                                                    componentTypesInStage = componentTypesInStage.ToList();
 
-                                                                                        var componentsInStage = components.Where(x => componentTypesInStage.Select(c => c.ComponentTypeId).Contains(x.ComponentTypeId));
-                                                                                        if (componentsInStage != null && componentsInStage.Any())
+                                                                                    var componentsInStage = components.Where(x => componentTypesInStage.Select(c => c.ComponentTypeId).Contains(x.ComponentTypeId));
+                                                                                    if (componentsInStage != null && componentsInStage.Any())
+                                                                                    {
+                                                                                        componentsInStage = componentsInStage.ToList();
+
+                                                                                        var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(product.SaveOrderComponents);
+                                                                                        if (productComponents != null && productComponents.Any())
                                                                                         {
-                                                                                            componentsInStage = componentsInStage.ToList();
-
-                                                                                            var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(product.SaveOrderComponents);
-                                                                                            if (productComponents != null && productComponents.Any())
+                                                                                            var productComponentsInStage = productComponents.Where(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
+                                                                                            if (productComponentsInStage != null && productComponentsInStage.Any())
                                                                                             {
-                                                                                                var productComponent = productComponents.FirstOrDefault(x => componentsInStage.Select(c => c.Id).Contains(x.ComponentId));
-                                                                                                if (productComponent != null)
+                                                                                                productComponentsInStage = productComponentsInStage.ToList();
+                                                                                                var productComponentTasks = new List<Task>();
+                                                                                                foreach (var productComponent in productComponentsInStage)
                                                                                                 {
-                                                                                                    productComponent.Id = Ultils.GenGuidString();
-                                                                                                    productComponent.LastestUpdatedTime = DateTime.Now;
-                                                                                                    productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
-                                                                                                    productComponent.ProductStageId = productStage.Id;
+                                                                                                    productComponentTasks.Add(Task.Run(() =>
+                                                                                                    {
+                                                                                                        productComponent.Id = Ultils.GenGuidString();
+                                                                                                        productComponent.LastestUpdatedTime = DateTime.Now;
+                                                                                                        productComponent.Name = components.FirstOrDefault(x => x.Id == productComponent.ComponentId)?.Name;
+                                                                                                        productComponent.ProductStageId = productStage.Id;
 
-                                                                                                    productStage.ProductComponents.Add(productComponent);
+                                                                                                        productStage.ProductComponents.Add(productComponent);
+                                                                                                    }));
                                                                                                 }
+                                                                                                await Task.WhenAll(productComponentTasks);
                                                                                             }
                                                                                         }
                                                                                     }
+                                                                                }
 
-                                                                                    product.ProductStages.Add(productStage);
-                                                                                }));
+                                                                                product.ProductStages.Add(productStage);
+                                                                            }));
                                                                             }
                                                                             await Task.WhenAll(stageTasks);
                                                                         }
@@ -1017,7 +1084,7 @@ namespace Etailor.API.Service.Service
                                                             listTasks[i].Index = minIndex + 1 + i;
                                                         }
                                                         listTasks[i].StaffMakerId = staffId;
-                                                        listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
+                                                        listTasks[i].LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                                     }
                                                 }
 
@@ -1032,7 +1099,7 @@ namespace Etailor.API.Service.Service
                                                 {
                                                     listTasks[i].Index = minIndex + 1 + i;
                                                     listTasks[i].StaffMakerId = staffId;
-                                                    listTasks[i].LastestUpdatedTime = DateTime.UtcNow;
+                                                    listTasks[i].LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                                 }
 
                                                 await productRepository.UpdateRangeProduct(listTasks);
@@ -1316,7 +1383,7 @@ namespace Etailor.API.Service.Service
             var product = productRepository.Get(productId);
 
             var tasks = new List<Task>();
-            if (product != null && product.IsActive == true && product.Status != 0)
+            if (product != null && product.IsActive == true && product.Status != 0 && product.StaffMakerId == staffId)
             {
                 switch (product.Status)
                 {
@@ -1380,7 +1447,7 @@ namespace Etailor.API.Service.Service
 
                             await Task.WhenAll(tasks);
 
-                            if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId && productStage.StaffId == staffId)
+                            if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId)
                             {
                                 if (productStages.Any(x => x.StageNum < productStage.StageNum && x.Status < 4))
                                 {
@@ -1391,7 +1458,7 @@ namespace Etailor.API.Service.Service
                                     tasks.Add(Task.Run(() =>
                                     {
                                         product.Status = 2;
-                                        product.LastestUpdatedTime = DateTime.UtcNow;
+                                        product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                         productRepository.Update(product.Id, product);
                                     }));
 
@@ -1402,7 +1469,7 @@ namespace Etailor.API.Service.Service
                                         tasks.Add(Task.Run(() =>
                                         {
                                             order.Status = 4;
-                                            order.LastestUpdatedTime = DateTime.UtcNow;
+                                            order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                             orderRepository.Update(order.Id, order);
                                         }));
 
@@ -1413,7 +1480,7 @@ namespace Etailor.API.Service.Service
                                     {
                                         productStage.Status = 2;
                                         productStage.StaffId = staffId;
-                                        productStage.FinishTime = DateTime.UtcNow;
+                                        productStage.FinishTime = DateTime.UtcNow.AddHours(7);
                                     }));
 
                                     await Task.WhenAll(tasks);
@@ -1452,7 +1519,7 @@ namespace Etailor.API.Service.Service
             var product = productRepository.Get(productId);
 
             var tasks = new List<Task>();
-            if (product != null && product.IsActive == true && product.Status != 0)
+            if (product != null && product.IsActive == true && product.Status != 0 && product.StaffMakerId == staffId)
             {
                 switch (product.Status)
                 {
@@ -1521,35 +1588,17 @@ namespace Etailor.API.Service.Service
 
                             if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId && productStage.StaffId == staffId)
                             {
-                                if (maxStageNum != null && productStage.StageNum == maxStageNum)
-                                {
-                                    tasks.Add(Task.Run(async () =>
-                                    {
-                                        product.Status = 5;
-                                        product.LastestUpdatedTime = DateTime.UtcNow;
-
-                                        productRepository.Update(product.Id, product);
-                                    }));
-
-                                    await Task.WhenAll(tasks);
-
-                                    if (!orderProducts.Any(x => x.Id != product.Id && x.Status < 5 && x.IsActive == true))
-                                    {
-                                        tasks.Add(Task.Run(() =>
-                                        {
-                                            order.Status = 5;
-                                            order.LastestUpdatedTime = DateTime.UtcNow;
-                                            orderRepository.Update(order.Id, order);
-                                        }));
-                                    }
-                                }
-
                                 tasks.Add(Task.Run(async () =>
                                 {
+                                    var imageUrls = new List<string>();
+
+                                    if (!string.IsNullOrEmpty(productStage.EvidenceImage))
+                                    {
+                                        imageUrls.AddRange(JsonConvert.DeserializeObject<List<string>>(productStage.EvidenceImage));
+                                    }
+
                                     if (images != null && images.Any())
                                     {
-                                        var imageUrls = new List<string>();
-
                                         var tasks2 = new List<Task>();
                                         foreach (var image in images)
                                         {
@@ -1560,7 +1609,10 @@ namespace Etailor.API.Service.Service
                                             }));
                                         }
                                         await Task.WhenAll(tasks2);
+                                    }
 
+                                    if (imageUrls != null && imageUrls.Any())
+                                    {
                                         productStage.EvidenceImage = JsonConvert.SerializeObject(imageUrls);
                                     }
                                     else
@@ -1573,12 +1625,95 @@ namespace Etailor.API.Service.Service
                                 {
                                     productStage.Status = 4;
                                     productStage.StaffId = staffId;
-                                    productStage.FinishTime = DateTime.UtcNow;
+                                    productStage.FinishTime = DateTime.UtcNow.AddHours(7);
                                 }));
 
                                 await Task.WhenAll(tasks);
 
-                                return productStageRepository.Update(productStage.Id, productStage);
+                                if (productStageRepository.Update(productStage.Id, productStage))
+                                {
+                                    if (maxStageNum != null && productStage.StageNum == maxStageNum)
+                                    {
+                                        product.Status = 5;
+                                        product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+
+                                        if (productRepository.Update(product.Id, product))
+                                        {
+                                            if (!orderProducts.Any(x => x.Id != product.Id && x.Status < 5 && x.IsActive == true))
+                                            {
+                                                order.Status = 5;
+                                                order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                                order.FinishTime = DateTime.UtcNow.AddHours(7);
+                                                if (orderRepository.Update(order.Id, order))
+                                                {
+                                                    var title = new SqlParameter("@Title", SqlDbType.NVarChar)
+                                                    {
+                                                        Value = $"Đơn hàng {product.OrderId} đã hoàn thành."
+                                                    };
+
+                                                    var content = new SqlParameter("@Title", SqlDbType.NVarChar)
+                                                    {
+                                                        Value = $"Các sản phẩm của đơn hàng {product.OrderId} đã hoàn thành. Quản lý vui lòng kiểm tra trước khi bàn giao cho khách kiểm thử."
+                                                    };
+
+                                                    var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+
+                                                    if (returnValue == 1)
+                                                    {
+                                                        await signalRService.SendNotificationToManagers(content.Value.ToString());
+
+                                                        return true;
+                                                    }
+                                                    else
+                                                    {
+                                                        throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    throw new SystemsException("Lỗi trong quá trình cập nhật trạng thái hóa đơn", nameof(TaskService.FinishTask));
+                                                }
+                                            }
+                                            else
+                                            {
+                                                var title = new SqlParameter("@Title", SqlDbType.NVarChar)
+                                                {
+                                                    Value = $"Sản phẩm của đơn hàng {product.OrderId} đã hoàn thành."
+                                                };
+
+                                                var content = new SqlParameter("@Title", SqlDbType.NVarChar)
+                                                {
+                                                    Value = $"Sản phẩm {product.Id} : {product.Name} của đơn hàng đã hoàn thành."
+                                                };
+
+                                                var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+
+                                                if (returnValue == 1)
+                                                {
+                                                    await signalRService.SendNotificationToManagers(content.Value.ToString());
+
+                                                    return true;
+                                                }
+                                                else
+                                                {
+                                                    throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            throw new SystemsException("Lỗi trong quá trình cập nhật trạng thái sản phẩm", nameof(TaskService.FinishTask));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        return true;
+                                    }
+                                }
+                                else
+                                {
+                                    throw new SystemsException("Lỗi trong quá trình hoàn thành công đoạn", nameof(TaskService.FinishTask));
+                                }
                             }
                             else
                             {
@@ -1610,7 +1745,7 @@ namespace Etailor.API.Service.Service
         {
             var product = productRepository.Get(productId);
 
-            if (product != null && product.IsActive == true && product.Status != 0)
+            if (product != null && product.IsActive == true && product.Status != 0 && product.StaffMakerId == staffId)
             {
                 switch (product.Status)
                 {
@@ -1667,7 +1802,7 @@ namespace Etailor.API.Service.Service
                             if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId && productStage.StaffId == staffId)
                             {
                                 product.Status = 3;
-                                product.LastestUpdatedTime = DateTime.UtcNow;
+                                product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                                 productRepository.Update(product.Id, product);
 
@@ -1714,7 +1849,7 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     var product = productRepository.Get(productId);
-                    if (product != null && product.IsActive == true && product.Status != 0)
+                    if (product != null && product.IsActive == true && product.Status != 0 && product.OrderId == orderId)
                     {
                         if (product.Status != 5)
                         {
@@ -1724,14 +1859,34 @@ namespace Etailor.API.Service.Service
                         {
                             product.Status = 4;
                             order.Status = 7;
-                            await signalRService.SendNotificationToManagers($"Hóa đơn {order.Id} vừa bị khách từ chối.");
-                            if (orderRepository.Update(orderId, order))
+                            var title = new SqlParameter("@Title", SqlDbType.NVarChar)
                             {
-                                return productRepository.Update(productId, product);
+                                Value = $"Hóa đơn {order.Id} vừa bị khách từ chối."
+                            };
+
+                            var content = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            {
+                                Value = $"Sản phẩm {product.Id} : {product.Name} bị khách từ chối."
+                            };
+
+                            var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+
+                            if (returnValue == 1)
+                            {
+                                await signalRService.SendNotificationToManagers(content.Value.ToString());
+
+                                if (orderRepository.Update(orderId, order))
+                                {
+                                    return productRepository.Update(productId, product);
+                                }
+                                else
+                                {
+                                    throw new SystemsException("Lỗi trong quá trình từ chối sản phẩm", nameof(TaskService.DefectsTask));
+                                }
                             }
                             else
                             {
-                                throw new SystemsException("Lỗi trong quá trình từ chối sản phẩm", nameof(TaskService.DefectsTask));
+                                throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
                             }
                         }
                     }
@@ -1870,8 +2025,71 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public bool MaterialDistributionForProductStageComponent(string taskId, string stageId, string componentId, string materialId, decimal quantity)
+        public async Task<bool> SetMaterialForTask(string taskId, string stageId, List<ProductStageMaterial> stageMaterials)
         {
+            if (stageMaterials != null && stageMaterials.Any())
+            {
+                var tasks = new List<Task>();
+                var paramsSql = new List<SqlParameter>();
+
+                tasks.Add(Task.Run(async () =>
+                {
+                    var dataTable = new DataTable();
+                    dataTable.Columns.Add("MaterialId", typeof(string));
+                    dataTable.Columns.Add("Value", typeof(decimal));
+
+                    var insideTasks = new List<Task>();
+                    foreach (var stageMaterial in stageMaterials)
+                    {
+                        insideTasks.Add(Task.Run(() =>
+                        {
+                            dataTable.Rows.Add(!string.IsNullOrEmpty(stageMaterial.MaterialId) ? stageMaterial.MaterialId : DBNull.Value, stageMaterial.Quantity.HasValue ? stageMaterial.Quantity : DBNull.Value);
+                        }));
+                    }
+                    await Task.WhenAll(insideTasks);
+
+                    paramsSql.Add(new SqlParameter("@StageMaterials", SqlDbType.Structured)
+                    {
+                        TypeName = "dbo.MaterialStageType",
+                        Value = dataTable
+                    });
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    paramsSql.Add(new SqlParameter("@StageId", SqlDbType.NVarChar)
+                    {
+                        Value = stageId
+                    });
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
+                    paramsSql.Add(new SqlParameter("@TaskId", SqlDbType.NVarChar)
+                    {
+                        Value = taskId
+                    });
+                }));
+
+                await Task.WhenAll(tasks);
+
+                var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Set_Material_For_Task,
+                    paramsSql.Find(x => x.ParameterName == "@TaskId"),
+                    paramsSql.Find(x => x.ParameterName == "@StageId"),
+                    paramsSql.Find(x => x.ParameterName == "@StageMaterials")
+                    );
+
+                switch (result)
+                {
+                    case 1: return true;
+
+                    default: throw new SystemsException("Lỗi trong quá trình cập nhật vật liệu", nameof(TaskService.SetMaterialForTask));
+                }
+            }
+            else
+            {
+                throw new UserException("Không có vật liệu");
+            }
             var product = productRepository.Get(taskId);
             if (product != null && product.IsActive == true)
             {
@@ -1900,211 +2118,8 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Hóa đơn đã hoàn thành");
                     }
 
-                    var productStages = productStageRepository.GetAll(x => x.IsActive == true && x.ProductId == taskId && x.Status != 0);
-                    if (productStages != null && productStages.Any())
-                    {
-                        productStages = productStages.ToList();
-                        if (productStages.Any(x => x.Id == stageId))
-                        {
-                            var productStage = productStages.Single(x => x.Id == stageId);
+                    throw new UserException("Đang sửa code");
 
-                            var stageComponent = productComponentRepository.GetAll(x => x.ProductStageId == stageId && x.ComponentId == componentId)?.FirstOrDefault();
-
-                            if (stageComponent != null)
-                            {
-                                var material = materialRepository.Get(materialId);
-                                if (material != null && material.IsActive == true)
-                                {
-                                    var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.MaterialId == materialId && x.IsActive == true);
-
-                                    if (orderMaterials != null && orderMaterials.Any())
-                                    {
-                                        orderMaterials = orderMaterials.ToList();
-                                    }
-
-                                    var stageMaterials = productStageMaterialRepository.GetAll(x => x.ProductStageId == productStage.Id && x.MaterialId == materialId)?.FirstOrDefault();
-                                    if (stageMaterials != null)
-                                    {
-                                        stageMaterials.Quantity += quantity;
-
-                                        if (orderMaterials != null && orderMaterials.Any() && product.FabricMaterialId == materialId)
-                                        {
-                                            if (orderMaterials.Any(x => x.IsCusMaterial == true))
-                                            {
-                                                var cusMaterial = orderMaterials.First(c => c.IsCusMaterial == true);
-                                                if (cusMaterial.Value - cusMaterial.ValueUsed >= quantity)
-                                                {
-                                                    cusMaterial.ValueUsed += quantity;
-                                                    return orderMaterialRepository.Update(cusMaterial.Id, cusMaterial);
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu của khách đưa không đủ");
-                                                }
-                                            }
-                                            else if (orderMaterials.Any(x => x.IsCusMaterial == false))
-                                            {
-                                                var orderMaterial = orderMaterials.First(c => c.IsCusMaterial == false);
-                                                orderMaterial.ValueUsed += quantity;
-                                                orderMaterial.Value += quantity;
-
-                                                if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                                {
-                                                    material.Quantity = material.Quantity - quantity;
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                                }
-                                                if (materialRepository.Update(materialId, material))
-                                                {
-                                                    if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
-                                                    {
-                                                        return productStageMaterialRepository.Update(stageMaterials.Id, stageMaterials);
-                                                    }
-                                                    else
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                }
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Không tìm thấy nguyên vật liệu");
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                            {
-                                                material.Quantity = material.Quantity - quantity;
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                            }
-                                            if (materialRepository.Update(materialId, material))
-                                            {
-                                                return productStageMaterialRepository.Update(stageMaterials.Id, stageMaterials);
-                                            }
-                                            else
-                                            {
-                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        stageMaterials = new ProductStageMaterial
-                                        {
-                                            Id = Ultils.GenGuidString(),
-                                            ProductStageId = stageId,
-                                            MaterialId = materialId,
-                                            Quantity = quantity
-                                        };
-
-                                        if (orderMaterials != null && orderMaterials.Any() && product.FabricMaterialId == materialId)
-                                        {
-                                            if (orderMaterials.Any(x => x.IsCusMaterial == true))
-                                            {
-                                                var cusMaterial = orderMaterials.First(c => c.IsCusMaterial == true);
-                                                if (cusMaterial.Value - cusMaterial.ValueUsed >= quantity)
-                                                {
-                                                    cusMaterial.ValueUsed += quantity;
-                                                    if (orderMaterialRepository.Update(cusMaterial.Id, cusMaterial))
-                                                    {
-                                                        return productStageMaterialRepository.Create(stageMaterials);
-                                                    }
-                                                    else
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu của khách đưa không đủ");
-                                                }
-                                            }
-                                            else if (orderMaterials.Any(x => x.IsCusMaterial == false))
-                                            {
-                                                var orderMaterial = orderMaterials.First(c => c.IsCusMaterial == false);
-                                                orderMaterial.ValueUsed += quantity;
-                                                orderMaterial.Value += quantity;
-
-                                                if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                                {
-                                                    material.Quantity = material.Quantity - quantity;
-                                                }
-                                                else
-                                                {
-                                                    throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                                }
-
-                                                if (materialRepository.Update(materialId, material))
-                                                {
-                                                    if (orderMaterialRepository.Update(orderMaterial.Id, orderMaterial))
-                                                    {
-                                                        return productStageMaterialRepository.Create(stageMaterials);
-                                                    }
-                                                    else
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu của hóa đơn", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                                }
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Không tìm thấy nguyên vật liệu");
-                                            }
-                                        }
-                                        else
-                                        {
-                                            if (material.Quantity.HasValue && material.Quantity.Value > 0 && material.Quantity.Value > quantity)
-                                            {
-                                                material.Quantity = material.Quantity - quantity;
-                                            }
-                                            else
-                                            {
-                                                throw new UserException("Số lượng nguyên vật liệu trong kho không đủ");
-                                            }
-                                            if (materialRepository.Update(materialId, material))
-                                            {
-                                                return productStageMaterialRepository.Create(stageMaterials);
-                                            }
-                                            else
-                                            {
-                                                throw new SystemsException("Lỗi trong quá trình cập nhật số lượng nguyên vật liệu trong kho", nameof(TaskService.MaterialDistributionForProductStageComponent));
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    throw new UserException("Không tìm thấy nguyên vật liệu");
-                                }
-                            }
-                            else
-                            {
-                                throw new UserException("Không tìm thấy thành phần");
-                            }
-                        }
-                        else
-                        {
-                            throw new UserException("Không tìm thấy công đoạn");
-                        }
-                    }
-                    else
-                    {
-                        throw new UserException("Sản phẩm chưa có công đoạn");
-                    }
                 }
                 else
                 {

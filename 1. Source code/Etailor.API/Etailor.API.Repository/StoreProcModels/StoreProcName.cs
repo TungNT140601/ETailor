@@ -19,6 +19,11 @@ namespace Etailor.API.Repository.StoreProcModels
         public static string Insert_Chat_List = "InsertChatList";
         public static string Check_Order_Paid = "CheckOrderPaid";
         public static string Get_Suitable_Discout_For_Order = "GetSuitableDiscoutForOrder";
+        public static string Get_Template_Components = "GetTemplateComponents";
+        public static string Get_Template_Component_Types = "GetTemplateComponentTypes";
+        public static string Create_Manager_Notification = "CreateManagerNotification";
+        public static string Customer_Regis = "CustomerRegis";
+        public static string Set_Material_For_Task = "SetMaterialForTask";
     }
     public class SpResult
     {
