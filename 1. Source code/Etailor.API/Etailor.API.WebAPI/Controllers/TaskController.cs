@@ -137,9 +137,11 @@ namespace Etailor.API.WebAPI.Controllers
                                                         insideTasks.Add(Task.Run(async () =>
                                                         {
                                                             var componentNote = productComponents.FirstOrDefault(x => component.Components.Select(c => c.Id).Contains(x.ComponentId));
+
+                                                            component.Selected_Component_Id = componentNote?.ComponentId;
+
                                                             if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
                                                             {
-                                                                component.Selected_Component_Id = componentNote.ComponentId;
 
                                                                 component.NoteObject = new ComponentNoteVM();
 
