@@ -1,0 +1,186 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[SetMaterialForTask]
+    @TaskId NVARCHAR(30) NULL,
+    @StageId NVARCHAR(30) NULL,
+    @StageMaterials dbo.MaterialStageType READONLY
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @OrderId NVARCHAR(30);
+    DECLARE @OrderStatus INT;
+    DECLARE @TaskStatus INT;
+    DECLARE @TaskStageStatus INT;
+    DECLARE @InsertTable TABLE (
+        Id NVARCHAR(30) NULL,
+        StageId NVARCHAR(30) NULL,
+        MaterialId NVARCHAR(30) NULL,
+        Quantity DECIMAL (18,3) NULL
+    );
+    DECLARE @ProductStageMaterialId NVARCHAR(30);
+    DECLARE @OldValue DECIMAL (18,3);
+
+    IF NOT EXISTS(SELECT 1
+    FROM Product
+    WHERE Id = @TaskId AND IsActive = 1)
+        THROW 50000, N'Không tìm thấy nhiệm vụ', 1;
+    ELSE 
+    BEGIN
+        SELECT @OrderId = OrderId, @TaskStatus = [Status]
+        FROM Product
+        WHERE Id = @TaskId AND IsActive = 1;
+        IF @TaskStatus = 0
+            THROW 50000, N'Nhiệm vụ bị hủy', 1;
+        ELSE IF @TaskStatus = 5
+            THROW 50000, N'Nhiệm vụ đã hoàn thành', 1;
+
+    END;
+
+    SELECT @OrderStatus = [Status]
+    FROM [Order]
+    WHERE Id = @OrderId AND IsActive = 1;
+
+    IF @OrderStatus IS NULL
+        THROW 50000, N'Không tìm thấy hóa đơn', 1;
+    ELSE IF @OrderStatus = 0
+        THROW 50000, N'Hóa đơn bị hủy', 1;
+    ELSE IF @OrderStatus = 1
+        THROW 50000, N'Hóa đơn chưa được xác nhận', 1;
+    ELSE IF @OrderStatus = 5
+        THROW 50000, N'Các sản phẩm của hóa đơn đã xong', 1;
+    ELSE IF @OrderStatus = 6
+        THROW 50000, N'Hóa đơn đang chờ khách hàng kiểm thử', 1;
+    ELSE IF @OrderStatus = 8
+        THROW 50000, N'Hóa đơn đã hoàn thành', 1;
+
+    SELECT @TaskStageStatus = [Status]
+    FROM ProductStage
+    WHERE Id = @StageId AND IsActive = 1;
+
+    IF @TaskStageStatus IS NULL
+        THROW 50000, N'Không tìm thấy quy trình của nhiệm vụ', 1;
+    ELSE IF @TaskStageStatus = 0
+        THROW 50000, N'Quy trình bị hủy', 1;
+    ELSE IF @TaskStageStatus = 5
+        THROW 50000, N'Quy trình đã hoàn thành', 1;
+
+    IF NOT EXISTS (SELECT 1
+    FROM @StageMaterials)
+        THROW 50000, N'Không có nguyên phụ liệu', 1;
+
+    DECLARE @MaterialId NVARCHAR(30);
+    DECLARE @Value DECIMAL (18,3);
+
+    DECLARE StageMaterialsCursor CURSOR FOR
+    SELECT MaterialId, [Value]
+    FROM @StageMaterials;
+
+    OPEN StageMaterialsCursor;
+    FETCH NEXT FROM StageMaterialsCursor INTO @MaterialId, @Value;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        IF (SELECT COUNT(*)
+        FROM @StageMaterials
+        WHERE MaterialId = @MaterialId) > 1
+            THROW 50000, N'Nguyên phụ liệu bị trùng', 1;
+        IF @Value IS NULL OR @Value < 0
+            THROW 50000, N'Số lượng nguyên phụ liệu không phù hợp', 1;
+
+        DECLARE @MaterialName NVARCHAR(100);
+        DECLARE @StockValue DECIMAL (18,3);
+
+        SELECT @StockValue = [Quantity], @MaterialName = [Name]
+        FROM Material
+        WHERE Id = @MaterialId AND IsActive = 1;
+
+        SELECT @ProductStageMaterialId = Id, @OldValue = Quantity
+        FROM ProductStageMaterial
+        WHERE MaterialId = @MaterialId AND ProductStageId = @StageId;
+
+        IF @MaterialName IS NULL
+            THROW 50000, N'Không tìm thấy nguyên phụ liệu', 1;
+        ELSE IF (@StockValue = 0 OR (@StockValue + ISNULL(@OldValue, 0)) < @Value)
+        BEGIN
+            DECLARE @ErrorMsg NVARCHAR = CAST(N'Số lượng của ' + @MaterialName + N' không đủ' AS NVARCHAR);
+            THROW 50000, @ErrorMsg, 1;
+        END;
+
+
+        INSERT INTO @InsertTable
+            (Id, StageId, MaterialId, Quantity)
+        VALUES
+            (@ProductStageMaterialId, @StageId, @MaterialId, @Value)
+            
+        FETCH NEXT FROM StageMaterialsCursor INTO @MaterialId, @Value;
+    END;
+    CLOSE StageMaterialsCursor;
+    DEALLOCATE StageMaterialsCursor;
+
+    DECLARE CheckMaterial CURSOR FOR
+    SELECT Id, MaterialId, Quantity
+    FROM ProductStageMaterial
+    WHERE ProductStageId = @StageId AND MaterialId NOT IN (
+        SELECT MaterialId
+        FROM @InsertTable
+    )
+
+    OPEN CheckMaterial;
+    FETCH NEXT FROM CheckMaterial INTO @ProductStageMaterialId, @MaterialId, @Value;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        UPDATE Material SET Quantity = ISNULL(Quantity, 0) + ISNULL(@Value, 0)
+        WHERE Id = @MaterialId
+
+        DELETE ProductStageMaterial WHERE Id = @ProductStageMaterialId
+        FETCH NEXT FROM CheckMaterial INTO @ProductStageMaterialId, @MaterialId, @Value;
+    END;
+    CLOSE CheckMaterial;
+    DEALLOCATE CheckMaterial;
+
+
+    DECLARE UpdateMaterial CURSOR FOR
+    SELECT Id, MaterialId, Quantity
+    FROM @InsertTable
+
+    OPEN UpdateMaterial;
+    FETCH NEXT FROM UpdateMaterial INTO @ProductStageMaterialId, @MaterialId, @Value;
+
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        IF @ProductStageMaterialId IS NULL
+        BEGIN
+            INSERT INTO ProductStageMaterial
+                (Id, ProductStageId, MaterialId, Quantity)
+            VALUES
+                (CONVERT(nvarchar(30),CAST(NEWID() AS nvarchar(MAX)),0),
+                    @StageId,
+                    @MaterialId,
+                    @Value);
+
+            UPDATE Material SET Quantity = Quantity - @Value WHERE Id = @MaterialId;
+        END;
+        ELSE
+        BEGIN
+            SELECT @OldValue = Quantity
+            FROM ProductStageMaterial
+            WHERE Id = @ProductStageMaterialId;
+
+            UPDATE Material SET Quantity = Quantity + ISNULL(@OldValue, 0) - @Value WHERE Id = @MaterialId;
+
+            UPDATE ProductStageMaterial
+            SET Quantity = @Value
+            WHERE Id = @ProductStageMaterialId;
+        END;
+        FETCH NEXT FROM UpdateMaterial INTO @ProductStageMaterialId, @MaterialId, @Value;
+    END;
+    CLOSE UpdateMaterial;
+    DEALLOCATE UpdateMaterial;
+
+    SELECT 1 AS ReturnValue;
+END;
+GO

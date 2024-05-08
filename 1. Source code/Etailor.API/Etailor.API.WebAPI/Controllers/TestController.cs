@@ -38,6 +38,8 @@ using OfficeOpenXml.Drawing;
 using static QRCoder.Base64QRCode;
 using AutoMapper;
 using System.Data;
+using Etailor.API.Service.Service;
+using System.Security.Claims;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -1412,6 +1414,20 @@ namespace Etailor.API.WebAPI.Controllers
                         return NotFound();
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("{taskId}/stage/{stageId}/material")]
+        public async Task<IActionResult> SetMaterialForTask(string taskId, string stageId, [FromBody] List<ProductStageMaterialVM> materials)
+        {
+            try
+            {
+                var check = await taskService.SetMaterialForTask(taskId, stageId, mapper.Map<List<ProductStageMaterial>>(materials));
+                return check ? Ok("Thành công") : BadRequest("Thất bại");
             }
             catch (Exception ex)
             {

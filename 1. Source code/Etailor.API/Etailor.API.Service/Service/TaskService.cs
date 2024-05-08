@@ -1840,41 +1840,51 @@ namespace Etailor.API.Service.Service
         public async Task<bool> DefectsTask(string productId, string orderId)
         {
             var order = orderRepository.Get(orderId);
-            if (order != null && order.IsActive == true && order.Status != 0)
+            if (order != null && order.IsActive == true)
             {
-                if (order.Status != 6)
+                switch (order.Status)
                 {
-                    throw new UserException("Hóa đơn không trong giai đoạn chờ kiểm thử của khách");
+                    case 0:
+                        throw new UserException("Hóa đơn bị hủy");
+                    case 1:
+                        throw new UserException("Hóa đơn chưa được duyệt");
+                    case 2:
+                        throw new UserException("Hóa đơn chưa được bắt đầu");
+                    case 3:
+                        throw new UserException("Hóa đơn chưa bắt đầu");
+                    case 8:
+                        throw new UserException("Hóa đơn đã hoàn thành");
                 }
-                else
+
+                var product = productRepository.Get(productId);
+                if (product != null && product.IsActive == true && product.Status != 0 && product.OrderId == orderId)
                 {
-                    var product = productRepository.Get(productId);
-                    if (product != null && product.IsActive == true && product.Status != 0 && product.OrderId == orderId)
+                    if (product.Status != 5)
                     {
-                        if (product.Status != 5)
+                        throw new UserException("Sản phẩm chưa hoàn thành");
+                    }
+                    else
+                    {
+                        product.Status = 4;
+                        order.Status = 7;
+                        var title = new SqlParameter("@Title", SqlDbType.NVarChar)
                         {
-                            throw new UserException("Sản phẩm chưa hoàn thành");
-                        }
-                        else
+                            Value = $"Hóa đơn {order.Id} vừa bị từ chối."
+                        };
+
+                        var content = new SqlParameter("@Title", SqlDbType.NVarChar)
                         {
-                            product.Status = 4;
-                            order.Status = 7;
-                            var title = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            Value = $"Sản phẩm {product.Id} : {product.Name} bị từ chối."
+                        };
+
+                        var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+
+                        if (returnValue == 1)
+                        {
+                            await signalRService.SendNotificationToManagers(content.Value.ToString());
+
+                            if (order.Status == 6)
                             {
-                                Value = $"Hóa đơn {order.Id} vừa bị khách từ chối."
-                            };
-
-                            var content = new SqlParameter("@Title", SqlDbType.NVarChar)
-                            {
-                                Value = $"Sản phẩm {product.Id} : {product.Name} bị khách từ chối."
-                            };
-
-                            var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
-
-                            if (returnValue == 1)
-                            {
-                                await signalRService.SendNotificationToManagers(content.Value.ToString());
-
                                 if (orderRepository.Update(orderId, order))
                                 {
                                     return productRepository.Update(productId, product);
@@ -1886,14 +1896,18 @@ namespace Etailor.API.Service.Service
                             }
                             else
                             {
-                                throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                                return productRepository.Update(productId, product);
                             }
                         }
+                        else
+                        {
+                            throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                        }
                     }
-                    else
-                    {
-                        throw new UserException("Không tìm thấy sản phẩm");
-                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy sản phẩm");
                 }
             }
             else
@@ -2073,62 +2087,31 @@ namespace Etailor.API.Service.Service
 
                 await Task.WhenAll(tasks);
 
-                var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Set_Material_For_Task,
-                    paramsSql.Find(x => x.ParameterName == "@TaskId"),
-                    paramsSql.Find(x => x.ParameterName == "@StageId"),
-                    paramsSql.Find(x => x.ParameterName == "@StageMaterials")
-                    );
-
-                switch (result)
+                try
                 {
-                    case 1: return true;
+                    var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Set_Material_For_Task,
+                        paramsSql.Find(x => x.ParameterName == "@TaskId"),
+                        paramsSql.Find(x => x.ParameterName == "@StageId"),
+                        paramsSql.Find(x => x.ParameterName == "@StageMaterials")
+                        );
 
-                    default: throw new SystemsException("Lỗi trong quá trình cập nhật vật liệu", nameof(TaskService.SetMaterialForTask));
+                    if (result == 1)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật nguyên vật liệu cho công đoạn", nameof(TaskService.SetMaterialForTask));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new UserException(ex.Message);
                 }
             }
             else
             {
                 throw new UserException("Không có vật liệu");
-            }
-            var product = productRepository.Get(taskId);
-            if (product != null && product.IsActive == true)
-            {
-                switch (product.Status)
-                {
-                    case 0:
-                        throw new UserException("Nhiệm vụ bị hủy");
-                    case 5:
-                        throw new UserException("Nhiệm vụ đã hoàn thành");
-                }
-
-                var order = orderRepository.Get(product.OrderId);
-                if (order != null && order.IsActive == true)
-                {
-                    switch (order.Status)
-                    {
-                        case 0:
-                            throw new UserException("Hóa đơn bị hủy");
-                        case 1:
-                            throw new UserException("Hóa đơn chưa được xác nhận");
-                        case 5:
-                            throw new UserException("Các sản phẩm của hóa đơn đã xong");
-                        case 6:
-                            throw new UserException("Hóa đơn đang chờ khách hàng kiểm thử");
-                        case 8:
-                            throw new UserException("Hóa đơn đã hoàn thành");
-                    }
-
-                    throw new UserException("Đang sửa code");
-
-                }
-                else
-                {
-                    throw new UserException("Không tìm thấy hóa đơn");
-                }
-            }
-            else
-            {
-                throw new UserException("Không tìm thấy nhiệm vụ");
             }
         }
     }

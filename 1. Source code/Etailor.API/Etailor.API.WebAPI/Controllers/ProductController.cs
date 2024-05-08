@@ -276,7 +276,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return await taskService.DefectsTask(orderId, productId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
+                        return await taskService.DefectsTask(productId, orderId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
                     }
                 }
             }

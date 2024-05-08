@@ -105,17 +105,33 @@ namespace Etailor.API.Service.Service
             };
 
             //các bộ phận của bản mẫu
-            var templateComponentTypes = componentTypeRepository.GetStoreProcedure(StoreProcName.Get_Template_Component_Types, templateId);
-            if (templateComponentTypes != null && templateComponentTypes.Any())
+            IEnumerable<ComponentType> templateComponentTypes;
+            try
             {
-                templateComponentTypes = templateComponentTypes.ToList();
+                templateComponentTypes = componentTypeRepository.GetStoreProcedure(StoreProcName.Get_Template_Component_Types, templateId);
+                if (templateComponentTypes != null && templateComponentTypes.Any())
+                {
+                    templateComponentTypes = templateComponentTypes.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new UserException(ex.Message);
             }
 
             //các kiểu bộ phận của bản mẫu
-            var templateComponents = componentRepository.GetStoreProcedure(StoreProcName.Get_Template_Components, templateId);
-            if (templateComponents != null && templateComponents.Any())
+            IEnumerable<Component> templateComponents;
+            try
             {
-                templateComponents = templateComponents.ToList();
+                templateComponents = componentRepository.GetStoreProcedure(StoreProcName.Get_Template_Components, templateId);
+                if (templateComponents != null && templateComponents.Any())
+                {
+                    templateComponents = templateComponents.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new UserException(ex.Message);
             }
 
             do
