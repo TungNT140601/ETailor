@@ -1436,7 +1436,11 @@ namespace Etailor.API.Service.Service
                                     case 2:
                                         throw new UserException("Công đoạn đang thực hiện");
                                     case 4:
-                                        throw new UserException("Công đoạn đã hoàn thành");
+                                        if (product.Status != 4)
+                                        {
+                                            throw new UserException("Công đoạn đã hoàn thành");
+                                        }
+                                        break;
                                 }
 
                                 if (productStages.Any(x => x.Id != productStage.Id && (x.Status == 2 || x.Status == 3)))
@@ -1457,21 +1461,24 @@ namespace Etailor.API.Service.Service
                                 {
                                     tasks.Add(Task.Run(() =>
                                     {
-                                        product.Status = 2;
-                                        product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                                        productRepository.Update(product.Id, product);
+                                        if (product.Status != 4)
+                                        {
+                                            product.Status = 2;
+                                            product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                                            productRepository.Update(product.Id, product);
+                                        }
                                     }));
 
                                     await Task.WhenAll(tasks);
 
                                     if (!orderProducts.Any(x => x.Id != product.Id && x.Status > 1 && x.IsActive == true))
                                     {
-                                        tasks.Add(Task.Run(() =>
+                                        if (order.Status != 7)
                                         {
                                             order.Status = 4;
                                             order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                             orderRepository.Update(order.Id, order);
-                                        }));
+                                        }
 
                                         await Task.WhenAll(tasks);
                                     }
@@ -1609,6 +1616,10 @@ namespace Etailor.API.Service.Service
                                             }));
                                         }
                                         await Task.WhenAll(tasks2);
+                                    }
+                                    else
+                                    {
+                                        throw new UserException("Cần phải có ít nhất 1 hình ảnh chứng minh công đoạn");
                                     }
 
                                     if (imageUrls != null && imageUrls.Any())
@@ -1865,43 +1876,74 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
+                        var title = new SqlParameter("@Title", SqlDbType.NVarChar);
+
+                        var content = new SqlParameter("@Title", SqlDbType.NVarChar);
+
                         product.Status = 4;
-                        order.Status = 7;
-                        var title = new SqlParameter("@Title", SqlDbType.NVarChar)
+
+                        if (order.Status == 6)
                         {
-                            Value = $"Hóa đơn {order.Id} vừa bị từ chối."
+                            order.Status = 7;
+
+                            title.Value = $"Hóa đơn {order.Id} vừa bị khách từ chối.";
+                            content.Value = $"Sản phẩm {product.Id} : {product.Name} bị khách từ chối.";
+                        }
+                        else
+                        {
+                            title.Value = $"Hóa đơn {order.Id} vừa bị quản lý từ chối.";
+                            content.Value = $"Sản phẩm {product.Id} : {product.Name} bị quản lý từ chối.";
+                        }
+
+                        var notify = new Notification
+                        {
+                            Title = title.Value.ToString(),
+                            Content = content.Value.ToString(),
+                            StaffId = product.StaffMakerId,
+                            Id = Ultils.GenGuidString(),
+                            SendTime = DateTime.UtcNow.AddHours(7),
+                            IsRead = false,
+                            ReadTime = null,
+                            IsActive = true
                         };
 
-                        var content = new SqlParameter("@Title", SqlDbType.NVarChar)
+                        if (notificationRepository.Create(notify))
                         {
-                            Value = $"Sản phẩm {product.Id} : {product.Name} bị từ chối."
-                        };
-
-                        var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
-
-                        if (returnValue == 1)
+                            await signalRService.SendNotificationToUser(notify.StaffId, notify.Title);
+                        }
+                        else
                         {
-                            await signalRService.SendNotificationToManagers(content.Value.ToString());
+                            throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.DefectsTask));
+                        }
 
-                            if (order.Status == 6)
+                        if (order.Status == 6)
+                        {
+                            var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+
+                            if (returnValue == 1)
                             {
-                                if (orderRepository.Update(orderId, order))
-                                {
-                                    return productRepository.Update(productId, product);
-                                }
-                                else
-                                {
-                                    throw new SystemsException("Lỗi trong quá trình từ chối sản phẩm", nameof(TaskService.DefectsTask));
-                                }
+                                await signalRService.SendNotificationToManagers(title.Value.ToString());
                             }
                             else
                             {
+                                throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                            }
+                        }
+
+                        if (order.Status == 6)
+                        {
+                            if (orderRepository.Update(orderId, order))
+                            {
                                 return productRepository.Update(productId, product);
+                            }
+                            else
+                            {
+                                throw new SystemsException("Lỗi trong quá trình từ chối sản phẩm", nameof(TaskService.DefectsTask));
                             }
                         }
                         else
                         {
-                            throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                            return productRepository.Update(productId, product);
                         }
                     }
                 }
