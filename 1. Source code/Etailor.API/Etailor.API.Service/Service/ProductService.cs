@@ -307,7 +307,9 @@ namespace Etailor.API.Service.Service
                 }
                 catch (Exception ex)
                 {
-                    var result = await productRepository.GetStoreProcedureReturnInt("DeleteProduct", param.Find(x => x.ParameterName == "@ProductId"));
+                    var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Delete_Product,
+                        param.Find(x => x.ParameterName == "@ProductId"),
+                        param.Find(x => x.ParameterName == "@OrderId"));
 
                     throw new UserException(ex.Message);
                 }
@@ -789,115 +791,34 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> DeleteProduct(string id)
+        public async Task<bool> DeleteProduct(string orderId, string id)
         {
-            var dbProduct = productRepository.Get(id);
-            if (dbProduct != null && dbProduct.IsActive == true)
+            try
             {
-                var order = orderRepository.Get(dbProduct.OrderId);
-                if (order != null)
-                {
-                    if (order.Status >= 2)
+                var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Delete_Product
+                    , new SqlParameter("@ProductId", System.Data.SqlDbType.NVarChar)
                     {
-                        switch (order.Status)
-                        {
-                            case 0:
-                                throw new UserException("Đơn hàng đã hủy. Không thể xóa sản phẩm");
-                            case 2:
-                                throw new UserException(
-                                    "Đơn hàng đã duyệt. Không thể xóa sản phẩm"
-                                );
-                            case 3:
-                                throw new UserException(
-                                    "Đơn hàng đã vào giai đoạn thực hiện. Không thể xóa sản phẩm"
-                                );
-                            case 4:
-                                throw new UserException(
-                                    "Đơn hàng đang trong giai đoạn thực hiện. Không thể xóa sản phẩm"
-                                );
-                            case 5:
-                                throw new UserException(
-                                    "Đơn hàng đã vào giai đoạn hoàn thiện. Không thể xóa sản phẩm"
-                                );
-                            case 6:
-                                throw new UserException(
-                                    "Đơn hàng đang chờ khách hàng kiểm thử. Không thể xóa sản phẩm"
-                                );
-                            case 7:
-                                throw new UserException(
-                                    "Đơn hàng đã bàn giao cho khách. Không thể xóa sản phẩm"
-                                );
-                            default:
-                                throw new UserException("Đơn hàng đã hủy. Không thể xóa sản phẩm");
-                        }
+                        Value = id
                     }
-                    else if (order.PaidMoney > 0 || order.Deposit > 0)
+                    , new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar)
                     {
-                        throw new UserException("Đơn hàng đã thanh toán. Không thể xóa sản phẩm");
-                    }
-                    else
-                    {
-                        dbProduct.CreatedTime = null;
-                        dbProduct.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                        dbProduct.IsActive = false;
-                        dbProduct.InactiveTime = DateTime.UtcNow.AddHours(7);
+                        Value = orderId
+                    });
 
-                        if (productRepository.Update(dbProduct.Id, dbProduct))
-                        {
-                            var sameProductMaterialdbs = productRepository.GetAll(x => x.OrderId == order.Id && x.FabricMaterialId == dbProduct.FabricMaterialId && x.IsActive == true && x.Status > 0);
-                            if (sameProductMaterialdbs != null && sameProductMaterialdbs.Any())
-                            {
-                                sameProductMaterialdbs = null;
-                            }
-                            else
-                            {
-                                sameProductMaterialdbs = null;
-                                var orderMaterial = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.MaterialId == dbProduct.FabricMaterialId && x.IsActive == true);
-                                if (orderMaterial != null && orderMaterial.Any())
-                                {
-                                    orderMaterial = orderMaterial.ToList();
-                                    if (orderMaterial.Count() > 1)
-                                    {
-                                        throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
-                                    }
-                                    else
-                                    {
-                                        if (!orderMaterialRepository.Delete(orderMaterial.First().Id))
-                                        {
-                                            throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
-                                        }
-                                    }
-                                }
-                            }
-                            if (await orderService.CheckOrderPaid(dbProduct.OrderId))
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                throw new SystemsException(
-                                    $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn",
-                                    nameof(ProductService)
-                                );
-                            }
-                        }
-                        else
-                        {
-                            throw new SystemsException(
-                                $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm",
-                                nameof(ProductService)
-                            );
-                        }
-                    }
+                if (result == 1)
+                {
+                    await orderService.CheckOrderPaid(orderId);
+
+                    return true;
                 }
                 else
                 {
-                    throw new UserException("Không tìm thấy hóa đơn");
+                    throw new SystemsException($"Error in {nameof(ProductService.DeleteProduct)}: Lỗi trong quá trình xóa sản phẩm", nameof(ProductService.DeleteProduct));
                 }
             }
-            else
+            catch (Exception ex)
             {
-                throw new UserException("Không tìm thấy sản phầm");
+                throw new UserException(ex.Message);
             }
         }
 

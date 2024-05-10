@@ -24,6 +24,7 @@ namespace Etailor.API.Repository.StoreProcModels
         public static string Create_Manager_Notification = "CreateManagerNotification";
         public static string Customer_Regis = "CustomerRegis";
         public static string Set_Material_For_Task = "SetMaterialForTask";
+        public static string Delete_Product = "DeleteProduct";
     }
     public class SpResult
     {

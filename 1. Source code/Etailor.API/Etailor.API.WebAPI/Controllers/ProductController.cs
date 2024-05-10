@@ -294,8 +294,8 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(string id)
+        [HttpDelete("{orderId}/{id}")]
+        public async Task<IActionResult> DeleteProduct(string orderId, string id)
         {
             try
             {
@@ -322,7 +322,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             return NotFound("Id sản phẩm không tồn tại");
                         }
-                        return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
+                        return (await productService.DeleteProduct(orderId, id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
                     }
                 }
             }
