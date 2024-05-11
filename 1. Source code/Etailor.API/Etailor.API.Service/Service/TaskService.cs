@@ -227,6 +227,10 @@ namespace Etailor.API.Service.Service
                                                     }
                                                     await Task.WhenAll(insideTasks3);
                                                 }
+                                                else
+                                                {
+                                                    stage.ProductStageMaterials = null;
+                                                }
                                             }));
 
                                             insideTasks2.Add(Task.Run(async () =>
@@ -2085,22 +2089,25 @@ namespace Etailor.API.Service.Service
         {
             if (stageMaterials != null && stageMaterials.Any())
             {
-                var tasks = new List<Task>();
                 var paramsSql = new List<SqlParameter>();
 
-                tasks.Add(Task.Run(async () =>
+                var dataTable = new DataTable();
+                while (dataTable.Rows != null && dataTable.Rows.Count != stageMaterials.Count)
                 {
-                    var dataTable = new DataTable();
+                    dataTable = new DataTable();
+                    if (paramsSql.Find(x => x.ParameterName == "@StageMaterials") != null)
+                    {
+                        paramsSql.Remove(paramsSql.Find(x => x.ParameterName == "@StageMaterials"));
+                    }
+
                     dataTable.Columns.Add("MaterialId", typeof(string));
                     dataTable.Columns.Add("Value", typeof(decimal));
 
                     var insideTasks = new List<Task>();
+
                     foreach (var stageMaterial in stageMaterials)
                     {
-                        insideTasks.Add(Task.Run(() =>
-                        {
-                            dataTable.Rows.Add(!string.IsNullOrEmpty(stageMaterial.MaterialId) ? stageMaterial.MaterialId : DBNull.Value, stageMaterial.Quantity.HasValue ? stageMaterial.Quantity : DBNull.Value);
-                        }));
+                        dataTable.Rows.Add(!string.IsNullOrEmpty(stageMaterial.MaterialId) ? stageMaterial.MaterialId : DBNull.Value, stageMaterial.Quantity.HasValue ? stageMaterial.Quantity : DBNull.Value);
                     }
                     await Task.WhenAll(insideTasks);
 
@@ -2109,25 +2116,17 @@ namespace Etailor.API.Service.Service
                         TypeName = "dbo.MaterialStageType",
                         Value = dataTable
                     });
-                }));
+                };
 
-                tasks.Add(Task.Run(() =>
+                paramsSql.Add(new SqlParameter("@StageId", SqlDbType.NVarChar)
                 {
-                    paramsSql.Add(new SqlParameter("@StageId", SqlDbType.NVarChar)
-                    {
-                        Value = stageId
-                    });
-                }));
+                    Value = stageId
+                });
 
-                tasks.Add(Task.Run(() =>
+                paramsSql.Add(new SqlParameter("@TaskId", SqlDbType.NVarChar)
                 {
-                    paramsSql.Add(new SqlParameter("@TaskId", SqlDbType.NVarChar)
-                    {
-                        Value = taskId
-                    });
-                }));
-
-                await Task.WhenAll(tasks);
+                    Value = taskId
+                });
 
                 try
                 {
