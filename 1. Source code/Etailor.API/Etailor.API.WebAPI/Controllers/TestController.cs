@@ -1094,11 +1094,28 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("notification/{id}")]
-        public async Task<IActionResult> SendNotification(string id, string title, string message)
+        public async Task<IActionResult> SendNotification(string id, string title, string message, string role)
         {
             try
             {
-                var check = await notificationService.AddNotification(title, message, id, RoleName.CUSTOMER);
+                var check = false;
+
+                if (role.ToLower() == RoleName.CUSTOMER.ToLower())
+                {
+                    check = await notificationService.AddNotification(title, message, id, RoleName.CUSTOMER);
+                }
+                else if (role.ToLower() == RoleName.STAFF.ToLower())
+                {
+                    check = await notificationService.AddNotification(title, message, id, RoleName.STAFF);
+                }
+                else if (role.ToLower() == RoleName.MANAGER.ToLower())
+                {
+                    check = await notificationService.AddNotification(title, message, id, RoleName.MANAGER);
+                }
+                else
+                {
+                    return BadRequest(role + " is not valid role");
+                }
 
                 return check ? Ok() : BadRequest();
             }
