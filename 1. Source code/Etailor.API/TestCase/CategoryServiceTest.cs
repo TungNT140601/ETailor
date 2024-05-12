@@ -95,7 +95,7 @@ namespace TestCase
         [Test]
         public void CategoryDetail_WithIdData()
         {
-            var result = categoryService.GetCategory("2d376209-878b-482d-83cd-c38d43");
+            var result = categoryService.GetCategory("3225e787-9cb5-494f-bf03-e91c89");
 
             Assert.IsNotNull(result, "The result should not be null.");
 

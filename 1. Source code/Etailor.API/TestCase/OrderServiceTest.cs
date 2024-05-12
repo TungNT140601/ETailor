@@ -72,7 +72,7 @@ namespace TestCase
         [Test]
         public async Task OrderList_WithNoParamData()
         {
-            var result = orderService.GetOrders();
+            var result = await orderService.GetOrders();
 
             Assert.IsNotNull(result, "The result should not be null.");
 
@@ -84,25 +84,25 @@ namespace TestCase
         //GetOrderList By Customer Id 
         //IsActive == true is nested in code func GetCategory of CategoryService
         [Test]
-        public void OrderList_WithNullCustomerIdData()
+        public async Task OrderList_WithNullCustomerIdData()
         {
-            var result = orderService.GetOrdersByCustomer(null);
+            var result = await orderService.GetOrdersByCustomer(null);
 
             Assert.IsEmpty(result, "The result should be empty");
         }
 
         [Test]
-        public void OrderList_WithEmptyCustomerIdData()
+        public async Task OrderList_WithEmptyCustomerIdData()
         {
-            var result = orderService.GetOrdersByCustomer("");
+            var result = await orderService.GetOrdersByCustomer("");
 
             Assert.IsEmpty(result, "The result should be empty");
         }
 
         [Test]
-        public void OrderList_WithCustomerIdData()
+        public async Task OrderList_WithCustomerIdData()
         {
-            var result = orderService.GetOrdersByCustomer("e127339a-252c-4dfd-acf9-65b34d");
+            var result = await orderService.GetOrdersByCustomer("e127339a-252c-4dfd-acf9-65b34d");
 
             Assert.IsNotNull(result, "The result should not be null.");
 
@@ -130,7 +130,7 @@ namespace TestCase
         [Test]
         public async Task OrderDetail_WithIdData()
         {
-            var result = await orderService.GetOrder("240409.1213.233941");
+            var result = await orderService.GetOrder("240502.1351.046270");
 
             Assert.IsNotNull(result, "The result should not be null.");
 
@@ -208,7 +208,7 @@ namespace TestCase
         [Test]
         public async Task OrderDetail_WithId_AndCustomerIdData()
         {
-            var result = await orderService.GetOrderByCustomer("e127339a-252c-4dfd-acf9-65b34d", "240409.1227.009671");
+            var result = await orderService.GetOrderByCustomer("e127339a-252c-4dfd-acf9-65b34d", "240502.1351.046270");
 
             Assert.IsNotNull(result, "The result should not be null.");
 
