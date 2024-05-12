@@ -9,6 +9,8 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Name { get; set; }
         public string? Description { get; set; }
         public decimal? Price { get; set; }
+        public int? AveDateForComplete { get; set; }
+        public int? Gender { get; set; }
         public IFormFile? ThumbnailImageFile { get; set; }
         public List<IFormFile>? ImageFiles { get; set; }
         public List<IFormFile>? CollectionImageFiles { get; set; }
@@ -20,6 +22,8 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Name { get; set; }
         public string? Description { get; set; }
         public decimal? Price { get; set; }
+        public int? AveDateForComplete { get; set; }
+        public int? Gender { get; set; }
         public IFormFile? ThumbnailImageFile { get; set; }
         public List<IFormFile>? ImageFiles { get; set; }
         public List<string>? OldImages { get; set; }
@@ -33,6 +37,8 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? Name { get; set; }
         public string? Description { get; set; }
         public decimal? Price { get; set; }
+        public int? AveDateForComplete { get; set; }
+        public int? Gender { get; set; }
         public string? ThumbnailImage { get; set; }
         public string? Image { get; set; }
         public string? CollectionImage { get; set; }

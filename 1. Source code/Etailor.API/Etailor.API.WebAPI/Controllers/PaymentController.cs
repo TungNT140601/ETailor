@@ -72,7 +72,7 @@ namespace Etailor.API.WebAPI.Controllers
                                 return Ok(new
                                 {
                                     Link = result,
-                                    QRImage = GenQRImage(result)
+                                    //QRImage = GenQRImage(result)
                                 });
                             }
                             else

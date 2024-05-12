@@ -63,7 +63,7 @@ namespace TestCase
             templateBodySizeService = new TemplateBodySizeService(templateBodySizeRepository, productTemplateRepository, bodySizeRepository);
             productTemplateService = new ProductTemplateService(productTemplateRepository, categoryRepository, templateBodySizeService, componentTypeRepository, componentRepository);
 
-            orderService = new OrderService(staffRepository, customerRepository, orderRepository, discountRepository, productRepository, paymentRepository, productTemplaTeRepository, 
+            orderService = new OrderService(staffRepository, customerRepository, orderRepository, discountRepository, productRepository, paymentRepository, productTemplaTeRepository,
                 productTemplateService, productStageRepository, orderMaterialRepository, materialRepository);
         }
 
@@ -72,7 +72,7 @@ namespace TestCase
         [Test]
         public async Task OrderList_WithNoParamData()
         {
-            var result = orderService.GetOrders();
+            var result = await orderService.GetOrders();
 
             Assert.IsNotNull(result, "The result should not be null.");
 
@@ -84,17 +84,17 @@ namespace TestCase
         //GetOrderList By Customer Id 
         //IsActive == true is nested in code func GetCategory of CategoryService
         [Test]
-        public void OrderList_WithNullCustomerIdData()
+        public async Task OrderList_WithNullCustomerIdData()
         {
-            var result = orderService.GetOrdersByCustomer(null);
+            var result = await orderService.GetOrdersByCustomer(null);
 
             Assert.IsEmpty(result, "The result should be empty");
         }
 
         [Test]
-        public void OrderList_WithEmptyCustomerIdData()
+        public async Task OrderList_WithEmptyCustomerIdData()
         {
-            var result = orderService.GetOrdersByCustomer("");
+            var result = await orderService.GetOrdersByCustomer("");
 
             Assert.IsEmpty(result, "The result should be empty");
         }

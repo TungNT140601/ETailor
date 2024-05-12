@@ -32,6 +32,12 @@ using System.IO;
 using Serilog;
 using Etailor.API.WebAPI.ViewModels;
 using Etailor.API.Repository.DataAccess;
+using OfficeOpenXml;
+using System.Collections.Generic;
+using OfficeOpenXml.Drawing;
+using static QRCoder.Base64QRCode;
+using AutoMapper;
+using System.Data;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -50,12 +56,14 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly INotificationService notificationService;
         private readonly IProductTemplateService productTemplateService;
         private readonly ETailor_DBContext dBContext;
+        private readonly IMapper mapper;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
             , IProductService productService, IBackgroundService backgroundService
             , ITaskService taskService, INotificationService notificationService
-            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService)
+            , ETailor_DBContext dBContext, IProductTemplateService productTemplateService
+            , IMapper mapper)
         {
             FilePath = Path.Combine(Directory.GetCurrentDirectory(), "userstoken.json"); // Specify your file path
             _configuration = configuration;
@@ -70,6 +78,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.notificationService = notificationService;
             this.dBContext = dBContext;
             this.productTemplateService = productTemplateService;
+            this.mapper = mapper;
         }
 
         #region SendMail
@@ -1126,6 +1135,303 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ImportFile(IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest("Invalid file");
+                }
+                else
+                {
+                    var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ".xls",
+                            ".xlsx"
+                        };
+
+                    var excelMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            "application/vnd.ms-excel",
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        };
+
+                    string fileExtension = Path.GetExtension(file.FileName).ToLower();
+                    string mimeType = file.ContentType.ToLower();
+
+                    if (allowedExtensions.Contains(fileExtension) && excelMimeTypes.Contains(mimeType))
+                    {
+                        var list = new List<ComponentTypeOrderVM>();
+
+                        // Set the license context
+                        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                        using (var stream = new MemoryStream())
+                        {
+                            await file.CopyToAsync(stream);
+
+                            using (var package = new ExcelPackage(stream))
+                            {
+                                if (package.Workbook.Worksheets.Any())
+                                {
+                                    var tasks = new List<Task>();
+                                    foreach (var worksheet in package.Workbook.Worksheets)
+                                    {
+                                        //tasks.Add(Task.Run(() =>
+                                        //{
+                                        var sheetName = worksheet.Name;
+
+                                        var drawings = worksheet.Drawings;
+
+                                        if (sheetName.Contains("|"))
+                                        {
+                                            var name = sheetName.Split("|")[0];
+                                            var id = sheetName.Split("|")[1];
+
+                                            var componentType = new ComponentTypeOrderVM
+                                            {
+                                                Name = name,
+                                                Id = id,
+                                                Components = new List<ComponentOrderVM>()
+                                            };
+
+                                            var startRow = 3;
+
+                                            int end = worksheet.Dimension.Rows + 1;
+
+                                            for (int i = startRow; i <= end; i++)
+                                            {
+                                                if (worksheet.Cells[i, 2].Value == null)
+                                                {
+                                                    break;
+                                                }
+                                                var componentName = worksheet.Cells[i, 2].Value?.ToString();
+                                                var componentImage = "";
+
+                                                var picture = (ExcelPicture)drawings.FirstOrDefault(x => x.From.Row == i - 1 && x.From.Column == 2);
+
+                                                if (picture != null)
+                                                {
+                                                    var fileName = Ultils.GenerateRandomString(20) + "." + picture.Image.Type?.ToString().ToLower();
+                                                    componentImage = Path.Combine("./wwwroot/File/DemoImage", fileName);
+
+                                                    // Saving the image to the specified path
+                                                    System.IO.File.WriteAllBytes(componentImage, picture.Image.ImageBytes);
+
+                                                    System.IO.File.Delete(componentImage);
+
+                                                    componentImage = await Ultils.UploadImageExcell(_wwwrootPath, "DemoExcell", picture);
+
+                                                }
+                                                var componentDefault = worksheet.Cells[i, 4].Value;
+
+                                                componentType.Components.Add(new ComponentOrderVM
+                                                {
+                                                    Name = componentName,
+                                                    Image = componentImage,
+                                                    Default = (bool?)componentDefault
+                                                });
+                                            }
+
+                                            list.Add(componentType);
+                                        }
+                                        //}));
+                                    }
+                                    await Task.WhenAll(tasks);
+                                }
+
+                                return Ok(list);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest("Invalid file format");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetFolderLog()
+        {
+            try
+            {
+                var startDate = new DateTime(2024, 03, 09);
+                var yesterday = DateTime.Now.AddDays(-1);
+
+                var zipFile = Path.Combine(_wwwrootPath, "Log", "Check", $"log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmssffff")}.zip");
+                var zipFileDictionary = Path.Combine(_wwwrootPath, "Log", "Check", "ZipFolder");
+
+                if (!System.IO.Directory.Exists(zipFileDictionary))
+                {
+                    System.IO.Directory.CreateDirectory(zipFileDictionary);
+                }
+
+                string[] filesPaths = System.IO.Directory.GetFiles(Path.Combine(_wwwrootPath, "Log", "Check"));
+
+                foreach (var path in filesPaths)
+                {
+                    if (System.IO.File.Exists(path))
+                    {
+                        System.IO.File.Copy(path, Path.Combine(zipFileDictionary, Path.GetFileName(path)), overwrite: true);
+                    }
+                }
+
+                ZipFile.CreateFromDirectory(zipFileDictionary, zipFile);
+
+                byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(zipFile);
+
+                System.IO.File.Delete(zipFile);
+
+                System.IO.Directory.Delete(zipFileDictionary, true);
+
+
+                return File(fileBytes, "application/octet-stream", Path.GetFileName(zipFile));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTask(string id)
+        {
+            try
+            {
+                if (id == null)
+                {
+                    return NotFound("Id sản phẩm không tồn tại");
+                }
+                else
+                {
+                    var task = await taskService.GetTask(id);
+
+                    var taskVM = mapper.Map<TaskDetailByStaffVM>(task);
+
+                    if (taskVM != null && taskVM.ProductStages != null && taskVM.ProductStages.Any())
+                    {
+                        return Ok(taskVM);
+                    }
+                    else if (taskVM != null && (taskVM.ProductStages == null || !taskVM.ProductStages.Any()))
+                    {
+                        var tasks = new List<Task>();
+
+                        if (!string.IsNullOrWhiteSpace(task.SaveOrderComponents))
+                        {
+                            var productComponents = JsonConvert.DeserializeObject<List<ProductComponent>>(task.SaveOrderComponents);
+
+                            if (productComponents != null && productComponents.Any() && productComponents.Count > 0)
+                            {
+                                var componentIds = productComponents.Select(c => c.ComponentId).ToList();
+
+                                taskVM.ComponentTypeOrders = mapper.Map<List<ComponentTypeOrderVM>>((await productTemplateService.GetTemplateComponent(task.ProductTemplateId))?.ToList());
+
+                                if (taskVM.ComponentTypeOrders != null && taskVM.ComponentTypeOrders.Any() && taskVM.ComponentTypeOrders.Count > 0)
+                                {
+                                    foreach (var component in taskVM.ComponentTypeOrders)
+                                    {
+                                        tasks.Add(Task.Run(async () =>
+                                        {
+                                            var insideTasks = new List<Task>();
+
+                                            insideTasks.Add(Task.Run(() =>
+                                            {
+                                                component.Component_Id = $"component_{component.Id}";
+                                                component.Note_Id = $"productComponent_{component.Id}";
+                                            }));
+
+                                            insideTasks.Add(Task.Run(() =>
+                                            {
+                                                component.Components.RemoveAll(x => !componentIds.Contains(x.Id));
+                                            }));
+
+                                            insideTasks.Add(Task.Run(async () =>
+                                            {
+                                                var componentNote = productComponents.FirstOrDefault(x => component.Components.Select(c => c.Id).Contains(x.ComponentId));
+                                                if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
+                                                {
+                                                    component.Selected_Component_Id = componentNote.ComponentId;
+
+                                                    component.NoteObject = new ComponentNoteVM();
+
+                                                    if (!string.IsNullOrEmpty(componentNote.Note))
+                                                    {
+                                                        component.NoteObject.Note = componentNote.Note;
+                                                    }
+
+                                                    if (!string.IsNullOrEmpty(componentNote.NoteImage))
+                                                    {
+                                                        var listImageDTO = JsonConvert.DeserializeObject<List<string>>(componentNote.NoteImage);
+                                                        if (listImageDTO != null && listImageDTO.Any())
+                                                        {
+                                                            var listImageUrl = new List<string>();
+                                                            var insideTasks1 = new List<Task>();
+                                                            foreach (var img in listImageDTO)
+                                                            {
+                                                                insideTasks1.Add(Task.Run(() =>
+                                                                {
+                                                                    listImageUrl.Add(Ultils.GetUrlImage(img));
+                                                                }));
+                                                            }
+                                                            await Task.WhenAll(insideTasks1);
+                                                            component.NoteObject.NoteImage = JsonConvert.SerializeObject(listImageUrl);
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    component.NoteObject = null;
+                                                }
+                                            }));
+
+                                            await Task.WhenAll(insideTasks);
+                                        }));
+                                    }
+                                }
+                            }
+                        }
+
+                        await Task.WhenAll(tasks);
+
+                        return Ok(taskVM);
+                    }
+                    else
+                    {
+                        return NotFound();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        private string GetImageExtensionFromType(string imageType)
+        {
+            // Adjust this method based on the actual format of picture.Type
+            // This is an example assuming picture.Type returns MIME types
+            switch (imageType.ToLower())
+            {
+                case "image/jpeg":
+                    return "jpeg";
+                case "image/png":
+                    return "png";
+                // Add more cases as necessary
+                default:
+                    return "img"; // Default extension
             }
         }
     }
