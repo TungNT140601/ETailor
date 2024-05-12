@@ -59,6 +59,7 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IProductTemplateService productTemplateService;
         private readonly ETailor_DBContext dBContext;
         private readonly IMapper mapper;
+        private readonly IWebHostEnvironment webHost;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
@@ -81,6 +82,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.dBContext = dBContext;
             this.productTemplateService = productTemplateService;
             this.mapper = mapper;
+            this.webHost = webHost;
         }
 
         #region SendMail
@@ -1432,6 +1434,19 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetWebHost()
+        {
+            try
+            {
+                return Ok(webHost);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
 
