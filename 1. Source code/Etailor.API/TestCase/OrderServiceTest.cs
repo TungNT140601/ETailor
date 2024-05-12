@@ -63,7 +63,7 @@ namespace TestCase
             templateBodySizeService = new TemplateBodySizeService(templateBodySizeRepository, productTemplateRepository, bodySizeRepository);
             productTemplateService = new ProductTemplateService(productTemplateRepository, categoryRepository, templateBodySizeService, componentTypeRepository, componentRepository);
 
-            orderService = new OrderService(staffRepository, customerRepository, orderRepository, discountRepository, productRepository, paymentRepository, productTemplaTeRepository, 
+            orderService = new OrderService(staffRepository, customerRepository, orderRepository, discountRepository, productRepository, paymentRepository, productTemplaTeRepository,
                 productTemplateService, productStageRepository, orderMaterialRepository, materialRepository);
         }
 

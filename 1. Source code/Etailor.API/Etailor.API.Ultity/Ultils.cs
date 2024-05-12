@@ -22,6 +22,7 @@ using Newtonsoft.Json;
 using Google.Apis.Storage.v1;
 using Serilog;
 using static System.Net.Mime.MediaTypeNames;
+using OfficeOpenXml.Drawing;
 
 namespace Etailor.API.Ultity
 {
@@ -260,7 +261,7 @@ namespace Etailor.API.Ultity
 
                 if (System.IO.File.Exists(filePathNew))
                 {
-                    message.Attachments.Add(new Attachment($"./wwwroot/Log/Check/log{DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd")}.txt"));
+                    message.Attachments.Add(new Attachment($"./wwwroot/Log/Check/log{DateTime.UtcNow.AddDays(-1).AddHours(7).ToString("yyyyMMdd")}.txt"));
                     message.Body = $"Log at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss:ffff")}; \n";
                     message.IsBodyHtml = false;
 
@@ -388,6 +389,38 @@ namespace Etailor.API.Ultity
                 ObjectUrl = objectUrl
             });
         }
+
+        public static async Task<string> UploadImageExcell(string wwwrootPath, string generalPath, ExcelPicture file) // Upload 1 image
+        {
+            var fileName = GenGuidString() + Path.GetExtension(file.Image.Type.ToString())?.ToLower();
+
+            var filePath = Path.Combine(wwwrootPath, "Upload", fileName);
+
+            // Saving the image to the specified path
+            System.IO.File.WriteAllBytes(filePath, file.Image.ImageBytes);
+
+            // Upload to Firebase Storage
+            var bucketName = AppValue.BUCKET_NAME;
+            var objectName = $"Uploads/{generalPath}/{fileName}";
+
+            Google.Apis.Storage.v1.Data.Object uploadFile = new Google.Apis.Storage.v1.Data.Object();
+
+            using (var fileStream = System.IO.File.OpenRead(filePath))
+            {
+                uploadFile = _storage.UploadObject(bucketName, objectName, "image/jpeg", fileStream);
+            }
+
+            System.IO.File.Delete(filePath);
+
+            var objectUrl = await GetUrlImageFirebase(objectName);
+
+            return JsonConvert.SerializeObject(new ImageFileDTO
+            {
+                ObjectName = objectName,
+                ObjectUrl = objectUrl
+            });
+        }
+
         public static async Task<string> UploadImageBase64(string wwwrootPath, string generalPath, string base64Image, string fileName, string contentType, string? oldName) // Upload 1 image
         {
             if (oldName != null && ObjectExistsInStorage(oldName))

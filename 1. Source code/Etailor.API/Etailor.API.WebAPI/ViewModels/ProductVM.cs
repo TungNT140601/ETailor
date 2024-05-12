@@ -12,6 +12,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public int? Status { get; set; }
         public string? EvidenceImage { get; set; }
         public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
     }
     public class ProductAllTaskVM
     {
@@ -27,6 +28,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public virtual StaffTaskVM? StaffMaker { get; set; }
         public virtual ICollection<ProductStagesNeedForTask>? ProductStages { get; set; }
     }
@@ -89,6 +91,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public int? Index { get; set; }
         public DateTime? FinishTime { get; set; }
         public DateTime? CreatedTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
     }
 
     public class TaskListByStaffVM
@@ -101,6 +104,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? FabricMaterialId { get; set; }
         public FabricMaterialTaskVM? FabricMaterial { get; set; }
         public DateTime? Deadline { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public int? Index { get; set; }
     }
 
@@ -117,8 +121,10 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? FabricMaterialId { get; set; }
         public int? Index { get; set; }
         public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public FabricMaterialVM? FabricMaterial { get; set; }
         public ProductTemplateTaskDetailVM? ProductTemplate { get; set; }
+        public List<ComponentTypeOrderVM>? ComponentTypeOrders { get; set; }
         public ICollection<ProductBodySizeTaskDetailVM>? ProductBodySizes { get; set; }
         public ICollection<ProductStageTaskDetailVM>? ProductStages { get; set; }
     }

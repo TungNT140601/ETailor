@@ -31,5 +31,6 @@ namespace Etailor.API.Service.Interface
         Task<bool> AssignTaskToStaff(string productId, string staffId);
         Task<bool> UnAssignStaffTask(string productId, string staffId);
         Task<IEnumerable<Category>> GetTaskByCategories();
+        Task<bool> SetMaterialForTask(string taskId, string stageId, List<ProductStageMaterial> stageMaterials);
     }
 }

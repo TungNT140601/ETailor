@@ -386,8 +386,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("Address")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Avatar")
                         .HasColumnType("text");
@@ -440,8 +439,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasDefaultValueSql("((0))");
 
                     b.Property<string>("Password")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(10)
@@ -755,6 +753,9 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<decimal?>("DiscountPrice")
                         .HasColumnType("decimal(18,0)");
 
+                    b.Property<DateTime?>("FinishTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("InactiveTime")
                         .HasColumnType("datetime");
 
@@ -773,6 +774,9 @@ namespace Etailor.API.WebAPI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValueSql("((0))");
+
+                    b.Property<DateTime?>("PlannedTime")
+                        .HasColumnType("datetime2");
 
                     b.Property<int?>("Status")
                         .ValueGeneratedOnAdd()
@@ -958,6 +962,9 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<DateTime?>("PlannedTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal?>("Price")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,0)")
@@ -1108,6 +1115,10 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("StageName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<int?>("StageNum")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -1173,6 +1184,9 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<int?>("AveDateForComplete")
+                        .HasColumnType("int");
+
                     b.Property<string>("CategoryId")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -1187,6 +1201,9 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(2550)
                         .HasColumnType("nvarchar(2550)");
+
+                    b.Property<int?>("Gender")
+                        .HasColumnType("int");
 
                     b.Property<string>("Image")
                         .HasColumnType("text");
@@ -1384,8 +1401,8 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<string>("Name")
-                        .HasMaxLength(155)
-                        .HasColumnType("nvarchar(155)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ProductTemplateId")
                         .HasMaxLength(30)
@@ -1443,6 +1460,14 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.ToTable("OrderDashboard");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.SpResult", b =>
+                {
+                    b.Property<int>("ReturnValue")
+                        .HasColumnType("int");
+
+                    b.ToTable("SpResults");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.StoreProcModels.StaffWithTotalTask", b =>

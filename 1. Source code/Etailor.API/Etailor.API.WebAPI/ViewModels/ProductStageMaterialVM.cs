@@ -10,4 +10,9 @@ namespace Etailor.API.WebAPI.ViewModels
 
         public virtual MaterialVM? Material { get; set; }
     }
+    public class ProductStageMaterialVM
+    {
+        public string? MaterialId { get; set; }
+        public decimal? Quantity { get; set; }
+    }
 }

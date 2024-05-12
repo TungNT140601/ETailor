@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Etailor.API.Repository.StoreProcModels;
 
 namespace Etailor.API.Service.Service
 {
@@ -43,22 +44,6 @@ namespace Etailor.API.Service.Service
 
             tasks.Add(Task.Run(() =>
             {
-                if (string.IsNullOrWhiteSpace(discount.Code))
-                {
-                    throw new UserException("Vui lòng nhập mã giảm giá");
-                }
-                else if (discount.Code.Contains(" "))
-                {
-                    throw new UserException("Mã giảm giá không được chứa khoảng trống");
-                }
-                else if (discountRepository.GetAll(x => x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
-                {
-                    throw new UserException("Mã giảm giá không được trùng");
-                }
-            }));
-
-            tasks.Add(Task.Run(() =>
-            {
                 if (!discount.StartDate.HasValue)
                 {
                     throw new UserException("Vui lòng chọn ngày bắt đầu giảm giá");
@@ -71,36 +56,36 @@ namespace Etailor.API.Service.Service
                 {
                     throw new UserException("Ngày kết thúc không được trước ngày bắt đầu giảm giá");
                 }
+                discount.StartDate = discount.StartDate.Value.Date;
                 discount.EndDate = discount.EndDate.Value.AddDays(1).AddSeconds(-1);
+
+                var intimeDiscounts = discountRepository.GetAll(x => x.EndDate < discount.StartDate && x.StartDate > discount.EndDate && x.IsActive == true);
+                if (intimeDiscounts != null && intimeDiscounts.Any())
+                {
+                    intimeDiscounts = null;
+                    throw new UserException("Đã có chương trình giảm giá trong khung thời gian này");
+                }
             }));
 
             tasks.Add(Task.Run(() =>
             {
-                if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                 {
                     throw new UserException("Vui lòng chọn điều kiện giảm giá");
                 }
-                else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                 {
                     if (discount.ConditionProductMin <= 0)
                     {
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
                     }
                 }
-                else if (!discount.ConditionProductMin.HasValue && (discount.ConditionPriceMax.HasValue || discount.ConditionPriceMin.HasValue))
+                else if (!discount.ConditionProductMin.HasValue && discount.ConditionPriceMin.HasValue)
                 {
                     if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin < 0)
                     {
                         throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
                     }
-                    if (discount.ConditionPriceMax.HasValue && ((discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0))
-                    {
-                        throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
-                    }
-                }
-                else
-                {
-                    throw new UserException("Điều kiện giảm giá không hợp lệ: Chỉ được chọn 1 trong 2 điều kiện giảm giá");
                 }
             }));
 
@@ -123,9 +108,13 @@ namespace Etailor.API.Service.Service
                 }
                 else if (!discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
                 {
-                    if (discount.DiscountPercent < 0 && discount.DiscountPercent > 1)
+                    if (discount.DiscountPercent < 0.1 && discount.DiscountPercent > 0.5)
                     {
-                        throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 1% - 99%");
+                        throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 10 - 50%");
+                    }
+                    else if (!discount.ConditionPriceMax.HasValue || discount.ConditionPriceMax <= 0)
+                    {
+                        throw new UserException("Điều kiện giảm giá không hợp lệ: Số tiền giảm tối đa không hợp lệ");
                     }
                 }
             }));
@@ -163,26 +152,6 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
-                    if (string.IsNullOrWhiteSpace(discount.Code))
-                    {
-                        throw new UserException("Vui lòng nhập mã giảm giá");
-                    }
-                    else if (discount.Code.Contains(" "))
-                    {
-                        throw new UserException("Mã giảm giá không được chứa khoảng trống");
-                    }
-                    else if (discountRepository.GetAll(x => x.Id != existDiscount.Id && x.Code.Trim().ToLower() == discount.Code.Trim().ToLower() && x.IsActive == true).Any())
-                    {
-                        throw new UserException("Mã giảm giá không được trùng");
-                    }
-                    else
-                    {
-                        existDiscount.Code = discount.Code.Trim();
-                    }
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
                     if (!discount.StartDate.HasValue)
                     {
                         throw new UserException("Vui lòng chọn ngày bắt đầu giảm giá");
@@ -197,36 +166,38 @@ namespace Etailor.API.Service.Service
                     }
                     else
                     {
-                        existDiscount.StartDate = discount.StartDate.Value;
+                        existDiscount.StartDate = discount.StartDate.Value.Date;
                         existDiscount.EndDate = discount.EndDate.Value.AddDays(1).AddSeconds(-1);
+                    }
+
+                    var intimeDiscounts = discountRepository.GetAll(x => x.Id != existDiscount.Id && x.EndDate < existDiscount.StartDate && x.StartDate > existDiscount.EndDate && x.IsActive == true);
+                    if (intimeDiscounts != null && intimeDiscounts.Any())
+                    {
+                        intimeDiscounts = null;
+                        throw new UserException("Đã có chương trình giảm giá trong khung thời gian này");
                     }
                 }));
 
                 tasks.Add(Task.Run(() =>
                 {
-                    if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                    if (!discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                     {
                         throw new UserException("Vui lòng chọn điều kiện giảm giá");
                     }
-                    else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMax.HasValue && !discount.ConditionPriceMin.HasValue)
+                    else if (discount.ConditionProductMin.HasValue && !discount.ConditionPriceMin.HasValue)
                     {
                         if (discount.ConditionProductMin <= 0)
                         {
                             throw new UserException("Điều kiện giảm giá không hợp lệ: Số lượng sản phẩm tối thiểu phải lớn hơn 0");
                         }
                     }
-                    else
+                    else if (!discount.ConditionProductMin.HasValue && discount.ConditionPriceMin.HasValue)
                     {
                         if (!discount.ConditionPriceMin.HasValue || discount.ConditionPriceMin < 0)
                         {
                             throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
                         }
-                        if (discount.ConditionPriceMax.HasValue && ((discount.ConditionPriceMax < discount.ConditionPriceMin) || discount.ConditionPriceMax == 0))
-                        {
-                            throw new UserException("Điều kiện giảm giá không hợp lệ: Tổng tiền hóa đơn tối thiểu không hợp lệ");
-                        }
                     }
-                    existDiscount.ConditionPriceMax = discount.ConditionPriceMax;
                     existDiscount.ConditionPriceMin = discount.ConditionPriceMin;
                     existDiscount.ConditionProductMin = discount.ConditionProductMin;
                 }));
@@ -250,11 +221,16 @@ namespace Etailor.API.Service.Service
                     }
                     else if (!discount.DiscountPrice.HasValue && discount.DiscountPercent.HasValue)
                     {
-                        if (discount.DiscountPercent < 0 && discount.DiscountPercent > 1)
+                        if (discount.DiscountPercent < 0.1 && discount.DiscountPercent > 0.5)
                         {
-                            throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 1% - 99%");
+                            throw new UserException("Số tiền giảm giá không hợp lệ: Số % tiền giảm giá phải từ 10 - 50%");
+                        }
+                        else if (!discount.ConditionPriceMax.HasValue || discount.ConditionPriceMax <= 0)
+                        {
+                            throw new UserException("Điều kiện giảm giá không hợp lệ: Số tiền giảm tối đa không hợp lệ");
                         }
                     }
+                    existDiscount.ConditionPriceMax = discount.ConditionPriceMax;
                     existDiscount.DiscountPercent = discount.DiscountPercent;
                     existDiscount.DiscountPrice = discount.DiscountPrice;
                 }));
@@ -294,6 +270,17 @@ namespace Etailor.API.Service.Service
         public IEnumerable<Discount> GetDiscounts(string? search)
         {
             return discountRepository.GetAll(x => (search == null || (search != null && (x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) || x.Code.Trim().ToLower().Contains(search.Trim().ToLower())) && x.IsActive == true);
+        }
+
+        public IEnumerable<Discount> GetSuitableDiscounts(string orderId)
+        {
+            var discounts = discountRepository.GetStoreProcedure(StoreProcName.Get_Suitable_Discout_For_Order, new Microsoft.Data.SqlClient.SqlParameter
+            {
+                DbType = System.Data.DbType.String,
+                Value = orderId,
+                ParameterName = "@OrderId"
+            });
+            return discounts;
         }
     }
 }

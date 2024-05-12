@@ -189,46 +189,53 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> FinishOrder(string orderId, string role)
         {
-            var dbOrder = orderRepository.Get(orderId);
-            if (dbOrder != null)
+            if (await CheckOrderPaid(orderId))
             {
-                if (dbOrder.Status >= 2)
+                var dbOrder = orderRepository.Get(orderId);
+                if (dbOrder != null)
                 {
-                    throw new UserException("Đơn hàng đã duyệt. Không thể chỉnh sửa");
-                }
-                else if (dbOrder.Status == 0)
-                {
-                    throw new UserException("Hóa đơn đã bị hủy. Không thể cập nhật giá");
-                }
-                else
-                {
-                    dbOrder.Status = role == RoleName.STAFF ? 1 : role == RoleName.MANAGER ? 2 : 0;
-
-                    if (dbOrder.TotalProduct == 0)
+                    if (dbOrder.Status >= 2)
                     {
-                        throw new UserException("Không thể hoàn thành hóa đơn không có sản phẩm");
+                        throw new UserException("Đơn hàng đã duyệt. Không thể chỉnh sửa");
                     }
-
-                    if (dbOrder.PaidMoney == 0)
+                    else if (dbOrder.Status == 0)
                     {
-                        throw new UserException("Không thể hoàn thành hóa đơn chưa thanh toán hoặc chưa đặt cọc");
-                    }
-
-                    dbOrder.IsActive = true;
-
-                    if (orderRepository.Update(dbOrder.Id, dbOrder))
-                    {
-                        return await CheckOrderPaid(dbOrder.Id);
+                        throw new UserException("Hóa đơn đã bị hủy. Không thể cập nhật giá");
                     }
                     else
                     {
-                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
+                        dbOrder.Status = role == RoleName.STAFF ? 1 : role == RoleName.MANAGER ? 2 : 0;
+
+                        if (dbOrder.TotalProduct == 0)
+                        {
+                            throw new UserException("Không thể hoàn thành hóa đơn không có sản phẩm");
+                        }
+
+                        if (dbOrder.PaidMoney == 0)
+                        {
+                            throw new UserException("Không thể hoàn thành hóa đơn chưa thanh toán hoặc chưa đặt cọc");
+                        }
+
+                        dbOrder.IsActive = true;
+
+                        if (orderRepository.Update(dbOrder.Id, dbOrder))
+                        {
+                            return await CheckOrderPaid(orderId);
+                        }
+                        else
+                        {
+                            throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService.FinishOrder));
+                        }
                     }
+                }
+                else
+                {
+                    throw new UserException("Hóa đơn không tồn tại");
                 }
             }
             else
             {
-                throw new UserException("Hóa đơn không tồn tại");
+                throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService.CheckOrderPaid));
             }
         }
 
@@ -238,11 +245,21 @@ namespace Etailor.API.Service.Service
             if (dbOrder != null && dbOrder.Status >= 1 && dbOrder.Status <= 2)
             {
                 var tasks = new List<Task>();
+                if (dbOrder.UnPaidMoney == 0)
+                {
+                    throw new UserException("Hóa đơn đã thanh toán xong. Không thể áp dụng thêm mã giảm giá");
+                }
+
+                if (dbOrder.Deposit > 0)
+                {
+                    throw new UserException("Hóa đơn đã đặt cọc. Không thể áp dụng thêm mã giảm giá");
+                }
+
                 if (!string.IsNullOrEmpty(code))
                 {
                     var cus = customerRepository.Get(dbOrder.CustomerId);
 
-                    var discount = discountRepository.GetAll(x => code != null && x.Code != null && x.Code.Trim() == code.Trim()).FirstOrDefault();
+                    var discount = discountRepository.Get(code);
 
                     var usedDiscountCode = orderRepository.GetAll(x => x.Id != dbOrder.Id && ((dbOrder.CustomerId != cus.Id && x.CustomerId == cus.Id) || (dbOrder.CustomerId == cus.Id && x.CustomerId == cus.Id)) && x.DiscountCode == code && x.IsActive == true && x.Status != 0);
 
@@ -281,14 +298,20 @@ namespace Etailor.API.Service.Service
                     dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                     dbOrder.CancelTime = null;
                     dbOrder.InactiveTime = null;
-                    dbOrder.IsActive = true;
                 }));
 
                 await Task.WhenAll(tasks);
 
                 if (orderRepository.Update(dbOrder.Id, dbOrder))
                 {
-                    return await CheckOrderPaid(dbOrder.Id);
+                    if (await CheckOrderDiscount(dbOrder.Id))
+                    {
+                        return await CheckOrderPaid(dbOrder.Id);
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
+                    }
                 }
                 else
                 {
@@ -353,7 +376,6 @@ namespace Etailor.API.Service.Service
                         dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                         dbOrder.CancelTime = null;
                         dbOrder.InactiveTime = null;
-                        dbOrder.IsActive = true;
                     }));
 
                     await Task.WhenAll(tasks);
@@ -398,6 +420,24 @@ namespace Etailor.API.Service.Service
             else
             {
                 throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        private async Task<bool> CheckOrderDiscount(string id)
+        {
+            try
+            {
+                // Raw SQL query to call the stored procedure
+                var result = await orderRepository.GetDbContext().Set<SpResult>()
+                                           .FromSqlRaw("EXEC dbo.CheckOrderDiscount {0}", id)
+                                           .AsNoTracking()
+                                           .ToListAsync();
+
+                return result.FirstOrDefault()?.ReturnValue == 1;
+            }
+            catch (SqlException ex)
+            {
+                throw new UserException(ex.Message);
             }
         }
 
@@ -671,7 +711,7 @@ namespace Etailor.API.Service.Service
         public async Task<bool> UpdateOrderPrice(string id, int price)
         {
             var dbOrder = orderRepository.Get(id);
-            if (dbOrder != null && dbOrder.IsActive == true)
+            if (dbOrder != null && dbOrder.IsActive == false)
             {
                 if (dbOrder.Status >= 2)
                 {

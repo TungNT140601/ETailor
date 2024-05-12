@@ -31,6 +31,8 @@ namespace Etailor.API.Repository.EntityModels
         public decimal? PaidMoney { get; set; }
         public decimal? UnPaidMoney { get; set; }
         public int? Status { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public DateTime? ApproveTime { get; set; }
         public DateTime? CancelTime { get; set; }
         public DateTime? CreatedTime { get; set; }

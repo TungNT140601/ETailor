@@ -320,7 +320,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Id).HasMaxLength(30);
 
-                entity.Property(e => e.Address).HasMaxLength(255);
+                entity.Property(e => e.Address).HasColumnType("nvarchar(max)");
 
                 entity.Property(e => e.Avatar).HasColumnType("text");
 
@@ -352,7 +352,7 @@ namespace Etailor.API.Repository.DataAccess
                     .HasColumnName("OTPUsed")
                     .HasDefaultValueSql("((0))");
 
-                entity.Property(e => e.Password).HasMaxLength(255);
+                entity.Property(e => e.Password).HasColumnType("nvarchar(max)");
 
                 entity.Property(e => e.Phone).HasMaxLength(10);
 
@@ -841,6 +841,8 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.StaffId).HasMaxLength(30);
 
+                entity.Property(e => e.StageName).HasMaxLength(255);
+
                 entity.Property(e => e.StageNum).HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.StartTime).HasColumnType("datetime");
@@ -980,7 +982,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.Name).HasMaxLength(155);
+                entity.Property(e => e.Name).HasMaxLength(255);
 
                 entity.Property(e => e.ProductTemplateId).HasMaxLength(30);
 

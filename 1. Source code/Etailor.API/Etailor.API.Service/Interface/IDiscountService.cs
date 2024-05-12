@@ -14,5 +14,6 @@ namespace Etailor.API.Service.Interface
         bool DeleteDiscount(string id);
         Discount GetDiscount(string id);
         IEnumerable<Discount> GetDiscounts(string? search);
+        IEnumerable<Discount> GetSuitableDiscounts(string orderId);
     }
 }

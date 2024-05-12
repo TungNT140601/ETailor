@@ -31,6 +31,7 @@ namespace Etailor.API.Repository.Interface
         void SaveChange();
         Task SaveChangeAsync();
         IEnumerable<T> GetStoreProcedure(string storeProcedure, params SqlParameter[]? parameters);
+        Task<int> GetStoreProcedureReturnInt(string storeProcedure, params SqlParameter[]? parameters);
         DatabaseFacade GetDatabase();
         ETailor_DBContext GetDbContext();
     }
