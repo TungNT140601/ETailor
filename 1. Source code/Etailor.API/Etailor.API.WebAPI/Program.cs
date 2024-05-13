@@ -25,6 +25,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Etailor.API.Repository.Interface.Dashboard;
 using Etailor.API.Repository.Repository.Dashoard;
+using Microsoft.AspNetCore.Http.Connections;
 
 var builder = WebApplication.CreateBuilder(args);
 var time = DateTime.UtcNow.AddHours(7);
@@ -71,7 +72,10 @@ builder.Services.AddSwaggerGen(
                 }
 );
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(e =>
+{
+    e.MaximumReceiveMessageSize = 64 * 1024;
+});
 
 builder.Services.AddSerilog();
 
@@ -254,9 +258,18 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseWebSockets();
+
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapHub<SignalRHub>("/chatHub");
+    endpoints.MapHub<SignalRHub>("/chatHub", options =>
+    {
+        options.Transports = HttpTransportType.WebSockets | HttpTransportType.LongPolling;
+        options.ApplicationMaxBufferSize = 64 * 1024;
+        options.TransportMaxBufferSize = 64 * 1024;
+        options.LongPolling.PollTimeout = TimeSpan.FromMinutes(1);
+        options.CloseOnAuthenticationExpiration = true;
+    });
     endpoints.MapControllers();
 });
 
