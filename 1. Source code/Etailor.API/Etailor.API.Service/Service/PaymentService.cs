@@ -279,6 +279,64 @@ namespace Etailor.API.Service.Service
             }
         }
 
+        public bool RefundMoney(string orderId, decimal amount, string createrId)
+        {
+            var order = orderRepository.Get(orderId);
+            if (order != null && order.IsActive == true)
+            {
+                switch (order.Status)
+                {
+                    case 0:
+                        throw new UserException("Hóa đơn đã hủy");
+                    case 1:
+                        throw new UserException("Hóa đơn chưa được xác nhận");
+                    case 5:
+                        throw new UserException("Hóa đơn đã hoàn thành các sản phẩm, không thể hoàn tiền");
+                    case 6:
+                        throw new UserException("Hóa đơn đang chờ khách kiểm duyệt, không thể hoàn tiền");
+                    case 7:
+                        throw new UserException("Hóa đơn bị từ chối, không thể hoàn tiền");
+                    case 8:
+                        throw new UserException("Hóa đơn hoàn tất, không thể hoàn tiền");
+                }
+                if (amount <= 0)
+                {
+                    throw new UserException("Số tiền hoàn không hợp lệ");
+                }
+                else if (order.PaidMoney == 0)
+                {
+                    throw new UserException("Hóa đơn chưa được thanh toán");
+                }
+                else if (order.PaidMoney < amount)
+                {
+                    throw new UserException("Số tiền hoàn lớn hơn số tiền đã thanh toán");
+                }
+                else
+                {
+                    var payment = new Payment()
+                    {
+                        Id = Ultils.GenGuidString(),
+                        Amount = 0 - amount,
+                        AmountAfterRefund = order.PaidMoney - amount,
+                        CreatedTime = DateTime.UtcNow.AddHours(7),
+                        OrderId = orderId,
+                        PaymentRefundId = null,
+                        PayTime = DateTime.UtcNow.AddHours(7),
+                        PayType = 2,
+                        Platform = PlatformName.OFFLINE,
+                        StaffCreateId = createrId,
+                        Status = 0
+                    };
+
+                    return paymentRepository.Create(payment);
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
         public IEnumerable<Payment> GetAllOrderPayments(string? orderId)
         {
             return paymentRepository.GetAll(x => (string.IsNullOrWhiteSpace(orderId) || orderId == x.OrderId) && x.Status == 0);
