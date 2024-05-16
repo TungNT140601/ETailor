@@ -3,10 +3,12 @@ using Etailor.API.Repository.EntityModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
 using Etailor.API.Ultity;
+using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
 using Etailor.API.WebAPI.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace Etailor.API.WebAPI.Controllers
@@ -16,14 +18,16 @@ namespace Etailor.API.WebAPI.Controllers
     public class MaterialController : Controller
     {
         private readonly IMaterialService materialService;
+        private readonly IStaffService staffService;
         private readonly IMapper mapper;
         private readonly string _wwwroot;
 
-        public MaterialController(IMaterialService materialService, IMapper mapper, IWebHostEnvironment webHost)
+        public MaterialController(IMaterialService materialService, IMapper mapper, IWebHostEnvironment webHost, IStaffService staffService)
         {
             this.materialService = materialService;
             this.mapper = mapper;
             this._wwwroot = webHost.WebRootPath;
+            this.staffService = staffService;
         }
 
         [HttpPost]
@@ -31,28 +35,28 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //if (!staffService.CheckSecrectKey(id, secrectKey))
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else
-                //{
-                return (await materialService.AddMaterial(mapper.Map<Material>(materialVM), materialVM.ImageFile, _wwwroot)) ? Ok("Thêm nguyên liệu thành công") : BadRequest("Thêm nguyên liệu thất bại");
-                //}
-                //}
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(id, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return (await materialService.AddMaterial(mapper.Map<Material>(materialVM), materialVM.ImageFile, _wwwroot)) ? Ok("Thêm nguyên liệu thành công") : BadRequest("Thêm nguyên liệu thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -73,32 +77,28 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                if (id == null || id != materialVM.Id)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    return NotFound("Id số đo không tồn tại");
+                    return Unauthorized("Chưa đăng nhập");
                 }
-                return (await materialService.UpdateMaterial(mapper.Map<Material>(materialVM), materialVM.ImageFile, _wwwroot)) ? Ok("Cập nhật nguyên liệu thành công") : BadRequest("Cập nhật nguyên liệu thất bại");
-                //    }
-                //}
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return (await materialService.UpdateMaterial(mapper.Map<Material>(materialVM), materialVM.ImageFile, _wwwroot)) ? Ok("Cập nhật nguyên liệu thành công") : BadRequest("Cập nhật nguyên liệu thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -119,32 +119,28 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //if (!staffService.CheckSecrectKey(staffid, secrectKey))
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else
-                //{
-                if (id == null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    return NotFound("Id số đo không tồn tại");
+                    return Unauthorized("Chưa đăng nhập");
                 }
-                return (await materialService.DeleteMaterial(id)) ? Ok("Xóa nguyên liẹu thành công") : BadRequest("Xóa nguyên liệu thất bại");
-                //    }
-                //}
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return (await materialService.DeleteMaterial(id)) ? Ok("Xóa nguyên liẹu thành công") : BadRequest("Xóa nguyên liệu thất bại");
+                    }
+                }
             }
             catch (UserException ex)
             {
@@ -172,11 +168,7 @@ namespace Etailor.API.WebAPI.Controllers
                 else
                 {
                     var material = mapper.Map<MaterialVM>(materialService.GetMaterial(id));
-                    var setImage = Task.Run(async () =>
-                    {
-                        material.Image = Ultils.GetUrlImage(material.Image);
-                    });
-                    await Task.WhenAll(setImage);
+                    material.Image = Ultils.GetUrlImage(material.Image);
                     return material != null ? Ok(material) : NotFound(id);
                 }
             }
@@ -200,17 +192,12 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterialsByMaterialCategory(categoryId));
-                if (materials.Any() && materials.Count() > 0)
+                if (materials != null && materials.Any())
                 {
-                    var tasks = new List<Task>();
                     foreach (var material in materials)
                     {
-                        tasks.Add(Task.Run(async () =>
-                        {
-                            material.Image = Ultils.GetUrlImage(material.Image);
-                        }));
+                        material.Image = Ultils.GetUrlImage(material.Image);
                     }
-                    await Task.WhenAll(tasks);
                 }
                 return Ok(materials);
             }
@@ -234,17 +221,12 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterialsByMaterialType(typeId));
-                if (materials.Any() && materials.Count() > 0)
+                if (materials != null && materials.Any())
                 {
-                    var tasks = new List<Task>();
                     foreach (var material in materials)
                     {
-                        tasks.Add(Task.Run(async () =>
-                        {
-                            material.Image = Ultils.GetUrlImage(material.Image);
-                        }));
+                        material.Image = Ultils.GetUrlImage(material.Image);
                     }
-                    await Task.WhenAll(tasks);
                 }
                 return Ok(materials);
             }
@@ -268,17 +250,12 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var materials = materialService.GetMaterials(search).ToList();
-                if (materials.Any() && materials.Count > 0)
+                if (materials != null && materials.Any())
                 {
-                    var tasks = new List<Task>();
                     foreach (var material in materials)
                     {
-                        tasks.Add(Task.Run(async () =>
-                        {
-                            material.Image = Ultils.GetUrlImage(material.Image);
-                        }));
+                        material.Image = Ultils.GetUrlImage(material.Image);
                     }
-                    await Task.WhenAll(tasks);
                 }
 
                 return Ok(mapper.Map<IEnumerable<MaterialVM>>(materials));
@@ -304,17 +281,12 @@ namespace Etailor.API.WebAPI.Controllers
             {
                 var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetFabricMaterials(search).ToList());
 
-                if (materials.Any() && materials.Count() > 0)
+                if (materials != null && materials.Any())
                 {
-                    var tasks = new List<Task>();
                     foreach (var material in materials)
                     {
-                        tasks.Add(Task.Run(async () =>
-                        {
-                            material.Image = Ultils.GetUrlImage(material.Image);
-                        }));
+                        material.Image = Ultils.GetUrlImage(material.Image);
                     }
-                    await Task.WhenAll(tasks);
                 }
 
                 return Ok(materials);

@@ -25,6 +25,8 @@ namespace Etailor.API.Repository.StoreProcModels
         public static string Customer_Regis = "CustomerRegis";
         public static string Set_Material_For_Task = "SetMaterialForTask";
         public static string Delete_Product = "DeleteProduct";
+        public static string Start_Task = "StartTask";
+        public static string Finish_Task = "FinishTask";
     }
     public class SpResult
     {

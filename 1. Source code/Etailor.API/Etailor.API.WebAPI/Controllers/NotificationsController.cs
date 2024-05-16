@@ -87,7 +87,7 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var userId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if ((role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(id, secrectKey)) || (role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(id, secrectKey)))
+                    if ((role == RoleName.CUSTOMER && !customerService.CheckSecerctKey(userId, secrectKey)) || (role != RoleName.CUSTOMER && !staffService.CheckSecrectKey(userId, secrectKey)))
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
