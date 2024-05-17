@@ -328,7 +328,7 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var tasks = mapper.Map<IEnumerable<TaskListByStaffVM>>(await taskService.GetTasksByStaffId(staffId));
-                        return Ok(tasks);
+                        return Ok(tasks?.OrderBy(x => x.Index));
                     }
                 }
             }
