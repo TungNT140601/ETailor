@@ -118,6 +118,13 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> AddCustomerMaterial(string wwwroot, string orderId, Material material, IFormFile? image)
         {
+            var quantity = material.Quantity;
+
+            if (!quantity.HasValue || quantity < 0)
+            {
+                throw new UserException("Số lượng nguyên vật liệu không hợp lệ");
+            }
+
             var order = orderRepository.Get(orderId);
             if (order != null)
             {
@@ -166,7 +173,7 @@ namespace Etailor.API.Service.Service
                             OrderId = orderId,
                             MaterialId = material.Id,
                             IsCusMaterial = true,
-                            Value = material.Quantity,
+                            Value = quantity,
                             ValueUsed = 0,
                             CreatedTime = DateTime.UtcNow.AddHours(7),
                             LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
@@ -187,11 +194,11 @@ namespace Etailor.API.Service.Service
                     var dbMaterial = materialRepository.Get(material.Id);
                     if (dbMaterial != null && dbMaterial.IsActive == true)
                     {
-                        var orderMaterial = orderMaterialRepository.FirstOrDefault(x => x.OrderId == orderId && x.MaterialId == material.Id && x.IsActive == true);
+                        var orderMaterial = orderMaterialRepository.GetAll(x => x.OrderId == orderId && x.MaterialId == material.Id && x.IsActive == true)?.FirstOrDefault();
 
                         if (orderMaterial != null)
                         {
-                            orderMaterial.Value = material.Quantity;
+                            orderMaterial.Value = quantity;
                             orderMaterial.IsCusMaterial = true;
 
                             return orderMaterialRepository.Update(orderMaterial.Id, orderMaterial);
@@ -204,7 +211,7 @@ namespace Etailor.API.Service.Service
                                 OrderId = orderId,
                                 MaterialId = material.Id,
                                 IsCusMaterial = true,
-                                Value = material.Quantity,
+                                Value = quantity,
                                 ValueUsed = 0,
                                 CreatedTime = DateTime.UtcNow.AddHours(7),
                                 LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
@@ -225,6 +232,19 @@ namespace Etailor.API.Service.Service
             else
             {
                 throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public List<string> GetMaterialIdOfOrder(string orderId)
+        {
+            var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+            if (orderMaterials != null && orderMaterials.Any())
+            {
+                return orderMaterials.Select(x => x.MaterialId).Distinct().ToList();
+            }
+            else
+            {
+                return new List<string>();
             }
         }
     }

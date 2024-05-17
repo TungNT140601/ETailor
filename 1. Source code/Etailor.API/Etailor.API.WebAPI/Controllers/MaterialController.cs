@@ -18,16 +18,18 @@ namespace Etailor.API.WebAPI.Controllers
     public class MaterialController : Controller
     {
         private readonly IMaterialService materialService;
+        private readonly IOrderMaterialService orderMaterialService;
         private readonly IStaffService staffService;
         private readonly IMapper mapper;
         private readonly string _wwwroot;
 
-        public MaterialController(IMaterialService materialService, IMapper mapper, IWebHostEnvironment webHost, IStaffService staffService)
+        public MaterialController(IMaterialService materialService, IMapper mapper, IWebHostEnvironment webHost, IStaffService staffService, IOrderMaterialService orderMaterialService)
         {
             this.materialService = materialService;
             this.mapper = mapper;
             this._wwwroot = webHost.WebRootPath;
             this.staffService = staffService;
+            this.orderMaterialService = orderMaterialService;
         }
 
         [HttpPost]
@@ -274,22 +276,18 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("fabric")]
-        public async Task<IActionResult> GetAllFabricMaterials(string? search)
+        [HttpGet("order/{orderId}/fabric")]
+        public async Task<IActionResult> GetAllFabricMaterials(string orderId, string? search)
         {
             try
             {
-                var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetFabricMaterials(search).ToList());
-
-                if (materials != null && materials.Any())
+                var materials = mapper.Map<IEnumerable<MaterialVM>>((await materialService.GetFabricMaterials(search))?.ToList());
+                var orderMaterials = orderMaterialService.GetMaterialIdOfOrder(orderId);
+                return Ok(new
                 {
-                    foreach (var material in materials)
-                    {
-                        material.Image = Ultils.GetUrlImage(material.Image);
-                    }
-                }
-
-                return Ok(materials);
+                    OrderMaterials = materials.Where(m => orderMaterials.Contains(m.Id)),
+                    Materials = materials.Where(m => !orderMaterials.Contains(m.Id))
+                });
             }
             catch (UserException ex)
             {

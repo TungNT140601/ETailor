@@ -1,4 +1,8 @@
-ALTER PROCEDURE dbo.CheckNumOfDateToFinish
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[CheckNumOfDateToFinish]
 AS
 BEGIN
     DECLARE @ProductId NVARCHAR(30);
@@ -40,3 +44,4 @@ BEGIN
     CLOSE ProductCursor;
     DEALLOCATE ProductCursor;
 END
+GO

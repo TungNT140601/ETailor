@@ -2,7 +2,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE [dbo].[FinishTask]
+ALTER PROCEDURE [dbo].[FinishTask]
     @ProductId NVARCHAR(30),
     @ProductStageId NVARCHAR(30),
     @StaffId NVARCHAR(30),
@@ -74,7 +74,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM ProductStage WHERE Id NOT LIKE @ProductStageId AND ProductId = @ProductId AND [Status] > 1 AND [Status] < 4 AND IsActive = 1)
         THROW 50000, N'Có công đoạn đang chờ hoặc đang thực hiện.', 1;
 
-    IF EXISTS (SELECT 1 FROM ProductStage WHERE Id NOT LIKE @ProductStageId AND ProductId = @ProductId AND [Status] > 0 AND IsActive = 1 AND StageNum < @ProductStageNum)
+    IF EXISTS (SELECT 1 FROM ProductStage WHERE Id NOT LIKE @ProductStageId AND ProductId = @ProductId AND [Status] > 0 AND [Status] < 4 AND IsActive = 1 AND StageNum < @ProductStageNum)
         THROW 50000, N'Công đoạn trước chưa hoàn thành.', 1;
 
     IF (SELECT TOP 1 Id FROM ProductStage WHERE ProductId = @ProductId AND IsActive = 1 ORDER BY StageNum DESC) = @ProductStageId

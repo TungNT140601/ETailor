@@ -18,12 +18,14 @@ namespace Etailor.API.Service.Service
         private readonly IMaterialRepository materialRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IMaterialTypeRepository materialTypeRepository;
+        private readonly IOrderMaterialRepository orderMaterialRepository;
 
-        public MaterialService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository, IMaterialTypeRepository materialTypeRepository)
+        public MaterialService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository, IMaterialTypeRepository materialTypeRepository, IOrderMaterialRepository orderMaterialRepository)
         {
             this.materialRepository = materialRepository;
             this.materialCategoryRepository = materialCategoryRepository;
             this.materialTypeRepository = materialTypeRepository;
+            this.orderMaterialRepository = orderMaterialRepository;
         }
 
         public async Task<bool> AddMaterial(Material material, IFormFile? image, string wwwroot)
@@ -233,19 +235,30 @@ namespace Etailor.API.Service.Service
             return new List<Material>();
         }
 
-        public IEnumerable<Material> GetFabricMaterials(string? search)
+        public async Task<IEnumerable<Material>> GetFabricMaterials(string? search)
         {
-            var materialTypes = materialTypeRepository.GetAll(x => (x.Name.Trim().ToLower().Contains("vai") || x.Name.Trim().ToLower().Contains("vải") || x.Name.Trim().ToLower().Contains("vãi")) && x.IsActive == true).ToList();
-            if (materialTypes.Any() && materialTypes.Count > 0)
+            var materials = materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || (!string.IsNullOrWhiteSpace(search) && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            if (materials != null && materials.Any())
             {
-                var materialCategories = materialCategoryRepository.GetAll(x => materialTypes.Select(m => m.Id).Contains(x.MaterialTypeId) && x.IsActive == true).ToList();
-
-                if (materialCategories.Any() && materialCategories.Count > 0)
+                materials = materials.ToList();
+                var tasks = new List<Task>();
+                foreach (var material in materials)
                 {
-                    return materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || x.Name.Trim().ToLower().Contains(search.Trim().ToLower())) && materialCategories.Select(m => m.Id).Contains(x.MaterialCategoryId) && x.IsActive == true);
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (!string.IsNullOrEmpty(material.Image))
+                        {
+                            material.Image = Ultils.GetUrlImage(material.Image);
+                        }
+                    }));
                 }
+                await Task.WhenAll(tasks);
+                return materials;
             }
-            return new List<Material>();
+            else
+            {
+                return new List<Material>();
+            }
         }
     }
 }

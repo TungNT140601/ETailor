@@ -12,5 +12,6 @@ namespace Etailor.API.Service.Interface
     {
         Task<bool> UpdateOrderMaterials(string orderId, List<OrderMaterial>? orderMaterials);
         Task<bool> AddCustomerMaterial(string wwwroot, string orderId, Material material, IFormFile? image);
+        List<string> GetMaterialIdOfOrder(string orderId);
     }
 }
