@@ -19,13 +19,19 @@ namespace Etailor.API.Service.Service
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly IOrderMaterialRepository orderMaterialRepository;
+        private readonly IOrderRepository orderRepository;
+        private readonly IProductRepository productRepository;
 
-        public MaterialService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository, IMaterialTypeRepository materialTypeRepository, IOrderMaterialRepository orderMaterialRepository)
+        public MaterialService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository
+            , IMaterialTypeRepository materialTypeRepository, IOrderMaterialRepository orderMaterialRepository
+            , IOrderRepository orderRepository, IProductRepository productRepository)
         {
             this.materialRepository = materialRepository;
             this.materialCategoryRepository = materialCategoryRepository;
             this.materialTypeRepository = materialTypeRepository;
             this.orderMaterialRepository = orderMaterialRepository;
+            this.orderRepository = orderRepository;
+            this.productRepository = productRepository;
         }
 
         public async Task<bool> AddMaterial(Material material, IFormFile? image, string wwwroot)
@@ -144,19 +150,34 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> DeleteMaterial(string id)
+        public bool DeleteMaterial(string id)
         {
             var dbMaterial = materialRepository.Get(id);
             if (dbMaterial != null && dbMaterial.IsActive == true)
             {
-                var setValue = Task.Run(() =>
+                var notFinishOrders = orderRepository.GetAll(x => x.Status > 0 && x.Status < 8 && x.IsActive == true);
+                if (notFinishOrders != null && notFinishOrders.Any())
                 {
-                    dbMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                    dbMaterial.IsActive = false;
-                    dbMaterial.InactiveTime = DateTime.UtcNow.AddHours(7);
-                });
+                    notFinishOrders = notFinishOrders.ToList();
+                    var orderMaterials = orderMaterialRepository.GetAll(x => notFinishOrders.Select(m => m.Id).Contains(x.OrderId) && x.MaterialId == dbMaterial.Id && x.IsActive == true);
 
-                await Task.WhenAll(setValue);
+                    if (orderMaterials != null && orderMaterials.Any())
+                    {
+                        throw new UserException("Không thể xóa nguyên liệu này vì đã được sử dụng trong đơn hàng");
+                    }
+                    else
+                    {
+                        orderMaterials = null;
+                    }
+                }
+                else
+                {
+                    notFinishOrders = null;
+                }
+
+                dbMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                dbMaterial.IsActive = false;
+                dbMaterial.InactiveTime = DateTime.UtcNow.AddHours(7);
 
                 return materialRepository.Update(dbMaterial.Id, dbMaterial);
             }

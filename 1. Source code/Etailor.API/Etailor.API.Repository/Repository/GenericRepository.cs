@@ -423,13 +423,9 @@ namespace Etailor.API.Repository.Repository
                     return dbSet.FromSqlRaw(sqlQueryString, parameters).AsNoTracking();
                 }
             }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new Exception(ex.Message);
             }
         }
 
@@ -462,13 +458,9 @@ namespace Etailor.API.Repository.Repository
                     return result.FirstOrDefault().ReturnValue;
                 }
             }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new Exception(ex.Message);
             }
         }
 

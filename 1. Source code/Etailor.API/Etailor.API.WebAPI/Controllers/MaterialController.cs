@@ -140,7 +140,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return (await materialService.DeleteMaterial(id)) ? Ok("Xóa nguyên liẹu thành công") : BadRequest("Xóa nguyên liệu thất bại");
+                        return (materialService.DeleteMaterial(id)) ? Ok("Xóa nguyên liẹu thành công") : BadRequest("Xóa nguyên liệu thất bại");
                     }
                 }
             }

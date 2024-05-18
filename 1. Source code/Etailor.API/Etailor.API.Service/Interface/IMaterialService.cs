@@ -14,7 +14,7 @@ namespace Etailor.API.Service.Interface
 
         Task<bool> UpdateMaterial(Material material, IFormFile? image, string wwwroot);
 
-        Task<bool> DeleteMaterial(string id);
+        bool DeleteMaterial(string id);
 
         Material GetMaterial(string id);
 

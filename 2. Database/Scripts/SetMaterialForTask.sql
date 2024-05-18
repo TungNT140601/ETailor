@@ -71,7 +71,7 @@ BEGIN
         THROW 50000, N'Không có nguyên phụ liệu', 1;
 
     DECLARE @MaterialId NVARCHAR(30);
-    DECLARE @NewValue DECIMAL (18,3);
+    DECLARE @Value DECIMAL (18,3);
     DECLARE @ExistProductStageMaterialId NVARCHAR(30);
 
     DECLARE StageMaterialsCursor CURSOR FOR
@@ -79,22 +79,21 @@ BEGIN
     FROM @StageMaterials;
 
     OPEN StageMaterialsCursor;
-    FETCH NEXT FROM StageMaterialsCursor INTO @MaterialId, @NewValue;
+    FETCH NEXT FROM StageMaterialsCursor INTO @MaterialId, @Value;
 
-    -- Check input Material for stage
     WHILE @@FETCH_STATUS = 0
     BEGIN
         IF (SELECT COUNT(*)
         FROM @StageMaterials
         WHERE MaterialId = @MaterialId) > 1
             THROW 50000, N'Nguyên phụ liệu bị trùng', 1;
-        IF @NewValue IS NULL OR @NewValue < 0
+        IF @Value IS NULL OR @Value < 0
             THROW 50000, N'Số lượng nguyên phụ liệu không phù hợp', 1;
 
         DECLARE @MaterialName NVARCHAR(100);
         DECLARE @StockValue DECIMAL (18,3);
-        DECLARE @ValueRecieve INT;
-        DECLARE @ValueUsed INT;
+        DECLARE @ValueRecieve DECIMAL (18,3);
+        DECLARE @ValueUsed DECIMAL (18,3);
         DECLARE @OldValue DECIMAL (18,3);
 
         SET @ExistProductStageMaterialId = NULL;
@@ -112,21 +111,18 @@ BEGIN
         ELSE
         BEGIN
             DECLARE @ErrorMsg NVARCHAR(MAX);
-            IF NOT EXISTS (SELECT 1
-            FROM OrderMaterial
-            WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsCusMaterial = 1)
+            
+            IF NOT EXISTS (SELECT 1 FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsCusMaterial = 1)
             BEGIN
-                SET @ErrorMsg  = CAST(N'Số lượng ' + @MaterialName + N' trong kho không đủ' AS NVARCHAR(MAX));
-                IF (@StockValue = 0 OR (@StockValue + ISNULL(@OldValue, 0)) < @NewValue)
+            SET @ErrorMsg  = CAST(N'Số lượng ' + @MaterialName + N' trong kho không đủ' AS NVARCHAR(MAX));
+            IF (@StockValue = 0 OR (@StockValue + ISNULL(@OldValue, 0)) < @Value)
                 THROW 50000, @ErrorMsg, 1;
             END;
             ELSE
             BEGIN
-                SET @ErrorMsg  = CAST(N'Số lượng ' + @MaterialName + N' của khách không đủ' AS NVARCHAR(MAX));
-                SELECT @ValueRecieve = [Value], @ValueUsed = ValueUsed
-                FROM OrderMaterial
-                WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsCusMaterial = 1;
-                IF ((ISNULL(@ValueRecieve, 0) - ISNULL(@ValueUsed, 0)) <= 0 OR (ISNULL(@ValueRecieve, 0) - ISNULL(@ValueUsed, 0) + ISNULL(@OldValue, 0)) < @NewValue)
+            SET @ErrorMsg  = CAST(N'Số lượng ' + @MaterialName + N' của khách không đủ' AS NVARCHAR(MAX));
+            SELECT @ValueRecieve = [Value], @ValueUsed = [ValueUsed] FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsCusMaterial = 1;
+            IF (@ValueRecieve = 0 OR (@ValueUsed - ISNULL(@OldValue, 0) + @Value) > @ValueRecieve)
                 THROW 50000, @ErrorMsg, 1;
             END;
         END;
@@ -135,17 +131,17 @@ BEGIN
         INSERT INTO @InsertTable
             (Id, StageId, MaterialId, Quantity)
         VALUES
-            (ISNULL(@ExistProductStageMaterialId, NULL), @StageId, @MaterialId, @NewValue)
-
+            (ISNULL(@ExistProductStageMaterialId, NULL), @StageId, @MaterialId, @Value)
+        
         -- SET @Errmsg = @Errmsg + 'SetupData: ' + @MaterialId + ', Id :' + ISNULL(@ExistProductStageMaterialId, 'Null') + ' ';
 
-        FETCH NEXT FROM StageMaterialsCursor INTO @MaterialId, @NewValue;
+        FETCH NEXT FROM StageMaterialsCursor INTO @MaterialId, @Value;
     END;
     CLOSE StageMaterialsCursor;
     DEALLOCATE StageMaterialsCursor;
-    ----------------------------------------------------------------------------------------------
+
+
     DECLARE @ProductStageMaterialIdExist NVARCHAR(30);
-    DECLARE @ExistValue DECIMAL (18,3);
     DECLARE CheckMaterial CURSOR FOR
     SELECT Id, MaterialId, Quantity
     FROM ProductStageMaterial
@@ -153,39 +149,34 @@ BEGIN
         SELECT MaterialId
         FROM @InsertTable
     )
-    OPEN CheckMaterial;
-    FETCH NEXT FROM CheckMaterial INTO @ProductStageMaterialIdExist, @MaterialId, @ExistValue;
 
-    -- Add Old value if it not exist in new list
+    OPEN CheckMaterial;
+    FETCH NEXT FROM CheckMaterial INTO @ProductStageMaterialIdExist, @MaterialId, @Value;
+
     WHILE @@FETCH_STATUS = 0
     BEGIN
-        IF NOT EXISTS (SELECT 1 FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsCusMaterial = 1)
-        UPDATE Material SET Quantity = ISNULL(Quantity, 0) + ISNULL(@ExistValue, 0)
-            WHERE Id = @MaterialId;
-
-        UPDATE OrderMaterial SET ValueUsed = ISNULL(ValueUsed, 0) + ISNULL(@ExistValue, 0)
-            WHERE OrderId = @OrderId AND MaterialId = @MaterialId;
+        UPDATE Material SET Quantity = ISNULL(Quantity, 0) + ISNULL(@Value, 0)
+        WHERE Id = @MaterialId
 
         IF @ProductStageMaterialIdExist IS NOT NULL
         DELETE ProductStageMaterial WHERE Id = @ProductStageMaterialIdExist
 
-        FETCH NEXT FROM CheckMaterial INTO @ProductStageMaterialIdExist, @MaterialId, @ExistValue;
+        FETCH NEXT FROM CheckMaterial INTO @ProductStageMaterialIdExist, @MaterialId, @Value;
     END;
     CLOSE CheckMaterial;
     DEALLOCATE CheckMaterial;
 
     DECLARE @ProductStageMaterialId NVARCHAR(30);
-    DECLARE @InputValue DECIMAL (18,3);
     DECLARE UpdateMaterial CURSOR FOR
     SELECT Id, MaterialId, Quantity
     FROM @InsertTable
 
     OPEN UpdateMaterial;
-    FETCH NEXT FROM UpdateMaterial INTO @ProductStageMaterialId, @MaterialId, @InputValue;
+    FETCH NEXT FROM UpdateMaterial INTO @ProductStageMaterialId, @MaterialId, @Value;
 
-    -- Add/Update ProductStageMaterial And Update Material And Update OrderMaterial
     WHILE @@FETCH_STATUS = 0
     BEGIN
+
         IF @ProductStageMaterialId IS NULL
         BEGIN
             INSERT INTO ProductStageMaterial
@@ -194,12 +185,12 @@ BEGIN
                 (CONVERT(nvarchar(30),CAST(NEWID() AS nvarchar(MAX)),0),
                     @StageId,
                     @MaterialId,
-                    @InputValue);
+                    @Value);
 
-            IF NOT EXISTS (SELECT 1 FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsCusMaterial = 1)
-            UPDATE Material SET Quantity = Quantity - @InputValue WHERE Id = @MaterialId;
-
-            UPDATE OrderMaterial SET ValueUsed = ValueUsed + @InputValue WHERE OrderId = @OrderId AND MaterialId = @MaterialId;
+            IF NOT EXISTS (SELECT 1 FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsActive = 1 AND IsCusMaterial = 1)
+            UPDATE Material SET Quantity = Quantity - @Value WHERE Id = @MaterialId;
+            ELSE
+            UPDATE OrderMaterial SET ValueUsed = ValueUsed + @Value WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsActive = 1 AND IsCusMaterial = 1;
         END;
         ELSE
         BEGIN
@@ -207,13 +198,13 @@ BEGIN
             FROM ProductStageMaterial
             WHERE Id = @ProductStageMaterialId;
 
-            IF NOT EXISTS (SELECT 1 FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsCusMaterial = 1)
-            UPDATE Material SET Quantity = Quantity + ISNULL(@OldValue, 0) - @InputValue WHERE Id = @MaterialId;
-
-            UPDATE OrderMaterial SET ValueUsed = ValueUsed - ISNULL(@OldValue, 0) + @InputValue WHERE OrderId = @OrderId AND MaterialId = @MaterialId;
+            IF NOT EXISTS (SELECT 1 FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsActive = 1 AND IsCusMaterial = 1)
+            UPDATE Material SET Quantity = Quantity + ISNULL(@OldValue, 0) - @Value WHERE Id = @MaterialId;
+            ELSE
+            UPDATE OrderMaterial SET ValueUsed = ValueUsed - ISNULL(@OldValue, 0) + @Value WHERE OrderId = @OrderId AND MaterialId = @MaterialId AND IsActive = 1 AND IsCusMaterial = 1;
 
             UPDATE ProductStageMaterial
-            SET Quantity = @InputValue
+            SET Quantity = @Value
             WHERE Id = @ProductStageMaterialId;
         END;
         FETCH NEXT FROM UpdateMaterial INTO @ProductStageMaterialId, @MaterialId, @Value;
