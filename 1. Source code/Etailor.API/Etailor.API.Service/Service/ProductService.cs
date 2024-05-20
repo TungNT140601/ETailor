@@ -256,7 +256,7 @@ namespace Etailor.API.Service.Service
                         Value = product.ProductTemplateId != null ? product.ProductTemplateId : DBNull.Value
                     },new SqlParameter("@FabricMaterialId", System.Data.SqlDbType.NVarChar)
                     {
-                        Value = materialId
+                        Value = materialId != null ? materialId : DBNull.Value
                     },new SqlParameter("@MaterialValue", System.Data.SqlDbType.Decimal)
                     {
                         Value = materialQuantity != null ? materialQuantity : 0
@@ -683,7 +683,7 @@ namespace Etailor.API.Service.Service
                 };
                 var fabricMaterialId = new SqlParameter("@NewFabricMaterialId", System.Data.SqlDbType.NVarChar)
                 {
-                    Value = materialId
+                    Value = materialId != null ? materialId : DBNull.Value
                 };
                 var materialValue = new SqlParameter("@MaterialValue", System.Data.SqlDbType.Decimal)
                 {
