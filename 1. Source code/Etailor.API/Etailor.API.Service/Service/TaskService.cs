@@ -411,9 +411,9 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public async Task<IEnumerable<Product>> GetTasksByStaffId(string? search)
+        public async Task<IEnumerable<Product>> GetTasksByStaffId(string staffId)
         {
-            return productRepository.GetAll(x => (search == null || (search != null && x.StaffMakerId == search)) && x.IsActive == true);
+            return productRepository.GetAll(x => x.StaffMakerId == staffId && x.Status > 0 && x.IsActive == true);
         }
 
         public async Task AutoCreateEmptyTaskProduct()
