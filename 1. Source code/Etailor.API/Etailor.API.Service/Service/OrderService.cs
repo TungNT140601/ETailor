@@ -689,72 +689,27 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                    dbOrder.Status = 0;
-                    dbOrder.IsActive = false;
-
-                    if (orderRepository.Update(dbOrder.Id, dbOrder))
+                    try
                     {
-                        var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true);
-                        if (orderProducts != null && orderProducts.Any())
-                        {
-                            orderProducts = orderProducts.ToList();
-
-                            var tasks = new List<Task>();
-
-                            foreach (var product in orderProducts)
+                        var result = await orderRepository.GetStoreProcedureReturnInt(StoreProcName.Cancel_Order,
+                            new SqlParameter
                             {
-                                tasks.Add(Task.Run(() =>
-                                {
-                                    product.IsActive = false;
-                                    product.InactiveTime = DateTime.UtcNow.AddHours(7);
-                                    product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                                    product.Status = 0;
-                                }));
-                            }
-
-                            var orderProductsStages = productStageRepository.GetAll(x => orderProducts.Select(x => x.Id).Contains(x.ProductId) && x.IsActive == true);
-                            if (orderProductsStages != null && orderProductsStages.Any())
-                            {
-                                orderProductsStages = orderProductsStages.ToList();
-
-                                foreach (var productStage in orderProductsStages)
-                                {
-                                    tasks.Add(Task.Run(() =>
-                                    {
-                                        productStage.IsActive = false;
-                                        productStage.InactiveTime = DateTime.UtcNow.AddHours(7);
-                                        productStage.Status = 0;
-                                    }));
-                                }
-                            }
-
-                            await Task.WhenAll(tasks);
-
-                            var checks = new List<bool>();
-
-                            foreach (var product in orderProducts)
-                            {
-                                checks.Add(productRepository.Update(product.Id, product));
-                            }
-                            if (orderProductsStages != null && orderProductsStages.Any())
-                            {
-                                foreach (var productStage in orderProductsStages)
-                                {
-                                    checks.Add(productStageRepository.Update(productStage.Id, productStage));
-                                }
-                            }
-
-                            return !checks.Any(x => x == false);
-                        }
-                        else
+                                DbType = System.Data.DbType.String,
+                                Value = id,
+                                ParameterName = "@OrderId"
+                            });
+                        if (result == 1)
                         {
                             return true;
                         }
+                        else
+                        {
+                            throw new SystemsException("Lỗi trong quá trình hủy hóa đơn", nameof(OrderService.DeleteOrder));
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        throw new SystemsException("Lỗi trong quá trình hủy hóa đơn", nameof(OrderService));
+                        throw new UserException(ex.Message);
                     }
                 }
             }
@@ -904,9 +859,9 @@ namespace Etailor.API.Service.Service
                 if (ordersProducts != null && ordersProducts.Any())
                 {
                     ordersProducts = ordersProducts.ToList();
-                    var templateIds = string.Join(",", ordersProducts.Select(x => x.ProductTemplateId).ToList());
 
-                    var productTemplates = productTemplaTeRepository.GetAll(x => templateIds.Contains(x.Id));
+                    var productTemplates = productTemplaTeRepository.GetAll(x =>
+                        ordersProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
                     if (productTemplates != null && productTemplates.Any())
                     {
                         productTemplates = productTemplates.ToList();

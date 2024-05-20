@@ -1754,6 +1754,23 @@ namespace Etailor.API.Service.Service
 
                         product.Status = 4;
 
+                        var productStages = productStageRepository.GetAll(x => x.ProductId == productId && x.IsActive == true && x.Status > 0);
+                        if (productStages != null && productStages.Any())
+                        {
+                            productStages = productStages.ToList();
+
+                            foreach (var stage in productStages)
+                            {
+                                stage.Status = 1;
+
+                                productStageRepository.Update(stage.Id, stage);
+                            }
+                        }
+                        else
+                        {
+                            throw new UserException("Không tìm thấy công đoạn của sản phẩm");
+                        }
+
                         if (order.Status == 6)
                         {
                             order.Status = 7;

@@ -1,5 +1,6 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
+using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
@@ -7,6 +8,7 @@ using Etailor.API.Ultity.CustomException;
 using Etailor.API.Ultity.PaymentConfig;
 using Google.Api.Gax;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
@@ -279,7 +281,7 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public bool RefundMoney(string orderId, decimal amount, string createrId)
+        public async Task<bool> RefundMoney(string orderId, decimal amount, string createrId)
         {
             var order = orderRepository.Get(orderId);
             if (order != null && order.IsActive == true)
@@ -328,7 +330,35 @@ namespace Etailor.API.Service.Service
                         Status = 0
                     };
 
-                    return paymentRepository.Create(payment);
+                    if (paymentRepository.Create(payment))
+                    {
+                        try
+                        {
+                            var result = await orderRepository.GetStoreProcedureReturnInt(StoreProcName.Cancel_Order,
+                                new SqlParameter
+                                {
+                                    DbType = System.Data.DbType.String,
+                                    Value = orderId,
+                                    ParameterName = "@OrderId"
+                                });
+                            if (result == 1)
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                throw new SystemsException("Lỗi trong quá trình hủy hóa đơn", nameof(OrderService.DeleteOrder));
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new UserException(ex.Message);
+                        }
+                    }
+                    else
+                    {
+                        throw new SystemsException("Tạo giao dịch hoàn tiền thất bại", nameof(PaymentService.RefundMoney));
+                    }
                 }
             }
             else

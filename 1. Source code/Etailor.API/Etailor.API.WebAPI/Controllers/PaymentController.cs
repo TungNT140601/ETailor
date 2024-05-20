@@ -132,7 +132,7 @@ namespace Etailor.API.WebAPI.Controllers
                             throw new UserException("Số tiền hoàn trả không hợp lệ");
                         }
 
-                        return paymentService.RefundMoney(orderId, amount.Value, staffId) ? Ok("Tạo hoàn tiền thành công") : BadRequest("Tạo hoàn tiền thất bại");
+                        return (await paymentService.RefundMoney(orderId, amount.Value, staffId)) ? Ok("Tạo hoàn tiền thành công") : BadRequest("Tạo hoàn tiền thất bại");
                     }
                 }
             }

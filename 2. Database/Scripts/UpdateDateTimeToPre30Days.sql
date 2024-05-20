@@ -15,12 +15,21 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
     SET @SQL = 'UPDATE ' + QUOTENAME(@TableName) + 
                ' SET ' + QUOTENAME(@ColumnName) + ' = DATEADD(DAY, -30, ' + QUOTENAME(@ColumnName) + ')' +
-               ' WHERE ' + QUOTENAME(@ColumnName) + 'IS NOT NULL'
+               ' WHERE ' + QUOTENAME(@ColumnName) + ' IS NOT NULL' +
+               ' AND ' + QUOTENAME(@ColumnName) + ' > DATEADD(DAY, -30,  ' + QUOTENAME(@ColumnName) + ');'
+    PRINT @SQL;
 
-    EXEC sp_executesql @SQL
+    EXEC sp_executesql @SQL;
 
     FETCH NEXT FROM TableCursor INTO @TableName, @ColumnName
 END
 
 CLOSE TableCursor
 DEALLOCATE TableCursor
+
+UPDATE [Order] SET PlannedTime = NULL;
+
+DECLARE @RC int
+
+EXECUTE @RC = [dbo].[CheckNumOfDateToFinish] 
+GO
