@@ -534,7 +534,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return await orderService.DoneOrder(orderId) ? Ok("Đã đơn hoàn thành") : BadRequest("Thất bại");
+                        return await orderService.DoneOrder(orderId) ? Ok("Đơn hoàn thành thành công") : BadRequest("Đơn hoàn thành thất bại");
                     }
                 }
             }

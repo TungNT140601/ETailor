@@ -5,8 +5,10 @@ DECLARE @SQL NVARCHAR(MAX)
 DECLARE TableCursor CURSOR FOR
 SELECT c.TABLE_NAME, c.COLUMN_NAME
 FROM INFORMATION_SCHEMA.COLUMNS c
-JOIN INFORMATION_SCHEMA.TABLES t ON c.TABLE_NAME = t.TABLE_NAME
-WHERE c.DATA_TYPE = 'datetime' AND t.TABLE_TYPE = 'BASE TABLE'
+INNER JOIN INFORMATION_SCHEMA.TABLES t ON c.TABLE_NAME = t.TABLE_NAME
+WHERE (c.DATA_TYPE = 'datetime' OR c.DATA_TYPE = 'datetime2') AND t.TABLE_TYPE = 'BASE TABLE' AND c.TABLE_SCHEMA = 'dbo'
+AND (c.TABLE_NAME = 'Order' OR c.TABLE_NAME = 'Product' 
+OR c.TABLE_NAME = 'ProductStage')
 
 EXECUTE [dbo].[CheckNumOfDateToFinish];
 
@@ -16,9 +18,9 @@ FETCH NEXT FROM TableCursor INTO @TableName, @ColumnName
 WHILE @@FETCH_STATUS = 0
 BEGIN
     SET @SQL = 'UPDATE ' + QUOTENAME(@TableName) + 
-               ' SET ' + QUOTENAME(@ColumnName) + ' = DATEADD(MONTH, -2, ' +  + QUOTENAME(@ColumnName) + ')' +
-               ' WHERE ' + QUOTENAME(@ColumnName) + ' IS NOT NULL' +
-               ' AND MONTH(' + QUOTENAME(@ColumnName) + ') = 5;'
+               ' SET ' + QUOTENAME(@ColumnName) + ' = DATEADD(DAY, -30, ' +  + QUOTENAME(@ColumnName) + ')' +
+               ' WHERE ' + QUOTENAME(@ColumnName) + ' IS NOT NULL'
+               + ' AND MONTH('+ QUOTENAME(@ColumnName) +') > 4 AND YEAR('+ QUOTENAME(@ColumnName) +') = 2024;'
     PRINT @SQL;
 
     EXEC sp_executesql @SQL;
