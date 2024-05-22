@@ -29,6 +29,8 @@ using Microsoft.AspNetCore.Http.Connections;
 
 var builder = WebApplication.CreateBuilder(args);
 var time = DateTime.UtcNow.AddHours(7);
+var version = $"v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}";
+
 builder.Services.AddCors();
 // Add services to the container.
 
@@ -46,7 +48,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
                 c =>
                 {
-                    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ETailor API", Version = $"v1.00.{time.ToString("yy.MM.dd.HH.mm.ss")}" });
+                    c.SwaggerDoc("v1", new OpenApiInfo { Title = $"ETailor API", Version = version });
                     // Configure Swagger to use JWT authentication
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                     {
@@ -234,15 +236,15 @@ app.UseAuthentication();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API v1.00 Time:{time.ToString("yyyy/MM/dd - HH:mm:ss:ffff")}");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", $"ETailor API - Time Deploy: {time.ToString("yyyy/MM/dd - HH:mm:ss:ffff")}");
 });
 
-var MyAllowSpecificOrigins = builder.Configuration.GetSection("MyAllowSpecificOrigins").Get<string[]>();
+var allowSpecificOrigins = builder.Configuration.GetSection("AllowSpecificOrigins").Get<string[]>();
 
 app.UseCors(option =>
 {
     option
-    .WithOrigins(MyAllowSpecificOrigins)
+    .WithOrigins(allowSpecificOrigins)
     .AllowAnyHeader()
     .AllowAnyMethod()
     .AllowCredentials();
@@ -250,7 +252,7 @@ app.UseCors(option =>
 
 app.UseHangfireDashboard();
 
-app.UseSerilogRequestLogging(); // Optionally add request logging
+app.UseSerilogRequestLogging();
 
 app.UseStaticFiles();
 

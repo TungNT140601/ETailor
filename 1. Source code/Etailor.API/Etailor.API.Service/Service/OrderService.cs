@@ -600,6 +600,11 @@ namespace Etailor.API.Service.Service
 
                 if (orderProducts != null && !orderProducts.Any(x => x.Status > 0 && x.Status < 5 && x.IsActive == true))
                 {
+                    if (order.UnPaidMoney > 0)
+                    {
+                        throw new UserException("Hóa đơn chưa hoàn thành thanh toán. Không thể hoàn thành hóa đơn");
+                    }
+
                     order.Status = 8;
                     order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
@@ -609,7 +614,7 @@ namespace Etailor.API.Service.Service
                         {
                             Id = Ultils.GenGuidString(),
                             Title = "Hóa đơn đã hoàn thành",
-                            Content = $"Hóa đơn {order.Id} của bạn đã hoàn thành. Chúng tôi xin chân thành cảm ơn quý khách đã tin tưởng và sử dụng dịch vụ của chúng tôi. Hy vọng quý khách sẽ hài lòng và tiếp tục ủng hộ chúng tôi trong tương lai. Xin cảm ơn!",
+                            Content = $"Hóa đơn {order.Id} của bạn đã hoàn thành. Xin cảm ơn!",
                             CustomerId = order.CustomerId,
                             SendTime = DateTime.UtcNow.AddHours(7),
                             ReadTime = null,

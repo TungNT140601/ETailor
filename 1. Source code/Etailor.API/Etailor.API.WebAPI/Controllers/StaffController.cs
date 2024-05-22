@@ -136,7 +136,7 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPatch("change-password")]
-        public async Task<IActionResult> ChangePass(string? id, [FromBody] StaffChangePassVM staff)
+        public async Task<IActionResult> ChangePass([FromBody] StaffChangePassVM staff)
         {
             try
             {
@@ -153,20 +153,13 @@ namespace Etailor.API.WebAPI.Controllers
                 {
                     var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                     var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(id, secrectKey)) // check token valid
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey)) // check token valid
                     {
                         return Unauthorized("Chưa đăng nhập");
                     }
                     else
                     {
-                        if (role == RoleName.MANAGER && id == null) // check if manager change staff pass
-                        {
-                            throw new UserException("Id nhân viên không được để trống");
-                        }
-                        else
-                        {
-                            return await staffService.ChangePass(id, staff.OldPassword, staff.NewPassword, role) ? Ok("Thay đổi mật khẩu thành công") : BadRequest("Thay đổi mật khẩu thất bại");
-                        }
+                        return await staffService.ChangePass(staffId, staff.OldPassword, staff.NewPassword) ? Ok("Thay đổi mật khẩu thành công") : BadRequest("Thay đổi mật khẩu thất bại");
                     }
                 }
             }
@@ -330,16 +323,16 @@ namespace Etailor.API.WebAPI.Controllers
 
                             var staffVMs = new List<StaffListVM>();
                             int stt = 1;
-                            foreach (var staff in staffs)
+                            foreach (var staff in staffs.OrderBy(x => x.Fullname))
                             {
-                                listTask.Add(Task.Run(async () =>
+                                listTask.Add(Task.Run(() =>
                                 {
                                     var staffVM = mapper.Map<StaffListVM>(staff);
                                     staffVM.STT = stt;
-                                    stt++;
                                     staffVM.Avatar = Ultils.GetUrlImage(staffVM.Avatar);
                                     staffVMs.Add(staffVM);
                                 }));
+                                stt++;
                             }
 
                             await Task.WhenAll(listTask);
@@ -347,7 +340,7 @@ namespace Etailor.API.WebAPI.Controllers
                             return Ok(new
                             {
                                 TotalData = staffs.Count(),
-                                Data = staffVMs.OrderBy(x => x.Username).OrderBy(x => x.Fullname)
+                                Data = staffVMs.OrderBy(x => x.STT)
                             });
                         }
                     }
@@ -367,81 +360,6 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("pagination")]
-        public async Task<IActionResult> GetAllStaffPagination(string? search, int? pageIndex, int? itemPerPage)
-        {
-            try
-            {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (role == RoleName.CUSTOMER || role == RoleName.STAFF)
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
-                {
-                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        var staffs = staffService.GetAllWithPagination(search, pageIndex, itemPerPage);
-                        if (staffs != null && staffs.Any())
-                        {
-                            var listTask = new List<Task>();
-
-                            var staffVMs = new List<StaffListVM>();
-                            int stt = 1;
-                            foreach (var staff in staffs)
-                            {
-                                listTask.Add(Task.Run(async () =>
-                                {
-                                    var staffVM = mapper.Map<StaffListVM>(staff);
-                                    staffVM.STT = stt;
-                                    stt++;
-                                    staffVM.Avatar = Ultils.GetUrlImage(staffVM.Avatar);
-                                    staffVMs.Add(staffVM);
-                                }));
-                            }
-
-                            await Task.WhenAll(listTask);
-
-                            return Ok(new
-                            {
-                                TotalData = staffs.Count(),
-                                Data = staffVMs
-                            });
-                        }
-                        else
-                        {
-                            return Ok(new
-                            {
-                                TotalData = 0,
-                                Data = new List<StaffListVM>()
-                            });
-                        }
-                    }
-                }
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
 
         [HttpGet("current-tasks")]
         public async Task<IActionResult> GetStaffWithTotalTask()

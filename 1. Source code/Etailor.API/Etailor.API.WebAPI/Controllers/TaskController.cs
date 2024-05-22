@@ -693,14 +693,15 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 categoryTasks.Add(Task.Run(async () =>
                                 {
-                                    if (category.ProductTemplates != null && category.ProductTemplates.Any())
+                                    if (category.ProductTemplates != null && category.ProductTemplates.Any(x => x.Products != null && x.Products.Any(x => x.Status > 0 && x.Status < 5)))
                                     {
                                         var templateTasks = new List<Task>();
+
                                         foreach (var template in category.ProductTemplates)
                                         {
                                             templateTasks.Add(Task.Run(() =>
                                             {
-                                                if (template.Products != null && template.Products.Any())
+                                                if (template.Products != null && template.Products.Any(x => x.Status > 0 && x.Status < 5))
                                                 {
                                                     template.TotalTask = template.Products.Count;
                                                 }
@@ -718,6 +719,8 @@ namespace Etailor.API.WebAPI.Controllers
                                     }
                                     else
                                     {
+                                        category.ProductTemplates.RemoveAll(x => x.Products == null || !x.Products.Any(x => x.Status > 0 && x.Status < 5));
+
                                         category.TotalTask = 0;
                                     }
                                 }));
