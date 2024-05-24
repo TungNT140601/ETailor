@@ -19,8 +19,8 @@ WHILE @@FETCH_STATUS = 0
 BEGIN
     SET @SQL = 'UPDATE ' + QUOTENAME(@TableName) + 
                ' SET ' + QUOTENAME(@ColumnName) + ' = DATEADD(DAY, -30, ' +  + QUOTENAME(@ColumnName) + ')' +
-               ' WHERE ' + QUOTENAME(@ColumnName) + ' IS NOT NULL'
-               + ' AND MONTH('+ QUOTENAME(@ColumnName) +') > 4 AND YEAR('+ QUOTENAME(@ColumnName) +') = 2024;'
+               ' WHERE ' + QUOTENAME(@ColumnName) + ' IS NOT NULL;'
+               + '-- AND MONTH('+ QUOTENAME(@ColumnName) +') > 4 AND YEAR('+ QUOTENAME(@ColumnName) +') = 2024;'
     PRINT @SQL;
 
     EXEC sp_executesql @SQL;

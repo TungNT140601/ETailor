@@ -95,7 +95,6 @@ namespace Etailor.API.Service.Service
 
         public async Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity, int quantity)
         {
-            var i = 0;
 
             var listParams = new List<List<SqlParameter>>();
             var tasks = new List<Task>();
@@ -136,57 +135,61 @@ namespace Etailor.API.Service.Service
 
             do
             {
-                tasks.Add(Task.Run(async () =>
+                listParams = new List<List<SqlParameter>>();
+                for (int i = 0; i < quantity; i++)
                 {
-                    #region InitProduct
-                    var id = Ultils.GenGuidString();
-
-                    try
+                    var index = i + 1;
+                    tasks.Add(Task.Run(async () =>
                     {
-                        var saveOrderComponents = new List<ProductComponent>();
+                        #region InitProduct
+                        var id = Ultils.GenGuidString();
 
-                        if (templateComponentTypes != null && templateComponentTypes.Any())
+                        try
                         {
-                            do
+                            var saveOrderComponents = new List<ProductComponent>();
+
+                            if (templateComponentTypes != null && templateComponentTypes.Any())
                             {
-                                saveOrderComponents = new List<ProductComponent>();
-                                var insideTasks = new List<Task>();
-                                foreach (var type in templateComponentTypes)
+                                do
                                 {
-                                    insideTasks.Add(
-                                        Task.Run(async () =>
-                                        {
-                                            var componentIds = string.Join(",", productComponents.Select(c => c.ComponentId));
-                                            var productComponentAdds = templateComponents.Where(x => x.ComponentTypeId == type.Id && componentIds.Contains(x.Id));
-                                            var component = new Component();
-                                            if (productComponentAdds != null && productComponentAdds.Any())
+                                    saveOrderComponents = new List<ProductComponent>();
+                                    var insideTasks = new List<Task>();
+                                    foreach (var type in templateComponentTypes)
+                                    {
+                                        insideTasks.Add(Task.Run(async () =>
                                             {
-                                                if (productComponentAdds.Count() > 1)
+                                                var productComponentAdds = templateComponents
+                                                    .Where(x => x.ComponentTypeId == type.Id
+                                                        && productComponents.Select(c => c.ComponentId).Contains(x.Id));
+
+                                                var component = new Component();
+
+                                                if (productComponentAdds != null && productComponentAdds.Any())
                                                 {
-                                                    throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
+                                                    if (productComponentAdds.Count() > 1)
+                                                    {
+                                                        throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
+                                                    }
+                                                    else
+                                                    {
+                                                        component = productComponentAdds.First();
+                                                    }
                                                 }
                                                 else
                                                 {
-                                                    component = productComponentAdds.First();
+                                                    component = templateComponents.FirstOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
                                                 }
-                                            }
-                                            else
-                                            {
-                                                component = templateComponents.FirstOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
-                                            }
-                                            if (component != null)
-                                            {
-                                                var productComponent = productComponents.FirstOrDefault(x => x.ComponentId == component.Id);
-                                                if (productComponent != null && !string.IsNullOrEmpty(productComponent.NoteImage))
+
+                                                if (component != null)
                                                 {
-                                                    var listStringImage = JsonConvert.DeserializeObject<List<string>>(productComponent.NoteImage);
-                                                    var listImage = new List<string>();
-                                                    if (listStringImage != null && listStringImage.Count > 0)
+                                                    var productComponent = productComponents.FirstOrDefault(x => x.ComponentId == component.Id);
+                                                    if (productComponent != null && !string.IsNullOrEmpty(productComponent.NoteImage))
                                                     {
-                                                        var insideTask1s = new List<Task>();
-                                                        foreach (var item in listStringImage)
+                                                        var listStringImage = JsonConvert.DeserializeObject<List<string>>(productComponent.NoteImage);
+                                                        var listImage = new List<string>();
+                                                        if (listStringImage != null && listStringImage.Count > 0)
                                                         {
-                                                            insideTask1s.Add(Task.Run(async () =>
+                                                            foreach (var item in listStringImage)
                                                             {
                                                                 var image = JsonConvert.DeserializeObject<FileDTO>(item);
                                                                 if (!string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
@@ -200,50 +203,48 @@ namespace Etailor.API.Service.Service
                                                                             image.ContentType,
                                                                             null));
                                                                 }
-                                                            }));
+                                                            }
+
+                                                            productComponent.NoteImage = JsonConvert.SerializeObject(listImage);
                                                         }
-                                                        await Task.WhenAll(insideTask1s);
-
-                                                        productComponent.NoteImage = JsonConvert.SerializeObject(listImage);
                                                     }
+                                                    saveOrderComponents.Add(new ProductComponent()
+                                                    {
+                                                        ComponentId = component.Id,
+                                                        Id = Ultils.GenGuidString(),
+                                                        LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                                        Name = component.Name,
+                                                        Image = "",
+                                                        ProductStageId = null,
+                                                        Note = productComponent?.Note,
+                                                        NoteImage = productComponent?.NoteImage
+                                                    });
                                                 }
-                                                saveOrderComponents.Add(new ProductComponent()
+                                                else
                                                 {
-                                                    ComponentId = component.Id,
-                                                    Id = Ultils.GenGuidString(),
-                                                    LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
-                                                    Name = component.Name,
-                                                    Image = "",
-                                                    ProductStageId = null,
-                                                    Note = productComponent?.Note,
-                                                    NoteImage = productComponent?.NoteImage
-                                                });
-                                            }
-                                            else
-                                            {
-                                                throw new UserException($"Không tìm thấy kiểu bộ phận: {type.Name}");
-                                            }
-                                        })
-                                    );
-                                }
-                                await Task.WhenAll(insideTasks);
-                            } while (saveOrderComponents.Count < templateComponentTypes.Count());
+                                                    throw new UserException($"Không tìm thấy kiểu bộ phận: {type.Name}");
+                                                }
+                                            })
+                                        );
+                                    }
+                                    await Task.WhenAll(insideTasks);
+                                } while (saveOrderComponents.Count != templateComponentTypes.Count());
+                            }
+                            else
+                            {
+                                throw new UserException("Không tìm thấy kiểu bộ phận");
+                            }
+
+                            product.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            throw new UserException("Không tìm thấy kiểu bộ phận");
+                            throw new UserException(ex.Message);
                         }
+                        #endregion
 
-                        product.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new UserException(ex.Message);
-                    }
-                    #endregion
-
-                    #region SetupProcParam
-                    listParams.Add(new List<SqlParameter>()
+                        #region SetupProcParam
+                        listParams.Add(new List<SqlParameter>()
                     {
                         new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar)
                     {
@@ -265,7 +266,7 @@ namespace Etailor.API.Service.Service
                         Value = isCusMaterial ? 1 : 0
                     },new SqlParameter("@ProductName", System.Data.SqlDbType.NVarChar)
                     {
-                        Value = !string.IsNullOrWhiteSpace(product.Name) ? product.Name : DBNull.Value
+                        Value = !string.IsNullOrWhiteSpace(product.Name) ? ($"{product.Name} - ({index})") : DBNull.Value
                     },new SqlParameter("@Note", System.Data.SqlDbType.NVarChar)
                     {
                         Value = !string.IsNullOrWhiteSpace(product.Note) ? product.Note : DBNull.Value
@@ -277,13 +278,12 @@ namespace Etailor.API.Service.Service
                         Value = profileId
                     }
                     });
-                    #endregion
-                }));
+                        #endregion
+                    }));
+                }
+                await Task.WhenAll(tasks);
+            } while (listParams.Count != quantity);
 
-                i++;
-            } while (i < quantity);
-
-            await Task.WhenAll(tasks);
 
             var results = new List<int>();
 
@@ -415,16 +415,14 @@ namespace Etailor.API.Service.Service
                                                     var listImage = new List<string>();
                                                     if (listStringImage != null && listStringImage.Count > 0)
                                                     {
-                                                        var insideTask1s = new List<Task>();
                                                         foreach (var item in listStringImage)
                                                         {
-                                                            insideTask1s.Add(Task.Run(async () =>
+                                                            var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                            if (image != null && !string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
                                                             {
-                                                                var image = JsonConvert.DeserializeObject<FileDTO>(item);
                                                                 listImage.Add(await Ultils.UploadImageBase64(wwwroot, $"Product/{product.Id}/Component/{selectedComponent.Id}", image.Base64String, image.FileName, image.ContentType, null));
-                                                            }));
+                                                            }
                                                         }
-                                                        await Task.WhenAll(insideTask1s);
 
                                                         newOrderComponent.NoteImage = JsonConvert.SerializeObject(listImage);
                                                     }
@@ -498,12 +496,11 @@ namespace Etailor.API.Service.Service
                                                         var listNewImageFile = listStringImage.Where(x => !x.Contains("http")).ToList();
                                                         if (listNewImageFile != null && listNewImageFile.Count > 0)
                                                         {
-                                                            var insideTask1s = new List<Task>();
                                                             foreach (var item in listNewImageFile)
                                                             {
-                                                                insideTask1s.Add(Task.Run(async () =>
+                                                                var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                                if (image != null && !string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
                                                                 {
-                                                                    var image = JsonConvert.DeserializeObject<FileDTO>(item);
                                                                     listImage.Add(await Ultils.UploadImageBase64(
                                                                             wwwroot,
                                                                             $"Product/{product.Id}/Component/{selectedComponent.Id}",
@@ -511,11 +508,9 @@ namespace Etailor.API.Service.Service
                                                                             image.FileName,
                                                                             image.ContentType,
                                                                             null
-                                                                        )
-                                                                    );
-                                                                }));
+                                                                        ));
+                                                                }
                                                             }
-                                                            await Task.WhenAll(insideTask1s);
                                                         }
                                                     }
                                                     if (listImage.Count > 0)
