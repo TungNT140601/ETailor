@@ -160,29 +160,22 @@ namespace Etailor.API.WebAPI.Controllers
 
                                     if (component.NoteImageObjects != null && component.NoteImageObjects.Any())
                                     {
-                                        foreach (var img in component.NoteImageObjects)
-                                        {
-                                            images.Add(img);
-                                        }
+                                        images.AddRange(component.NoteImageObjects);
                                     }
                                     if (component.NoteImageFiles != null && component.NoteImageFiles.Any())
                                     {
-                                        var insideTasks = new List<Task>();
                                         foreach (var image in component.NoteImageFiles)
                                         {
-                                            insideTasks.Add(Task.Run(() =>
+                                            images.Add(JsonConvert.SerializeObject(new FileDTO()
                                             {
-                                                images.Add(JsonConvert.SerializeObject(new FileDTO()
-                                                {
-                                                    Base64String = image.Base64String,
-                                                    FileName = image.FileName,
-                                                    ContentType = image.Type
-                                                }));
+                                                Base64String = image.Base64String,
+                                                FileName = image.FileName,
+                                                ContentType = image.Type
                                             }));
                                         }
-                                        await Task.WhenAll(insideTasks);
-                                        productComponent.NoteImage = JsonConvert.SerializeObject(images);
                                     }
+                                    productComponent.NoteImage = JsonConvert.SerializeObject(images);
+
                                     productComponents.Add(productComponent);
                                 }));
                             }
