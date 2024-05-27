@@ -30,7 +30,6 @@ namespace Etailor.API.Service.Service
         private readonly IBodySizeRepository bodySizeRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IMaterialRepository materialRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly ITemplateStateRepository templateStateRepository;
         private readonly IComponentTypeRepository componentTypeRepository;
         private readonly IComponentStageRepository componentStageRepository;
@@ -50,7 +49,7 @@ namespace Etailor.API.Service.Service
             , IProductTemplateRepository productTemplateRepository, IComponentRepository componentRepository
             , IProductBodySizeRepository productBodySizeRepository, IBodySizeRepository bodySizeRepository
             , IMaterialCategoryRepository materialCategoryRepository, IMaterialRepository materialRepository
-            , IMaterialTypeRepository materialTypeRepository, ITemplateStateRepository templateStateRepository
+            , ITemplateStateRepository templateStateRepository
             , IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository
             , IProfileBodyRepository profileBodyRepository, IOrderMaterialRepository orderMaterialRepository
             , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository
@@ -66,7 +65,6 @@ namespace Etailor.API.Service.Service
             this.productBodySizeRepository = productBodySizeRepository;
             this.bodySizeRepository = bodySizeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
-            this.materialTypeRepository = materialTypeRepository;
             this.materialRepository = materialRepository;
             this.componentTypeRepository = componentTypeRepository;
             this.templateStateRepository = templateStateRepository;

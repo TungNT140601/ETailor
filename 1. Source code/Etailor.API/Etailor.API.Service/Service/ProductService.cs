@@ -40,7 +40,6 @@ namespace Etailor.API.Service.Service
         private readonly IProductComponentRepository productComponentRepository;
         private readonly IMaterialRepository materialRepository;
         private readonly IProfileBodyRepository profileBodyRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IOrderMaterialRepository orderMaterialRepository;
         private readonly IOrderService orderService;
@@ -61,7 +60,6 @@ namespace Etailor.API.Service.Service
             IMaterialRepository materialRepository,
             IProfileBodyRepository profileBodyRepository,
             IProductBodySizeService productBodySizeService,
-            IMaterialTypeRepository materialTypeRepository,
             IMaterialCategoryRepository materialCategoryRepository,
             IOrderMaterialRepository orderMaterialRepository,
             IOrderService orderService,
@@ -83,7 +81,6 @@ namespace Etailor.API.Service.Service
             this.materialRepository = materialRepository;
             this.profileBodyRepository = profileBodyRepository;
             this.productBodySizeService = productBodySizeService;
-            this.materialTypeRepository = materialTypeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
             this.orderMaterialRepository = orderMaterialRepository;
             this.orderService = orderService;

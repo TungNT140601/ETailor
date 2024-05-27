@@ -34,7 +34,6 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<Mastery> Masteries { get; set; } = null!;
         public virtual DbSet<Material> Materials { get; set; } = null!;
         public virtual DbSet<MaterialCategory> MaterialCategories { get; set; } = null!;
-        public virtual DbSet<MaterialType> MaterialTypes { get; set; } = null!;
         public virtual DbSet<Notification> Notifications { get; set; } = null!;
         public virtual DbSet<Order> Orders { get; set; } = null!;
         public virtual DbSet<OrderMaterial> OrderMaterials { get; set; } = null!;
@@ -457,35 +456,9 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.MaterialTypeId).HasMaxLength(30);
-
                 entity.Property(e => e.Name).HasMaxLength(100);
 
                 entity.Property(e => e.PricePerUnit).HasColumnType("decimal");
-
-                entity.HasOne(d => d.MaterialType)
-                    .WithMany(p => p.MaterialCategories)
-                    .HasForeignKey(d => d.MaterialTypeId)
-                    .HasConstraintName("FK__MaterialC__Mater__7C6F7215");
-            });
-
-            modelBuilder.Entity<MaterialType>(entity =>
-            {
-                entity.ToTable("MaterialType");
-
-                entity.Property(e => e.Id).HasMaxLength(30);
-
-                entity.Property(e => e.CreatedTime).HasColumnType("datetime");
-
-                entity.Property(e => e.InactiveTime).HasColumnType("datetime");
-
-                entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
-
-                entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
-
-                entity.Property(e => e.Name).HasMaxLength(100);
-
-                entity.Property(e => e.Unit).HasMaxLength(10);
             });
 
             modelBuilder.Entity<Notification>(entity =>

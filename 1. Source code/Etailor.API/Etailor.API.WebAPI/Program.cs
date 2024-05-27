@@ -161,9 +161,6 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<IDiscountRepository, DiscountRepository>();
 builder.Services.AddScoped<IDiscountService, DiscountService>();
 
-builder.Services.AddScoped<IMaterialTypeRepository, MaterialTypeRepository>();
-builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
-
 builder.Services.AddScoped<IMaterialCategoryRepository, MaterialCategoryRepository>();
 builder.Services.AddScoped<IMaterialCategoryService, MaterialCategoryService>();
 
@@ -171,7 +168,6 @@ builder.Services.AddScoped<IMaterialRepository, MaterialRepository>();
 builder.Services.AddScoped<IMaterialService, MaterialService>();
 
 builder.Services.AddScoped<IMasteryRepository, MasteryRepository>();
-//builder.Services.AddScoped<IMaterialTypeService, MaterialTypeService>();
 
 builder.Services.AddScoped<ITemplateStateRepository, TemplateStageRepository>();
 builder.Services.AddScoped<ITemplateStageService, TemplateStageService>();
