@@ -137,9 +137,11 @@ namespace Etailor.API.WebAPI.Controllers
                                                         insideTasks.Add(Task.Run(async () =>
                                                         {
                                                             var componentNote = productComponents.FirstOrDefault(x => component.Components.Select(c => c.Id).Contains(x.ComponentId));
+
+                                                            component.Selected_Component_Id = componentNote?.ComponentId;
+
                                                             if (componentNote != null && (!string.IsNullOrEmpty(componentNote.Note) || !string.IsNullOrEmpty(componentNote.NoteImage)))
                                                             {
-                                                                component.Selected_Component_Id = componentNote.ComponentId;
 
                                                                 component.NoteObject = new ComponentNoteVM();
 
@@ -326,7 +328,7 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var tasks = mapper.Map<IEnumerable<TaskListByStaffVM>>(await taskService.GetTasksByStaffId(staffId));
-                        return Ok(tasks);
+                        return Ok(tasks?.OrderBy(x => x.Index));
                     }
                 }
             }
@@ -691,14 +693,15 @@ namespace Etailor.API.WebAPI.Controllers
                             {
                                 categoryTasks.Add(Task.Run(async () =>
                                 {
-                                    if (category.ProductTemplates != null && category.ProductTemplates.Any())
+                                    if (category.ProductTemplates != null && category.ProductTemplates.Any(x => x.Products != null && x.Products.Any(x => x.Status > 0 && x.Status < 5)))
                                     {
                                         var templateTasks = new List<Task>();
+
                                         foreach (var template in category.ProductTemplates)
                                         {
                                             templateTasks.Add(Task.Run(() =>
                                             {
-                                                if (template.Products != null && template.Products.Any())
+                                                if (template.Products != null && template.Products.Any(x => x.Status > 0 && x.Status < 5))
                                                 {
                                                     template.TotalTask = template.Products.Count;
                                                 }
@@ -716,6 +719,8 @@ namespace Etailor.API.WebAPI.Controllers
                                     }
                                     else
                                     {
+                                        category.ProductTemplates.RemoveAll(x => x.Products == null || !x.Products.Any(x => x.Status > 0 && x.Status < 5));
+
                                         category.TotalTask = 0;
                                     }
                                 }));

@@ -213,8 +213,6 @@ namespace Etailor.API.Ultity
                 message.From = new MailAddress(fromMail);
                 message.Subject = "Error Notification Mail From TueTailor";
                 message.To.Add(new MailAddress("tungnt14062001@gmail.com"));
-                message.To.Add(new MailAddress("tridmse151125@fpt.edu.vn"));
-                message.To.Add(new MailAddress("tudase151149@fpt.edu.vn"));
                 message.Body = $"Error at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}; \n";
                 message.Body += error;
                 message.IsBodyHtml = false;

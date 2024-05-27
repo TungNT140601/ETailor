@@ -45,7 +45,7 @@ namespace Etailor.API.WebAPI.ViewModels
         public DateTime? Deadline { get; set; }
         public int? Status { get; set; }
 
-        public virtual ICollection<ProductComponentTaskDetailVM>? ProductComponents { get; set; }
-        public virtual ICollection<ProductStageMaterialOrderVM>? ProductStageMaterials { get; set; }
+        public ICollection<ProductComponentTaskDetailVM>? ProductComponents { get; set; }
+        public ICollection<ProductStageMaterialOrderVM>? ProductStageMaterials { get; set; }
     }
 }

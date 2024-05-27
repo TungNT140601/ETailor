@@ -34,7 +34,6 @@ namespace Etailor.API.Repository.DataAccess
         public virtual DbSet<Mastery> Masteries { get; set; } = null!;
         public virtual DbSet<Material> Materials { get; set; } = null!;
         public virtual DbSet<MaterialCategory> MaterialCategories { get; set; } = null!;
-        public virtual DbSet<MaterialType> MaterialTypes { get; set; } = null!;
         public virtual DbSet<Notification> Notifications { get; set; } = null!;
         public virtual DbSet<Order> Orders { get; set; } = null!;
         public virtual DbSet<OrderMaterial> OrderMaterials { get; set; } = null!;
@@ -118,7 +117,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.ProfileBodyId).HasMaxLength(30);
 
-                entity.Property(e => e.Value).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.Value).HasColumnType("decimal(18, 3)");
 
                 entity.HasOne(d => d.BodySize)
                     .WithMany(p => p.BodyAttributes)
@@ -153,9 +152,9 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.MaxValidValue).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.MaxValidValue).HasColumnType("decimal(18, 3)");
 
-                entity.Property(e => e.MinValidValue).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.MinValidValue).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.Name).HasMaxLength(100);
             });
@@ -371,15 +370,15 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Code).HasMaxLength(30);
 
-                entity.Property(e => e.ConditionPriceMax).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.ConditionPriceMax).HasColumnType("decimal(18, 3)");
 
-                entity.Property(e => e.ConditionPriceMin).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.ConditionPriceMin).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
                 entity.Property(e => e.DiscountPercent).HasColumnType("float(18, 0)");
 
-                entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.EndDate).HasColumnType("datetime");
 
@@ -435,7 +434,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Name).HasMaxLength(100);
 
-                entity.Property(e => e.Quantity).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.Quantity).HasColumnType("decimal(18, 3)");
 
                 entity.HasOne(d => d.MaterialCategory)
                     .WithMany(p => p.Materials)
@@ -457,35 +456,9 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.MaterialTypeId).HasMaxLength(30);
-
                 entity.Property(e => e.Name).HasMaxLength(100);
 
                 entity.Property(e => e.PricePerUnit).HasColumnType("decimal");
-
-                entity.HasOne(d => d.MaterialType)
-                    .WithMany(p => p.MaterialCategories)
-                    .HasForeignKey(d => d.MaterialTypeId)
-                    .HasConstraintName("FK__MaterialC__Mater__7C6F7215");
-            });
-
-            modelBuilder.Entity<MaterialType>(entity =>
-            {
-                entity.ToTable("MaterialType");
-
-                entity.Property(e => e.Id).HasMaxLength(30);
-
-                entity.Property(e => e.CreatedTime).HasColumnType("datetime");
-
-                entity.Property(e => e.InactiveTime).HasColumnType("datetime");
-
-                entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
-
-                entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
-
-                entity.Property(e => e.Name).HasMaxLength(100);
-
-                entity.Property(e => e.Unit).HasMaxLength(10);
             });
 
             modelBuilder.Entity<Notification>(entity =>
@@ -525,7 +498,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Id).HasMaxLength(30);
 
-                entity.Property(e => e.AfterDiscountPrice).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.AfterDiscountPrice).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.ApproveTime).HasColumnType("datetime");
 
@@ -543,13 +516,13 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.CusEmail).HasMaxLength(255);
 
-                entity.Property(e => e.Deposit).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.Deposit).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.DiscountCode).HasMaxLength(30);
 
                 entity.Property(e => e.DiscountId).HasMaxLength(30);
 
-                entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.DiscountPrice).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.InactiveTime).HasColumnType("datetime");
 
@@ -557,19 +530,19 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
-                entity.Property(e => e.PaidMoney).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.PaidMoney).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.PayDeposit).HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.Status).HasDefaultValueSql("((1))");
 
                 entity.Property(e => e.TotalPrice)
-                    .HasColumnType("decimal(18, 0)")
+                    .HasColumnType("decimal(18, 3)")
                     .HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.TotalProduct).HasDefaultValueSql("((0))");
 
-                entity.Property(e => e.UnPaidMoney).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.UnPaidMoney).HasColumnType("decimal(18, 3)");
 
                 entity.HasOne(d => d.Creater)
                     .WithMany(p => p.Orders)
@@ -634,9 +607,9 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.Id).HasMaxLength(30);
 
-                entity.Property(e => e.Amount).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.Amount).HasColumnType("decimal(18, 3)");
 
-                entity.Property(e => e.AmountAfterRefund).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.AmountAfterRefund).HasColumnType("decimal(18, 3)");
 
                 entity.Property(e => e.CreatedTime).HasColumnType("datetime");
 
@@ -709,7 +682,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.Status).HasDefaultValueSql("((1))");
 
                 entity.Property(e => e.Price)
-                    .HasColumnType("decimal(18, 0)")
+                    .HasColumnType("decimal(18, 3)")
                     .HasDefaultValueSql("((0))");
 
                 entity.HasOne(d => d.Order)
@@ -756,7 +729,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.ProductId).HasMaxLength(30);
 
-                entity.Property(e => e.Value).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.Value).HasColumnType("decimal(18, 3)");
 
                 entity.HasOne(d => d.BodySize)
                     .WithMany(p => p.ProductBodySizes)
@@ -810,7 +783,7 @@ namespace Etailor.API.Repository.DataAccess
 
                 entity.Property(e => e.ProductStageId).HasMaxLength(30);
 
-                entity.Property(e => e.Quantity).HasColumnType("decimal(18, 0)");
+                entity.Property(e => e.Quantity).HasColumnType("decimal(18, 3)");
 
                 entity.HasOne(d => d.Material)
                     .WithMany(p => p.ProductComponentMaterials)
@@ -898,7 +871,7 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.Name).HasMaxLength(255);
 
                 entity.Property(e => e.Price)
-                    .HasColumnType("decimal(18, 0)")
+                    .HasColumnType("decimal(18, 3)")
                     .HasDefaultValueSql("((0))");
 
                 entity.Property(e => e.UrlPath).HasMaxLength(255);

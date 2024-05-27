@@ -1,9 +1,11 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
+using Etailor.API.Repository.StoreProcModels;
 using Etailor.API.Service.Interface;
 using Etailor.API.Ultity;
 using Etailor.API.Ultity.CommonValue;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -109,33 +111,35 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> ReadAllNotification(string userId, string role)
         {
-            var notifications = role == RoleName.CUSTOMER ? notificationRepository.GetAll(X => X.CustomerId == userId && X.IsRead == false && X.IsActive == true) : notificationRepository.GetAll(X => X.StaffId == userId && X.IsRead == false && X.IsActive == true);
-            if (notifications != null && notifications.Any())
+            var userIdParam = new SqlParameter()
             {
-                var notificationList = notifications.ToList();
+                DbType = System.Data.DbType.String,
+                ParameterName = "@UserId",
+                Value = userId
+            };
+            var roleParam = new SqlParameter()
+            {
+                DbType = System.Data.DbType.Int32,
+                ParameterName = "@Role",
+                Value = role == RoleName.CUSTOMER ? 3 : 1
+            };
 
-                var tasks = new List<Task>();
-                foreach (var notification in notificationList)
-                {
-                    tasks.Add(Task.Run(() =>
-                    {
-                        notification.IsRead = true;
-                        notification.ReadTime = DateTime.UtcNow.AddHours(7);
-                    }));
-                }
-                await Task.WhenAll(tasks);
-
-                if (notificationRepository.UpdateRange(notificationList))
+            try
+            {
+                var result = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Read_All_Notification, userIdParam, roleParam);
+                if (result == 1)
                 {
                     return true;
                 }
                 else
                 {
-                    throw new SystemsException("Lỗi khi cập nhật thông báo", nameof(NotificationService));
+                    throw new SystemsException("Lỗi khi cập nhật thông báo", nameof(NotificationService.ReadAllNotification));
                 }
             }
-
-            return true;
+            catch (Exception ex)
+            {
+                throw new UserException(ex.Message);
+            }
         }
     }
 }

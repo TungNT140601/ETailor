@@ -7,6 +7,8 @@ namespace Etailor.API.WebAPI.ViewModels
 
         public string Id { get; set; } = null!;
         public DateTime? CreatedTime { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public string? CusName { get; set; }
         public string? CusPhone { get; set; }
         public string? CusEmail { get; set; }
@@ -43,6 +45,8 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? CusEmail { get; set; }
         public string? CusAddress { get; set; }
         public DateTime? CreatedTime { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public string? CustomerId { get; set; }
         public string? CreaterId { get; set; }
         public string? DiscountId { get; set; }
@@ -71,11 +75,15 @@ namespace Etailor.API.WebAPI.ViewModels
         public int? TotalProduct { get; set; }
         public int? Status { get; set; }
         public decimal? AfterDiscountPrice { get; set; }
-        public DateTime? CreatedTime { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
     }
     public class OrderDetailVM
     {
         public string? Id { get; set; }
+        public DateTime? CreatedTime { get; set; }
+        public DateTime? FinishTime { get; set; }
+        public DateTime? PlannedTime { get; set; }
         public string? CusName { get; set; }
         public string? CusPhone { get; set; }
         public string? CusEmail { get; set; }

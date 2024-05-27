@@ -32,8 +32,9 @@ BEGIN
         BodySizeId NVARCHAR(30),
         [Value] DECIMAL(18,0)
     );
+    DECLARE @OrderPlannedTime DATETIME;
 
-    SELECT @OrderStatus = [Status], @CustomerId = CustomerId
+    SELECT @OrderStatus = [Status], @CustomerId = CustomerId, @OrderPlannedTime = PlannedTime
     FROM [Order]
     WHERE Id = @orderId AND IsActive = 0;
 
@@ -82,45 +83,47 @@ BEGIN
 
         IF @NewFabricMaterialId NOT LIKE @OldFabricMaterialId
         BEGIN
-            IF NOT EXISTS(
-                SELECT 1
+            IF NOT EXISTS (SELECT 1
             FROM Product
-            WHERE OrderId = @OrderId AND FabricMaterialId = @OldFabricMaterialId AND Id NOT LIKE @ProductId AND [Status] > 0 AND IsActive = 1
-            )
+            WHERE Id NOT LIKE @ProductId AND OrderId = @OrderId AND FabricMaterialId = @OldFabricMaterialId AND [Status] > 0 AND IsActive = 1)
             BEGIN
+                IF NOT EXISTS ( SELECT 1
+                FROM OrderMaterial
+                WHERE OrderId = @OrderId AND MaterialId = @OldFabricMaterialId AND IsActive = 1 AND IsCusMaterial = 1)
                 DELETE OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @OldFabricMaterialId;
+            END;
 
-                IF NOT EXISTS(
-                    SELECT 1
-                FROM Product
-                WHERE OrderId = @OrderId AND FabricMaterialId = @NewFabricMaterialId AND Id NOT LIKE @ProductId AND [Status] > 0 AND IsActive = 1
-                )
+            IF NOT EXISTS (SELECT 1
+            FROM Product
+            WHERE Id NOT LIKE @ProductId AND OrderId = @OrderId AND FabricMaterialId = @NewFabricMaterialId AND [Status] > 0 AND IsActive = 1)
                 BEGIN
-                    INSERT INTO [dbo].[OrderMaterial]
-                        ([Id]
-                        ,[MaterialId]
-                        ,[OrderId]
-                        ,[Image]
-                        ,[Value]
-                        ,[CreatedTime]
-                        ,[LastestUpdatedTime]
-                        ,[InactiveTime]
-                        ,[IsActive]
-                        ,[IsCusMaterial]
-                        ,[ValueUsed])
-                    VALUES
-                        (CONVERT(nvarchar(30),CAST(NEWID() AS nvarchar(MAX)),0),
-                            @NewFabricMaterialId,
-                            @OrderId,
-                            NULL,
-                            @MaterialValue,
-                            DATEADD(HOUR, 7, GETUTCDATE()),
-                            DATEADD(HOUR, 7, GETUTCDATE()),
-                            NULL,
-                            1,
-                            @IsCusMaterial,
-                            0)
-                END;
+                IF NOT EXISTS ( SELECT 1
+                FROM OrderMaterial
+                WHERE OrderId = @OrderId AND MaterialId = @NewFabricMaterialId AND IsActive = 1 AND IsCusMaterial = 1)
+                INSERT INTO [dbo].[OrderMaterial]
+                    ([Id]
+                    ,[MaterialId]
+                    ,[OrderId]
+                    ,[Image]
+                    ,[Value]
+                    ,[CreatedTime]
+                    ,[LastestUpdatedTime]
+                    ,[InactiveTime]
+                    ,[IsActive]
+                    ,[IsCusMaterial]
+                    ,[ValueUsed])
+                VALUES
+                    (CONVERT(nvarchar(30),CAST(NEWID() AS nvarchar(MAX)),0),
+                        @NewFabricMaterialId,
+                        @OrderId,
+                        NULL,
+                        @MaterialValue,
+                        DATEADD(HOUR, 7, GETUTCDATE()),
+                        DATEADD(HOUR, 7, GETUTCDATE()),
+                        NULL,
+                        1,
+                        @IsCusMaterial,
+                        0)
             END;
         END;
     END;
@@ -219,12 +222,18 @@ BEGIN
     CLOSE ProductBodySizeCursor;
     DEALLOCATE ProductBodySizeCursor;
 
+    EXECUTE [dbo].[CheckNumOfDateToFinish];
+
     DECLARE @DayToFinish INT = dbo.CalculateNumOfDateToFinish(@ProductId);
+    DECLARE @DateToFinish DATETIME;
+
     IF @DayToFinish > 0
     BEGIN
-    UPDATE Product
-    SET PlannedTime = DATEADD(DAY,@DayToFinish, CreatedTime)
-    WHERE Id = @ProductId
+        SET @DateToFinish = DATEADD(DAY,@DayToFinish,DATEADD(HOUR, 7, GETUTCDATE()));
+
+        UPDATE Product SET PlannedTime = @DateToFinish WHERE Id = @ProductId;
+        IF @OrderPlannedTime IS NULL OR @OrderPlannedTime < @DateToFinish
+    UPDATE [Order] SET PlannedTime = @DateToFinish WHERE Id = @OrderId;
     END;
 
     SELECT 1 AS ReturnValue;

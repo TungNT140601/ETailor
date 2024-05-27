@@ -25,6 +25,5 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? NoteImage { get; set; }
 
         public virtual ComponentOrderVM? Component { get; set; }
-        public virtual ICollection<ProductStageMaterialOrderVM>? ProductStageMaterials { get; set; }
     }
 }

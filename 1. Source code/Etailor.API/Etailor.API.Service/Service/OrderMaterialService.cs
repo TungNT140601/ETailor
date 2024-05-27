@@ -1,7 +1,9 @@
 ﻿using Etailor.API.Repository.EntityModels;
 using Etailor.API.Repository.Interface;
 using Etailor.API.Service.Interface;
+using Etailor.API.Ultity;
 using Etailor.API.Ultity.CustomException;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,12 +17,14 @@ namespace Etailor.API.Service.Service
         private readonly IOrderMaterialRepository orderMaterialRepository;
         private readonly IOrderRepository orderRepository;
         private readonly IMaterialRepository materialRepository;
+        private readonly IMaterialCategoryRepository materialCategoryRepository;
 
-        public OrderMaterialService(IOrderMaterialRepository orderMaterialRepository, IOrderRepository orderRepository, IMaterialRepository materialRepository)
+        public OrderMaterialService(IOrderMaterialRepository orderMaterialRepository, IOrderRepository orderRepository, IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository)
         {
             this.orderMaterialRepository = orderMaterialRepository;
             this.orderRepository = orderRepository;
             this.materialRepository = materialRepository;
+            this.materialCategoryRepository = materialCategoryRepository;
         }
 
         public async Task<bool> UpdateOrderMaterials(string orderId, List<OrderMaterial>? orderMaterials)
@@ -109,6 +113,138 @@ namespace Etailor.API.Service.Service
             else
             {
                 throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public async Task<bool> AddCustomerMaterial(string wwwroot, string orderId, Material material, IFormFile? image)
+        {
+            var quantity = material.Quantity;
+
+            if (!quantity.HasValue || quantity < 0)
+            {
+                throw new UserException("Số lượng nguyên vật liệu không hợp lệ");
+            }
+
+            var order = orderRepository.Get(orderId);
+            if (order != null)
+            {
+                if (string.IsNullOrEmpty(material.Id))
+                {
+                    if (string.IsNullOrWhiteSpace(material.Name))
+                    {
+                        throw new UserException("Tên nguyên vật liệu không được để trống");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(material.MaterialCategoryId))
+                    {
+                        throw new UserException("Danh mục nguyên vật liệu không được để trống");
+                    }
+                    else
+                    {
+                        var materialCategory = materialCategoryRepository.Get(material.MaterialCategoryId);
+
+                        if (materialCategory == null || materialCategory.IsActive != true)
+                        {
+                            throw new UserException("Không tìm thấy danh mục nguyên vật liệu");
+                        }
+                    }
+
+                    if (image != null)
+                    {
+                        material.Image = await Ultils.UploadImage(wwwroot, "Materials", image, null);
+                    }
+                    else
+                    {
+                        material.Image = "";
+                    }
+
+                    material.Id = Ultils.GenGuidString();
+                    material.IsActive = true;
+                    material.CreatedTime = DateTime.UtcNow.AddHours(7);
+                    material.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                    material.Quantity = 0;
+                    material.InactiveTime = null;
+
+                    if (materialRepository.Create(material))
+                    {
+                        var orderMaterial = new OrderMaterial
+                        {
+                            Id = Ultils.GenGuidString(),
+                            OrderId = orderId,
+                            MaterialId = material.Id,
+                            IsCusMaterial = true,
+                            Value = quantity,
+                            ValueUsed = 0,
+                            CreatedTime = DateTime.UtcNow.AddHours(7),
+                            LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                            InactiveTime = null,
+                            Image = null,
+                            IsActive = true
+                        };
+
+                        return orderMaterialRepository.Create(orderMaterial);
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi khi thêm nguyên vật liệu", nameof(OrderMaterialService.AddCustomerMaterial));
+                    }
+                }
+                else
+                {
+                    var dbMaterial = materialRepository.Get(material.Id);
+                    if (dbMaterial != null && dbMaterial.IsActive == true)
+                    {
+                        var orderMaterial = orderMaterialRepository.GetAll(x => x.OrderId == orderId && x.MaterialId == material.Id && x.IsActive == true)?.FirstOrDefault();
+
+                        if (orderMaterial != null)
+                        {
+                            orderMaterial.Value = quantity;
+                            orderMaterial.IsCusMaterial = true;
+
+                            return orderMaterialRepository.Update(orderMaterial.Id, orderMaterial);
+                        }
+                        else
+                        {
+                            orderMaterial = new OrderMaterial
+                            {
+                                Id = Ultils.GenGuidString(),
+                                OrderId = orderId,
+                                MaterialId = material.Id,
+                                IsCusMaterial = true,
+                                Value = quantity,
+                                ValueUsed = 0,
+                                CreatedTime = DateTime.UtcNow.AddHours(7),
+                                LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                InactiveTime = null,
+                                Image = null,
+                                IsActive = true
+                            };
+
+                            return orderMaterialRepository.Create(orderMaterial);
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Không tìm thấy nguyên vật liệu");
+                    }
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public List<string> GetMaterialIdOfOrder(string orderId)
+        {
+            var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == orderId && x.IsActive == true);
+            if (orderMaterials != null && orderMaterials.Any())
+            {
+                return orderMaterials.Select(x => x.MaterialId).Distinct().ToList();
+            }
+            else
+            {
+                return new List<string>();
             }
         }
     }

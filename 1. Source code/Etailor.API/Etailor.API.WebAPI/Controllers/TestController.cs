@@ -38,6 +38,8 @@ using OfficeOpenXml.Drawing;
 using static QRCoder.Base64QRCode;
 using AutoMapper;
 using System.Data;
+using Etailor.API.Service.Service;
+using System.Security.Claims;
 
 namespace Etailor.API.WebAPI.Controllers
 {
@@ -57,6 +59,7 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IProductTemplateService productTemplateService;
         private readonly ETailor_DBContext dBContext;
         private readonly IMapper mapper;
+        private readonly IWebHostEnvironment webHost;
 
         public TestController(IConfiguration configuration, IWebHostEnvironment webHost
             , IProductStageService productStageService, ISignalRService signalRService
@@ -79,6 +82,7 @@ namespace Etailor.API.WebAPI.Controllers
             this.dBContext = dBContext;
             this.productTemplateService = productTemplateService;
             this.mapper = mapper;
+            this.webHost = webHost;
         }
 
         #region SendMail
@@ -1090,11 +1094,28 @@ namespace Etailor.API.WebAPI.Controllers
         }
 
         [HttpPost("notification/{id}")]
-        public async Task<IActionResult> SendNotification(string id, string title, string message)
+        public async Task<IActionResult> SendNotification(string id, string title, string message, string role)
         {
             try
             {
-                var check = await notificationService.AddNotification(title, message, id, RoleName.CUSTOMER);
+                var check = false;
+
+                if (role.ToLower() == RoleName.CUSTOMER.ToLower())
+                {
+                    check = await notificationService.AddNotification(title, message, id, RoleName.CUSTOMER);
+                }
+                else if (role.ToLower() == RoleName.STAFF.ToLower())
+                {
+                    check = await notificationService.AddNotification(title, message, id, RoleName.STAFF);
+                }
+                else if (role.ToLower() == RoleName.MANAGER.ToLower())
+                {
+                    check = await notificationService.AddNotification(title, message, id, RoleName.MANAGER);
+                }
+                else
+                {
+                    return BadRequest(role + " is not valid role");
+                }
 
                 return check ? Ok() : BadRequest();
             }
@@ -1416,6 +1437,33 @@ namespace Etailor.API.WebAPI.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("{taskId}/stage/{stageId}/material")]
+        public async Task<IActionResult> SetMaterialForTask(string taskId, string stageId, [FromBody] List<ProductStageMaterialVM> materials)
+        {
+            try
+            {
+                var check = await taskService.SetMaterialForTask(taskId, stageId, mapper.Map<List<ProductStageMaterial>>(materials));
+                return check ? Ok("Thành công") : BadRequest("Thất bại");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetWebHost()
+        {
+            try
+            {
+                return Ok(webHost);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
 

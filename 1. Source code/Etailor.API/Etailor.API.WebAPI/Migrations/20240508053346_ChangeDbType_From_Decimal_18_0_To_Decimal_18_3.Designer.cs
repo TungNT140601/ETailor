@@ -4,6 +4,7 @@ using Etailor.API.Repository.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Etailor.API.WebAPI.Migrations
 {
     [DbContext(typeof(ETailor_DBContext))]
-    partial class ETailor_DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240508053346_ChangeDbType_From_Decimal_18_0_To_Decimal_18_3")]
+    partial class ChangeDbType_From_Decimal_18_0_To_Decimal_18_3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -601,6 +603,10 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<DateTime?>("LastestUpdatedTime")
                         .HasColumnType("datetime");
 
+                    b.Property<string>("MaterialTypeId")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("Name")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -610,7 +616,42 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("MaterialTypeId");
+
                     b.ToTable("MaterialCategory", (string)null);
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialType", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("CreatedTime")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTime?>("InactiveTime")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool?>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValueSql("((1))");
+
+                    b.Property<DateTime?>("LastestUpdatedTime")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MaterialType", (string)null);
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Notification", b =>
@@ -1398,9 +1439,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<decimal?>("Quantity")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int?>("TotalOrders")
                         .HasColumnType("int");
 
@@ -1602,6 +1640,16 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasConstraintName("FK__Material__Materi__004002F9");
 
                     b.Navigation("MaterialCategory");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialCategory", b =>
+                {
+                    b.HasOne("Etailor.API.Repository.EntityModels.MaterialType", "MaterialType")
+                        .WithMany("MaterialCategories")
+                        .HasForeignKey("MaterialTypeId")
+                        .HasConstraintName("FK__MaterialC__Mater__7C6F7215");
+
+                    b.Navigation("MaterialType");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Notification", b =>
@@ -1922,6 +1970,11 @@ namespace Etailor.API.WebAPI.Migrations
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialCategory", b =>
                 {
                     b.Navigation("Materials");
+                });
+
+            modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialType", b =>
+                {
+                    b.Navigation("MaterialCategories");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Order", b =>

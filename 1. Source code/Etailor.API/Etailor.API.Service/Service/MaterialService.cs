@@ -17,13 +17,19 @@ namespace Etailor.API.Service.Service
     {
         private readonly IMaterialRepository materialRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
+        private readonly IOrderMaterialRepository orderMaterialRepository;
+        private readonly IOrderRepository orderRepository;
+        private readonly IProductRepository productRepository;
 
-        public MaterialService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository, IMaterialTypeRepository materialTypeRepository)
+        public MaterialService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository
+            , IOrderMaterialRepository orderMaterialRepository
+            , IOrderRepository orderRepository, IProductRepository productRepository)
         {
             this.materialRepository = materialRepository;
             this.materialCategoryRepository = materialCategoryRepository;
-            this.materialTypeRepository = materialTypeRepository;
+            this.orderMaterialRepository = orderMaterialRepository;
+            this.orderRepository = orderRepository;
+            this.productRepository = productRepository;
         }
 
         public async Task<bool> AddMaterial(Material material, IFormFile? image, string wwwroot)
@@ -142,19 +148,34 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> DeleteMaterial(string id)
+        public bool DeleteMaterial(string id)
         {
             var dbMaterial = materialRepository.Get(id);
             if (dbMaterial != null && dbMaterial.IsActive == true)
             {
-                var setValue = Task.Run(() =>
+                var notFinishOrders = orderRepository.GetAll(x => x.Status > 0 && x.Status < 8 && x.IsActive == true);
+                if (notFinishOrders != null && notFinishOrders.Any())
                 {
-                    dbMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                    dbMaterial.IsActive = false;
-                    dbMaterial.InactiveTime = DateTime.UtcNow.AddHours(7);
-                });
+                    notFinishOrders = notFinishOrders.ToList();
+                    var orderMaterials = orderMaterialRepository.GetAll(x => notFinishOrders.Select(m => m.Id).Contains(x.OrderId) && x.MaterialId == dbMaterial.Id && x.IsActive == true);
 
-                await Task.WhenAll(setValue);
+                    if (orderMaterials != null && orderMaterials.Any())
+                    {
+                        throw new UserException("Không thể xóa nguyên liệu này vì đã được sử dụng trong đơn hàng");
+                    }
+                    else
+                    {
+                        orderMaterials = null;
+                    }
+                }
+                else
+                {
+                    notFinishOrders = null;
+                }
+
+                dbMaterial.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                dbMaterial.IsActive = false;
+                dbMaterial.InactiveTime = DateTime.UtcNow.AddHours(7);
 
                 return materialRepository.Update(dbMaterial.Id, dbMaterial);
             }
@@ -218,34 +239,30 @@ namespace Etailor.API.Service.Service
             return materials;
         }
 
-        public IEnumerable<Material> GetMaterialsByMaterialType(string materialTypeId)
+        public async Task<IEnumerable<Material>> GetFabricMaterials(string? search)
         {
-            var materialType = materialTypeRepository.Get(materialTypeId);
-            if (materialType != null && materialType.IsActive == true)
+            var materials = materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || (!string.IsNullOrWhiteSpace(search) && x.Name.Trim().ToLower().Contains(search.Trim().ToLower()))) && x.IsActive == true);
+            if (materials != null && materials.Any())
             {
-                var materialCategories = materialCategoryRepository.GetAll(x => x.MaterialTypeId == materialType.Id && x.IsActive == true);
-
-                if (materialCategories.Any() && materialCategories.Count() > 0)
+                materials = materials.ToList();
+                var tasks = new List<Task>();
+                foreach (var material in materials)
                 {
-                    return materialRepository.GetAll(x => materialCategories.Select(m => m.Id).Contains(x.MaterialCategoryId) && x.IsActive == true);
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (!string.IsNullOrEmpty(material.Image))
+                        {
+                            material.Image = Ultils.GetUrlImage(material.Image);
+                        }
+                    }));
                 }
+                await Task.WhenAll(tasks);
+                return materials;
             }
-            return new List<Material>();
-        }
-
-        public IEnumerable<Material> GetFabricMaterials(string? search)
-        {
-            var materialTypes = materialTypeRepository.GetAll(x => (x.Name.Trim().ToLower().Contains("vai") || x.Name.Trim().ToLower().Contains("vải") || x.Name.Trim().ToLower().Contains("vãi")) && x.IsActive == true).ToList();
-            if (materialTypes.Any() && materialTypes.Count > 0)
+            else
             {
-                var materialCategories = materialCategoryRepository.GetAll(x => materialTypes.Select(m => m.Id).Contains(x.MaterialTypeId) && x.IsActive == true).ToList();
-
-                if (materialCategories.Any() && materialCategories.Count > 0)
-                {
-                    return materialRepository.GetAll(x => (string.IsNullOrWhiteSpace(search) || x.Name.Trim().ToLower().Contains(search.Trim().ToLower())) && materialCategories.Select(m => m.Id).Contains(x.MaterialCategoryId) && x.IsActive == true);
-                }
+                return new List<Material>();
             }
-            return new List<Material>();
         }
     }
 }

@@ -21,11 +21,12 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IProductService productService;
         private readonly IProductTemplateService productTemplateService;
         private readonly IDiscountService discountService;
+        private readonly string _wwwroot;
         private readonly IMapper mapper;
 
         public OrderMaterialController(IStaffService staffService, ICustomerService customerService,
             IOrderMaterialService orderMaterialService, IMapper mapper, IProductService productService, IProductTemplateService productTemplateService,
-            IDiscountService discountService)
+            IDiscountService discountService, IWebHostEnvironment webHost)
         {
             this.mapper = mapper;
             this.staffService = staffService;
@@ -34,8 +35,9 @@ namespace Etailor.API.WebAPI.Controllers
             this.productService = productService;
             this.productTemplateService = productTemplateService;
             this.discountService = discountService;
+            this._wwwroot = webHost.WebRootPath;
         }
-        [HttpPut("/order/{id}")]
+        [HttpPut("order/{id}")]
         public async Task<IActionResult> UpdateOrder(string id, [FromBody] List<OrderMaterialUpdateVM>? orderMaterialVMs)
         {
             try
@@ -62,6 +64,48 @@ namespace Etailor.API.WebAPI.Controllers
                         var check = await orderMaterialService.UpdateOrderMaterials(id, mapper.Map<List<OrderMaterial>>(orderMaterialVMs));
 
                         return check ? Ok("Cập nhật nguyên liệu hóa đơn thành công") : BadRequest("Cập nhật nguyên liệu hóa đơn thất bại");
+                    }
+                }
+            }
+            catch (UserException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPost("order/{orderId}/customer-material")]
+        public async Task<IActionResult> UpdateMaterial(string orderId, [FromForm] MaterialFormVM materialVM)
+        {
+            try
+            {
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
+                {
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role != RoleName.MANAGER)
+                {
+                    return Unauthorized("Không có quyền truy cập");
+                }
+                else
+                {
+                    var staffid = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffid, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        return (await orderMaterialService.AddCustomerMaterial(_wwwroot, orderId, mapper.Map<Material>(materialVM), materialVM.ImageFile)) ? Ok("Thêm nguyên liệu thành công") : BadRequest("Thêm nguyên liệu thất bại");
                     }
                 }
             }
