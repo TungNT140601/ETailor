@@ -32,12 +32,14 @@ namespace Etailor.API.Service.Service
         private readonly IProductStageRepository productStageRepository;
         private readonly IOrderMaterialRepository orderMaterialRepository;
         private readonly IMaterialRepository materialRepository;
+        private readonly INotificationRepository notificationRepository;
+        private readonly ISignalRService signalRService;
 
         public OrderService(IStaffRepository staffRepository, ICustomerRepository customerRepository, IOrderRepository orderRepository,
             IDiscountRepository discountRepository, IProductRepository productRepository, IPaymentRepository paymentRepository,
             IProductTemplateRepository productTemplaTeRepository, IProductTemplateService productTemplateService,
             IProductStageRepository productStageRepository, IOrderMaterialRepository orderMaterialRepository,
-            IMaterialRepository materialRepository)
+            IMaterialRepository materialRepository, INotificationRepository notificationRepository, ISignalRService signalRService)
         {
             this.staffRepository = staffRepository;
             this.customerRepository = customerRepository;
@@ -50,6 +52,8 @@ namespace Etailor.API.Service.Service
             this.productStageRepository = productStageRepository;
             this.orderMaterialRepository = orderMaterialRepository;
             this.materialRepository = materialRepository;
+            this.notificationRepository = notificationRepository;
+            this.signalRService = signalRService;
         }
 
         public async Task<string> CreateOrder(Order order, string? role)
@@ -459,222 +463,6 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        //public async Task<bool> CheckOrderPaid(string id)
-        //{
-        //var dbOrder = orderRepository.Get(id);
-        //if (dbOrder != null)
-        //{
-        //    var discount = string.IsNullOrEmpty(dbOrder.DiscountId) ? null : discountRepository.Get(dbOrder.DiscountId);
-
-        //    var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true && x.Status != 0).ToList();
-
-        //    var orderPayments = paymentRepository.GetAll(x => x.OrderId == dbOrder.Id && x.Status == 0).ToList();
-
-        //    var tasks = new List<Task>();
-
-        //    if (orderProducts.Any() && orderProducts.Count > 0)
-        //    {
-        //        tasks.Add(Task.Run(() =>
-        //        {
-        //            dbOrder.TotalProduct = orderProducts.Count;
-
-        //            dbOrder.TotalPrice = orderProducts.Sum(x => x.Price);
-        //        }));
-        //    }
-        //    else
-        //    {
-        //        tasks.Add(Task.Run(() =>
-        //        {
-        //            dbOrder.TotalProduct = 0;
-
-        //            dbOrder.TotalPrice = 0;
-        //        }));
-        //    }
-
-        //    await Task.WhenAll(tasks);
-
-        //    if (discount != null)
-        //    {
-        //        tasks.Add(Task.Run(() =>
-        //        {
-        //            dbOrder.DiscountId = discount.Id;
-        //            dbOrder.DiscountCode = discount.Code;
-        //        }));
-
-        //        if (discount.ConditionProductMin != null && discount.ConditionProductMin != 0)
-        //        {
-        //            tasks.Add(Task.Run(() =>
-        //            {
-        //                if (dbOrder.TotalProduct >= discount.ConditionProductMin)
-        //                {
-        //                    if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = discount.DiscountPrice;
-        //                    }
-        //                    else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
-        //                    }
-        //                }
-        //                else
-        //                {
-        //                    dbOrder.DiscountPrice = 0;
-        //                }
-        //            }));
-        //        }
-        //        else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax == null)
-        //        {
-        //            tasks.Add(Task.Run(() =>
-        //            {
-        //                if (dbOrder.TotalPrice >= discount.ConditionPriceMin)
-        //                {
-        //                    if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = discount.DiscountPrice;
-        //                    }
-        //                    else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
-        //                    }
-        //                }
-        //                else
-        //                {
-        //                    dbOrder.DiscountPrice = 0;
-        //                }
-        //            }));
-        //        }
-        //        else if (discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0 && discount.ConditionPriceMin == null)
-        //        {
-        //            tasks.Add(Task.Run(() =>
-        //            {
-        //                if (dbOrder.TotalPrice <= discount.ConditionPriceMax)
-        //                {
-        //                    if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = discount.DiscountPrice;
-        //                    }
-        //                    else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
-        //                    }
-        //                }
-        //                else
-        //                {
-        //                    dbOrder.DiscountPrice = 0;
-        //                }
-        //            }));
-        //        }
-        //        else if (discount.ConditionPriceMin != null && discount.ConditionPriceMin != 0 && discount.ConditionPriceMax != null && discount.ConditionPriceMax != 0)
-        //        {
-        //            tasks.Add(Task.Run(() =>
-        //            {
-        //                if (dbOrder.TotalPrice <= discount.ConditionPriceMax && dbOrder.TotalPrice >= discount.ConditionPriceMin)
-        //                {
-        //                    if (discount.DiscountPrice != null && discount.DiscountPrice != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = discount.DiscountPrice;
-        //                    }
-        //                    else if (discount.DiscountPercent != null && discount.DiscountPercent != 0)
-        //                    {
-        //                        dbOrder.DiscountPrice = (decimal)((double)dbOrder.TotalPrice * (double)discount.DiscountPercent / 100);
-        //                    }
-        //                }
-        //                else
-        //                {
-        //                    dbOrder.DiscountPrice = 0;
-        //                }
-        //            }));
-        //        }
-        //        else
-        //        {
-        //            tasks.Add(Task.Run(() =>
-        //            {
-        //                dbOrder.DiscountPrice = 0;
-        //            }));
-        //        }
-        //    }
-        //    else
-        //    {
-        //        tasks.Add(Task.Run(() =>
-        //        {
-        //            dbOrder.DiscountId = null;
-        //            dbOrder.DiscountCode = "";
-        //            dbOrder.DiscountPrice = 0;
-        //        }));
-        //    }
-
-        //    await Task.WhenAll(tasks);
-
-
-        //    if (dbOrder.DiscountPrice.HasValue && dbOrder.DiscountPrice > 0)
-        //    {
-        //        tasks.Add(Task.Run(() =>
-        //        {
-        //            if (dbOrder.DiscountPrice < dbOrder.TotalPrice)
-        //            {
-        //                dbOrder.AfterDiscountPrice = dbOrder.TotalPrice - dbOrder.DiscountPrice;
-        //            }
-        //            else
-        //            {
-        //                dbOrder.AfterDiscountPrice = 0;
-        //            }
-        //        }));
-        //    }
-        //    else
-        //    {
-        //        tasks.Add(Task.Run(() =>
-        //        {
-        //            dbOrder.AfterDiscountPrice = dbOrder.TotalPrice;
-        //            dbOrder.DiscountPrice = 0;
-        //        }));
-        //    }
-
-        //    await Task.WhenAll(tasks);
-
-        //    if (orderPayments.Any() && orderPayments.Count > 0)
-        //    {
-        //        tasks.Add(Task.Run(() =>
-        //        {
-        //            var paidMoney = orderPayments.Where(x => x.Amount > 0);
-        //            if (paidMoney.Any())
-        //            {
-        //                dbOrder.PaidMoney = paidMoney.Sum(x => x.Amount);
-        //            }
-        //            else
-        //            {
-        //                dbOrder.PaidMoney = 0;
-        //            }
-        //        }));
-        //    }
-        //    else
-        //    {
-        //        dbOrder.PaidMoney = 0;
-        //    }
-
-        //    await Task.WhenAll(tasks);
-
-        //    tasks.Add(Task.Run(() =>
-        //    {
-        //        if (dbOrder.AfterDiscountPrice.HasValue && dbOrder.AfterDiscountPrice != 0)
-        //        {
-        //            dbOrder.UnPaidMoney = dbOrder.AfterDiscountPrice - dbOrder.PaidMoney;
-        //        }
-        //        else
-        //        {
-        //            dbOrder.UnPaidMoney = dbOrder.TotalPrice - dbOrder.PaidMoney;
-        //        }
-        //    }));
-
-        //    await Task.WhenAll(tasks);
-
-        //    return orderRepository.Update(dbOrder.Id, dbOrder);
-        //}
-        //else
-        //{
-        //    throw new UserException("Không tìm thấy hóa đơn");
-        //}
-        //}
-
         public async Task<bool> ApproveOrder(string id)
         {
             var dbOrder = orderRepository.Get(id);
@@ -700,6 +488,160 @@ namespace Etailor.API.Service.Service
                     {
                         throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService));
                     }
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public async Task<bool> FinishOrderAndNofiToCus(string orderId)
+        {
+            var order = orderRepository.Get(orderId);
+            if (order != null && order.IsActive == true)
+            {
+                switch (order.Status)
+                {
+                    case 0:
+                        throw new UserException("Hóa đơn đã bị hủy. Không thể hoàn thành hóa đơn");
+                    case 1:
+                        throw new UserException("Hóa đơn chưa được duyệt. Không thể hoàn thành hóa đơn");
+                    case 2:
+                        throw new UserException("Hóa đơn đã được duyệt. Không thể hoàn thành hóa đơn");
+                    case 3:
+                        throw new UserException("Hóa đơn đang trong quá trình chờ thực hiện. Không thể hoàn thành hóa đơn");
+                    case 4:
+                        throw new UserException("Hóa đơn đang trong quá trình thực hiện. Không thể hoàn thành hóa đơn");
+                    case 6:
+                        throw new UserException("Hóa đơn trong quá trình chờ kiểm thử. Không thể hoàn thành hóa đơn");
+                    case 7:
+                        throw new UserException("Hóa đơn bị lỗi trong quá trình khách kiểm thử. Không thể hoàn thành hóa đơn");
+                    case 8:
+                        throw new UserException("Hóa đơn đã hoàn thành. Không thể hoàn thành hóa đơn");
+                }
+
+                var orderProducts = productRepository.GetAll(x => x.OrderId == order.Id && x.Status > 0 && x.IsActive == true);
+
+                if (orderProducts != null && !orderProducts.Any(x => x.Status > 0 && x.Status < 5 && x.IsActive == true))
+                {
+                    order.Status = 6;
+                    order.FinishTime = DateTime.UtcNow.AddHours(7);
+                    order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+
+                    if (orderRepository.Update(orderId, order))
+                    {
+                        var notify = new Notification
+                        {
+                            Id = Ultils.GenGuidString(),
+                            Title = "Hóa đơn đã hoàn thiện",
+                            Content = $"Hóa đơn {order.Id} của bạn đã hoàn thiện. Vui lòng tới cửa hàng kiểm tra và đánh giá sản phẩm",
+                            CustomerId = order.CustomerId,
+                            SendTime = DateTime.UtcNow.AddHours(7),
+                            ReadTime = null,
+                            IsActive = true,
+                            IsRead = false
+                        };
+
+                        if (notificationRepository.Create(notify))
+                        {
+                            await signalRService.SendNotificationToUser(notify.CustomerId, notify.Title);
+
+                            return true;
+                        }
+                        else
+                        {
+                            throw new SystemsException("Lỗi trong quá trình gửi thông báo hoàn thành hóa đơn", nameof(OrderService.FinishOrderAndNofiToCus));
+                        }
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService.FinishOrderAndNofiToCus));
+                    }
+
+                }
+                else
+                {
+                    throw new UserException("Hóa đơn chưa hoàn thành sản phẩm. Không thể hoàn thành hóa đơn");
+                }
+            }
+            else
+            {
+                throw new UserException("Không tìm thấy hóa đơn");
+            }
+        }
+
+        public async Task<bool> DoneOrder(string orderId)
+        {
+            var order = orderRepository.Get(orderId);
+            if (order != null && order.IsActive == true)
+            {
+                switch (order.Status)
+                {
+                    case 0:
+                        throw new UserException("Hóa đơn đã bị hủy. Không thể hoàn thành hóa đơn");
+                    case 1:
+                        throw new UserException("Hóa đơn chưa được duyệt. Không thể hoàn thành hóa đơn");
+                    case 2:
+                        throw new UserException("Hóa đơn đã được duyệt. Không thể hoàn thành hóa đơn");
+                    case 3:
+                        throw new UserException("Hóa đơn đang trong quá trình chờ thực hiện. Không thể hoàn thành hóa đơn");
+                    case 4:
+                        throw new UserException("Hóa đơn đang trong quá trình thực hiện. Không thể hoàn thành hóa đơn");
+                    case 5:
+                        throw new UserException("Hóa đơn đã hoàn thiện và chờ kiểm duyệt. Không thể hoàn thành hóa đơn");
+                    case 7:
+                        throw new UserException("Hóa đơn bị lỗi trong quá trình khách kiểm thử. Không thể hoàn thành hóa đơn");
+                    case 8:
+                        throw new UserException("Hóa đơn đã hoàn thành. Không thể hoàn thành hóa đơn");
+                }
+
+                var orderProducts = productRepository.GetAll(x => x.OrderId == order.Id && x.Status > 0 && x.IsActive == true);
+
+                if (orderProducts != null && !orderProducts.Any(x => x.Status > 0 && x.Status < 5 && x.IsActive == true))
+                {
+                    if (order.UnPaidMoney > 0)
+                    {
+                        throw new UserException("Hóa đơn chưa hoàn thành thanh toán. Không thể hoàn thành hóa đơn");
+                    }
+
+                    order.Status = 8;
+                    order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+
+                    if (orderRepository.Update(orderId, order))
+                    {
+                        var notify = new Notification
+                        {
+                            Id = Ultils.GenGuidString(),
+                            Title = "Hóa đơn đã hoàn thành",
+                            Content = $"Hóa đơn {order.Id} của bạn đã hoàn thành. Xin cảm ơn!",
+                            CustomerId = order.CustomerId,
+                            SendTime = DateTime.UtcNow.AddHours(7),
+                            ReadTime = null,
+                            IsActive = true,
+                            IsRead = false
+                        };
+
+                        if (notificationRepository.Create(notify))
+                        {
+                            await signalRService.SendNotificationToUser(notify.CustomerId, notify.Title);
+
+                            return true;
+                        }
+                        else
+                        {
+                            throw new SystemsException("Lỗi trong quá trình gửi thông báo hoàn thành hóa đơn", nameof(OrderService.DoneOrder));
+                        }
+                    }
+                    else
+                    {
+                        throw new SystemsException("Lỗi trong quá trình cập nhật hóa đơn", nameof(OrderService.DoneOrder));
+                    }
+
+                }
+                else
+                {
+                    throw new UserException("Hóa đơn chưa hoàn thành sản phẩm. Không thể hoàn thành hóa đơn");
                 }
             }
             else
@@ -752,72 +694,27 @@ namespace Etailor.API.Service.Service
                 }
                 else
                 {
-                    dbOrder.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                    dbOrder.Status = 0;
-                    dbOrder.IsActive = false;
-
-                    if (orderRepository.Update(dbOrder.Id, dbOrder))
+                    try
                     {
-                        var orderProducts = productRepository.GetAll(x => x.OrderId == dbOrder.Id && x.IsActive == true);
-                        if (orderProducts != null && orderProducts.Any())
-                        {
-                            orderProducts = orderProducts.ToList();
-
-                            var tasks = new List<Task>();
-
-                            foreach (var product in orderProducts)
+                        var result = await orderRepository.GetStoreProcedureReturnInt(StoreProcName.Cancel_Order,
+                            new SqlParameter
                             {
-                                tasks.Add(Task.Run(() =>
-                                {
-                                    product.IsActive = false;
-                                    product.InactiveTime = DateTime.UtcNow.AddHours(7);
-                                    product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                                    product.Status = 0;
-                                }));
-                            }
-
-                            var orderProductsStages = productStageRepository.GetAll(x => orderProducts.Select(x => x.Id).Contains(x.ProductId) && x.IsActive == true);
-                            if (orderProductsStages != null && orderProductsStages.Any())
-                            {
-                                orderProductsStages = orderProductsStages.ToList();
-
-                                foreach (var productStage in orderProductsStages)
-                                {
-                                    tasks.Add(Task.Run(() =>
-                                    {
-                                        productStage.IsActive = false;
-                                        productStage.InactiveTime = DateTime.UtcNow.AddHours(7);
-                                        productStage.Status = 0;
-                                    }));
-                                }
-                            }
-
-                            await Task.WhenAll(tasks);
-
-                            var checks = new List<bool>();
-
-                            foreach (var product in orderProducts)
-                            {
-                                checks.Add(productRepository.Update(product.Id, product));
-                            }
-                            if (orderProductsStages != null && orderProductsStages.Any())
-                            {
-                                foreach (var productStage in orderProductsStages)
-                                {
-                                    checks.Add(productStageRepository.Update(productStage.Id, productStage));
-                                }
-                            }
-
-                            return !checks.Any(x => x == false);
-                        }
-                        else
+                                DbType = System.Data.DbType.String,
+                                Value = id,
+                                ParameterName = "@OrderId"
+                            });
+                        if (result == 1)
                         {
                             return true;
                         }
+                        else
+                        {
+                            throw new SystemsException("Lỗi trong quá trình hủy hóa đơn", nameof(OrderService.DeleteOrder));
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        throw new SystemsException("Lỗi trong quá trình hủy hóa đơn", nameof(OrderService));
+                        throw new UserException(ex.Message);
                     }
                 }
             }
@@ -967,9 +864,9 @@ namespace Etailor.API.Service.Service
                 if (ordersProducts != null && ordersProducts.Any())
                 {
                     ordersProducts = ordersProducts.ToList();
-                    var templateIds = string.Join(",", ordersProducts.Select(x => x.ProductTemplateId).ToList());
 
-                    var productTemplates = productTemplaTeRepository.GetAll(x => templateIds.Contains(x.Id));
+                    var productTemplates = productTemplaTeRepository.GetAll(x =>
+                        ordersProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
                     if (productTemplates != null && productTemplates.Any())
                     {
                         productTemplates = productTemplates.ToList();

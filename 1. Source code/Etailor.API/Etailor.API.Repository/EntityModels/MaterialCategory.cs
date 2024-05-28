@@ -11,7 +11,6 @@ namespace Etailor.API.Repository.EntityModels
         }
 
         public string Id { get; set; } = null!;
-        public string? MaterialTypeId { get; set; }
         public string? Name { get; set; }
         public double? PricePerUnit { get; set; }
         public DateTime? CreatedTime { get; set; }
@@ -19,7 +18,6 @@ namespace Etailor.API.Repository.EntityModels
         public DateTime? InactiveTime { get; set; }
         public bool? IsActive { get; set; }
 
-        public virtual MaterialType? MaterialType { get; set; }
         public virtual ICollection<Material> Materials { get; set; }
     }
 }

@@ -102,43 +102,39 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpPost("refund/{paymentId}")]
-        public async Task<IActionResult> CreateRefund(string paymentId, int transactionType, decimal? amount)
+
+        [HttpPost("refund/{orderId}")]
+        public async Task<IActionResult> CreateRefund(string orderId, decimal? amount)
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.CUSTOMER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var customerId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (string.IsNullOrEmpty(customerId) || !customerService.CheckSecerctKey(customerId, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var result = await paymentService.RefundMoneyVNPay(paymentId, transactionType, amount);
-
-                if (result != null)
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    //return result.Contains("https://") ? Redirect(result.ToString()) : Ok("Tạo thanh toán thành công");
-                    return Ok(result);
+                    return Unauthorized("Chưa đăng nhập");
+                }
+                else if (role == RoleName.CUSTOMER || role == RoleName.ADMIN)
+                {
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
-                    throw new UserException("Tạo thanh toán thất bại");
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (string.IsNullOrEmpty(staffId) || !staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        if (amount == null)
+                        {
+                            throw new UserException("Số tiền hoàn trả không hợp lệ");
+                        }
+
+                        return (await paymentService.RefundMoney(orderId, amount.Value, staffId)) ? Ok("Tạo hoàn tiền thành công") : BadRequest("Tạo hoàn tiền thất bại");
+                    }
                 }
-                //    }
-                //}
             }
             catch (UserException ex)
             {

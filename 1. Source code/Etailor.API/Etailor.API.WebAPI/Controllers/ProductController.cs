@@ -276,7 +276,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return await taskService.DefectsTask(orderId, productId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
+                        return await taskService.DefectsTask(productId, orderId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
                     }
                 }
             }
@@ -294,8 +294,8 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(string id)
+        [HttpDelete("{orderId}/{id}")]
+        public async Task<IActionResult> DeleteProduct(string orderId, string id)
         {
             try
             {
@@ -322,7 +322,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             return NotFound("Id sản phẩm không tồn tại");
                         }
-                        return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
+                        return (await productService.DeleteProduct(orderId, id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
                     }
                 }
             }

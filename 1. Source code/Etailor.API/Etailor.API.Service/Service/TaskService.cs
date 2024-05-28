@@ -30,7 +30,6 @@ namespace Etailor.API.Service.Service
         private readonly IBodySizeRepository bodySizeRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IMaterialRepository materialRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly ITemplateStateRepository templateStateRepository;
         private readonly IComponentTypeRepository componentTypeRepository;
         private readonly IComponentStageRepository componentStageRepository;
@@ -50,7 +49,7 @@ namespace Etailor.API.Service.Service
             , IProductTemplateRepository productTemplateRepository, IComponentRepository componentRepository
             , IProductBodySizeRepository productBodySizeRepository, IBodySizeRepository bodySizeRepository
             , IMaterialCategoryRepository materialCategoryRepository, IMaterialRepository materialRepository
-            , IMaterialTypeRepository materialTypeRepository, ITemplateStateRepository templateStateRepository
+            , ITemplateStateRepository templateStateRepository
             , IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository
             , IProfileBodyRepository profileBodyRepository, IOrderMaterialRepository orderMaterialRepository
             , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository
@@ -66,7 +65,6 @@ namespace Etailor.API.Service.Service
             this.productBodySizeRepository = productBodySizeRepository;
             this.bodySizeRepository = bodySizeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
-            this.materialTypeRepository = materialTypeRepository;
             this.materialRepository = materialRepository;
             this.componentTypeRepository = componentTypeRepository;
             this.templateStateRepository = templateStateRepository;
@@ -226,6 +224,10 @@ namespace Etailor.API.Service.Service
                                                         }));
                                                     }
                                                     await Task.WhenAll(insideTasks3);
+                                                }
+                                                else
+                                                {
+                                                    stage.ProductStageMaterials = null;
                                                 }
                                             }));
 
@@ -407,9 +409,9 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public async Task<IEnumerable<Product>> GetTasksByStaffId(string? search)
+        public async Task<IEnumerable<Product>> GetTasksByStaffId(string staffId)
         {
-            return productRepository.GetAll(x => (search == null || (search != null && x.StaffMakerId == search)) && x.IsActive == true);
+            return productRepository.GetAll(x => x.StaffMakerId == staffId && x.Status > 0 && x.IsActive == true);
         }
 
         public async Task AutoCreateEmptyTaskProduct()
@@ -1380,364 +1382,243 @@ namespace Etailor.API.Service.Service
 
         public async Task<bool> StartTask(string productId, string productStageId, string staffId)
         {
-            var product = productRepository.Get(productId);
-
-            var tasks = new List<Task>();
-            if (product != null && product.IsActive == true && product.Status != 0 && product.StaffMakerId == staffId)
+            try
             {
-                switch (product.Status)
+                if (string.IsNullOrEmpty(productId) || string.IsNullOrEmpty(productStageId))
                 {
-                    case 0:
-                        throw new UserException("Sản phẩm bị hủy");
-                    case 5:
-                        throw new UserException("Sản phẩm đã hoàn thành");
+                    throw new UserException("Dữ liệu không hợp lệ");
                 }
-                var order = orderRepository.Get(product != null ? product.OrderId : null);
-                if (order != null && order.Status != 0 && order.IsActive == true)
+                var productIdParam = new SqlParameter("@ProductId", SqlDbType.NVarChar)
                 {
-                    switch (order.Status)
-                    {
-                        case 0:
-                            throw new UserException("Hóa đơn bị hủy");
-                        case 1:
-                            throw new UserException("Hóa đơn chưa được duyệt");
-                        case 2:
-                            throw new UserException("Hóa đơn chưa được bắt đầu");
-                        case 5:
-                            throw new UserException("Hóa đơn bị tạm dừng");
-                        case 6:
-                            throw new UserException("Hóa đơn đang chờ khách kiểm duyệt");
-                        case 8:
-                            throw new UserException("Hóa đơn đã hoàn thành");
-                    }
-
-                    var orderProducts = productRepository.GetAll(x => product != null && product.OrderId != null && x.OrderId == product.OrderId && x.Status != 0 && x.IsActive == true);
-
-                    if (orderProducts != null && orderProducts.Any())
-                    {
-                        orderProducts = orderProducts.ToList();
-
-                        var productStages = productStageRepository.GetAll(x => x.IsActive == true && x.ProductId == productId && x.Status != 0);
-
-                        if (productStages != null && productStages.Any())
-                        {
-                            productStages = productStages.ToList();
-
-                            var productStage = new ProductStage();
-
-                            tasks.Add(Task.Run(() =>
-                            {
-                                productStage = productStages.First(x => x.Id == productStageId);
-
-                                switch (productStage.Status)
-                                {
-                                    case 0:
-                                        throw new UserException("Công đoạn bị hủy");
-                                    case 2:
-                                        throw new UserException("Công đoạn đang thực hiện");
-                                    case 4:
-                                        throw new UserException("Công đoạn đã hoàn thành");
-                                }
-
-                                if (productStages.Any(x => x.Id != productStage.Id && (x.Status == 2 || x.Status == 3)))
-                                {
-                                    throw new UserException("Có công đoạn đang chờ hoặc đang thực hiện. Vui lòng hoàn thành trước khi bắt đầu công đoạn này");
-                                }
-                            }));
-
-                            await Task.WhenAll(tasks);
-
-                            if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId)
-                            {
-                                if (productStages.Any(x => x.StageNum < productStage.StageNum && x.Status < 4))
-                                {
-                                    throw new UserException("Công đoạn trước chưa hoàn thành");
-                                }
-                                else
-                                {
-                                    tasks.Add(Task.Run(() =>
-                                    {
-                                        product.Status = 2;
-                                        product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                                        productRepository.Update(product.Id, product);
-                                    }));
-
-                                    await Task.WhenAll(tasks);
-
-                                    if (!orderProducts.Any(x => x.Id != product.Id && x.Status > 1 && x.IsActive == true))
-                                    {
-                                        tasks.Add(Task.Run(() =>
-                                        {
-                                            order.Status = 4;
-                                            order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                                            orderRepository.Update(order.Id, order);
-                                        }));
-
-                                        await Task.WhenAll(tasks);
-                                    }
-
-                                    tasks.Add(Task.Run(() =>
-                                    {
-                                        productStage.Status = 2;
-                                        productStage.StaffId = staffId;
-                                        productStage.FinishTime = DateTime.UtcNow.AddHours(7);
-                                    }));
-
-                                    await Task.WhenAll(tasks);
-
-                                    return productStageRepository.Update(productStage.Id, productStage);
-                                }
-                            }
-                            else
-                            {
-                                throw new UserException("Không tìm thấy nhiệm vụ");
-                            }
-                        }
-                        else
-                        {
-                            throw new UserException($"Không tìm thấy danh sách nhiệm vụ của sản phẩm: {product.Name}");
-                        }
-                    }
-                    else
-                    {
-                        throw new UserException("Không tìm thấy sản phẩm hóa đơn");
-                    }
+                    Value = productId
+                };
+                var productStageIdParam = new SqlParameter("@ProductStageId", SqlDbType.NVarChar)
+                {
+                    Value = productStageId
+                };
+                var staffIdParam = new SqlParameter("@StaffId", SqlDbType.NVarChar)
+                {
+                    Value = staffId
+                };
+                var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Start_Task
+                    , productIdParam
+                    , productStageIdParam
+                    , staffIdParam);
+                if (result == 1)
+                {
+                    return true;
                 }
                 else
                 {
-                    throw new UserException("Không tìm thấy hóa đơn");
+                    throw new SystemsException("Lỗi trong quá trình bắt đầu công việc", nameof(TaskService.StartTask));
                 }
             }
-            else
+            catch (Exception ex)
             {
-                throw new UserException("Không tìm thấy sản phẩm");
+                throw new UserException(ex.Message);
             }
         }
 
         public async Task<bool> FinishTask(string wwwroot, string productId, string productStageId, string staffId, List<IFormFile>? images)
         {
-            var product = productRepository.Get(productId);
-
-            var tasks = new List<Task>();
-            if (product != null && product.IsActive == true && product.Status != 0 && product.StaffMakerId == staffId)
+            var imageNews = new List<string>();
+            try
             {
-                switch (product.Status)
+                var stage = productStageRepository.Get(productStageId);
+                if (stage != null && stage.IsActive == true)
                 {
-                    case 0:
-                        throw new UserException("Sản phẩm bị hủy");
-                    case 1:
-                        throw new UserException("Sản phẩm đang chờ");
-                    case 5:
-                        throw new UserException("Sản phẩm đã hoàn thành");
-                }
-                var order = orderRepository.Get(product != null ? product.OrderId : null);
-                if (order != null && order.Status != 0 && order.IsActive == true)
-                {
-                    switch (order.Status)
+                    var product = productRepository.Get(productId);
+                    if (product != null && product.IsActive == true)
                     {
-                        case 0:
-                            throw new UserException("Hóa đơn bị hủy");
-                        case 1:
-                            throw new UserException("Hóa đơn chưa được duyệt");
-                        case 2:
-                            throw new UserException("Hóa đơn chưa được bắt đầu");
-                        case 3:
-                            throw new UserException("Hóa đơn chưa bắt đầu");
-                        case 5:
-                            throw new UserException("Hóa đơn bị tạm dừng");
-                        case 6:
-                            throw new UserException("Hóa đơn đang chờ khách kiểm duyệt");
-                        case 8:
-                            throw new UserException("Hóa đơn đã hoàn thành");
-                    }
-                    var orderProducts = productRepository.GetAll(x => product != null && product.OrderId != null && x.OrderId == product.OrderId && x.Status != 0 && x.IsActive == true);
-                    if (orderProducts != null && orderProducts.Any())
-                    {
-                        orderProducts = orderProducts.ToList();
-                        var productStages = productStageRepository.GetAll(x => x.IsActive == true && x.ProductId == productId && x.Status != 0);
-                        if (productStages != null && productStages.Any())
+                        var imageUrls = new List<string>();
+                        if (!string.IsNullOrEmpty(stage.EvidenceImage))
                         {
-                            productStages = productStages.ToList();
-                            int? maxStageNum = 0;
-                            var productStage = new ProductStage();
-                            tasks.Add(Task.Run(() =>
-                            {
-                                maxStageNum = productStages.OrderByDescending(x => x.StageNum).First().StageNum;
-                            }));
-                            tasks.Add(Task.Run(() =>
-                            {
-                                productStage = productStages.FirstOrDefault(x => x.Id == productStageId);
+                            imageUrls.AddRange(JsonConvert.DeserializeObject<List<string>>(stage.EvidenceImage));
+                        }
 
-                                if (productStage.Status != 2)
+                        if (images != null && images.Any())
+                        {
+                            var tasks2 = new List<Task>();
+                            foreach (var image in images)
+                            {
+                                tasks2.Add(Task.Run(async () =>
                                 {
-                                    switch (productStage.Status)
-                                    {
-                                        case 0:
-                                            throw new UserException("Công đoạn chưa được bắt đầu");
-                                        case 1:
-                                            throw new UserException("Công đoạn đang chờ");
-                                        case 3:
-                                            throw new UserException("Công đoạn đang tạm dừng");
-                                        case 4:
-                                            throw new UserException("Công đoạn đã hoàn thành");
-                                    }
-                                }
-                            }));
-
-                            await Task.WhenAll(tasks);
-
-                            if (productStage != null && productStage.IsActive == true && productStage.Status != 0 && productStage.ProductId == productId && productStage.StaffId == staffId)
-                            {
-                                tasks.Add(Task.Run(async () =>
-                                {
-                                    var imageUrls = new List<string>();
-
-                                    if (!string.IsNullOrEmpty(productStage.EvidenceImage))
-                                    {
-                                        imageUrls.AddRange(JsonConvert.DeserializeObject<List<string>>(productStage.EvidenceImage));
-                                    }
-
-                                    if (images != null && images.Any())
-                                    {
-                                        var tasks2 = new List<Task>();
-                                        foreach (var image in images)
-                                        {
-                                            tasks2.Add(Task.Run(async () =>
-                                            {
-                                                var imageObjectName = await Ultils.UploadImage(wwwroot, $"Product/{product.Id}/StageEvidences", image, null);
-                                                imageUrls.Add(imageObjectName);
-                                            }));
-                                        }
-                                        await Task.WhenAll(tasks2);
-                                    }
-
-                                    if (imageUrls != null && imageUrls.Any())
-                                    {
-                                        productStage.EvidenceImage = JsonConvert.SerializeObject(imageUrls);
-                                    }
-                                    else
-                                    {
-                                        throw new UserException("Cần phải có ít nhất 1 hình ảnh chứng minh công đoạn");
-                                    }
+                                    var imageObjectName = await Ultils.UploadImage(wwwroot, $"Product/{productId}/StageEvidences", image, null);
+                                    imageNews.Add(imageObjectName);
                                 }));
+                            }
+                            await Task.WhenAll(tasks2);
+                        }
+                        else
+                        {
+                            throw new UserException("Cần phải có ít nhất 1 hình ảnh chứng minh công đoạn");
+                        }
 
-                                tasks.Add(Task.Run(() =>
-                                {
-                                    productStage.Status = 4;
-                                    productStage.StaffId = staffId;
-                                    productStage.FinishTime = DateTime.UtcNow.AddHours(7);
-                                }));
+                        if (imageNews != null && imageNews.Any())
+                        {
+                            imageUrls.AddRange(imageNews);
+                        }
 
-                                await Task.WhenAll(tasks);
+                        if (imageUrls != null && imageUrls.Any())
+                        {
+                            stage.EvidenceImage = JsonConvert.SerializeObject(imageUrls);
+                        }
+                        else
+                        {
+                            throw new UserException("Cần phải có ít nhất 1 hình ảnh chứng minh công đoạn");
+                        }
 
-                                if (productStageRepository.Update(productStage.Id, productStage))
-                                {
-                                    if (maxStageNum != null && productStage.StageNum == maxStageNum)
-                                    {
-                                        product.Status = 5;
-                                        product.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
+                        if (string.IsNullOrEmpty(productId) || string.IsNullOrEmpty(productStageId))
+                        {
+                            throw new UserException("Dữ liệu không hợp lệ");
+                        }
+                        var productIdParam = new SqlParameter("@ProductId", SqlDbType.NVarChar)
+                        {
+                            Value = productId
+                        };
+                        var productStageIdParam = new SqlParameter("@ProductStageId", SqlDbType.NVarChar)
+                        {
+                            Value = productStageId
+                        };
+                        var staffIdParam = new SqlParameter("@StaffId", SqlDbType.NVarChar)
+                        {
+                            Value = staffId
+                        };
+                        var imageParam = new SqlParameter("@EvidenceImage", SqlDbType.NVarChar)
+                        {
+                            Value = stage.EvidenceImage
+                        };
+                        var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Finish_Task
+                            , productIdParam
+                            , productStageIdParam
+                            , staffIdParam
+                            , imageParam);
+                        if (result == 1)
+                        {
+                            return true;
+                        }
+                        else if (result == 2)
+                        {
+                            var title = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            {
+                                Value = $"Sản phẩm của đơn hàng {product.OrderId} đã hoàn thành."
+                            };
 
-                                        if (productRepository.Update(product.Id, product))
-                                        {
-                                            if (!orderProducts.Any(x => x.Id != product.Id && x.Status < 5 && x.IsActive == true))
-                                            {
-                                                order.Status = 5;
-                                                order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                                                order.FinishTime = DateTime.UtcNow.AddHours(7);
-                                                if (orderRepository.Update(order.Id, order))
-                                                {
-                                                    var title = new SqlParameter("@Title", SqlDbType.NVarChar)
-                                                    {
-                                                        Value = $"Đơn hàng {product.OrderId} đã hoàn thành."
-                                                    };
+                            var content = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            {
+                                Value = $"Sản phẩm {product.Id} : {product.Name} của đơn hàng đã hoàn thành."
+                            };
 
-                                                    var content = new SqlParameter("@Title", SqlDbType.NVarChar)
-                                                    {
-                                                        Value = $"Các sản phẩm của đơn hàng {product.OrderId} đã hoàn thành. Quản lý vui lòng kiểm tra trước khi bàn giao cho khách kiểm thử."
-                                                    };
+                            var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
 
-                                                    var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+                            if (returnValue == 1)
+                            {
+                                await signalRService.SendNotificationToManagers(content.Value.ToString());
 
-                                                    if (returnValue == 1)
-                                                    {
-                                                        await signalRService.SendNotificationToManagers(content.Value.ToString());
-
-                                                        return true;
-                                                    }
-                                                    else
-                                                    {
-                                                        throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    throw new SystemsException("Lỗi trong quá trình cập nhật trạng thái hóa đơn", nameof(TaskService.FinishTask));
-                                                }
-                                            }
-                                            else
-                                            {
-                                                var title = new SqlParameter("@Title", SqlDbType.NVarChar)
-                                                {
-                                                    Value = $"Sản phẩm của đơn hàng {product.OrderId} đã hoàn thành."
-                                                };
-
-                                                var content = new SqlParameter("@Title", SqlDbType.NVarChar)
-                                                {
-                                                    Value = $"Sản phẩm {product.Id} : {product.Name} của đơn hàng đã hoàn thành."
-                                                };
-
-                                                var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
-
-                                                if (returnValue == 1)
-                                                {
-                                                    await signalRService.SendNotificationToManagers(content.Value.ToString());
-
-                                                    return true;
-                                                }
-                                                else
-                                                {
-                                                    throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
-                                                }
-                                            }
-                                        }
-                                        else
-                                        {
-                                            throw new SystemsException("Lỗi trong quá trình cập nhật trạng thái sản phẩm", nameof(TaskService.FinishTask));
-                                        }
-                                    }
-                                    else
-                                    {
-                                        return true;
-                                    }
-                                }
-                                else
-                                {
-                                    throw new SystemsException("Lỗi trong quá trình hoàn thành công đoạn", nameof(TaskService.FinishTask));
-                                }
+                                return true;
                             }
                             else
                             {
-                                throw new UserException("Không tìm thấy nhiệm vụ");
+                                throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                            }
+                        }
+                        else if (result == 3)
+                        {
+                            var title = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            {
+                                Value = $"Đơn hàng {product.OrderId} đã hoàn thành."
+                            };
+
+                            var content = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            {
+                                Value = $"Các sản phẩm của đơn hàng {product.OrderId} đã hoàn thành. Quản lý vui lòng kiểm tra trước khi bàn giao cho khách kiểm thử."
+                            };
+
+                            var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+
+                            if (returnValue == 1)
+                            {
+                                await signalRService.SendNotificationToManagers(content.Value.ToString());
+
+                                return true;
+                            }
+                            else
+                            {
+                                throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
+                            }
+                        }
+                        else if (result == 4)
+                        {
+                            var title = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            {
+                                Value = $"Đơn hàng {product.OrderId} cần sửa lại đã hoàn thành."
+                            };
+
+                            var content = new SqlParameter("@Title", SqlDbType.NVarChar)
+                            {
+                                Value = $"Các sản phẩm của đơn hàng {product.OrderId} cần sửa lại đã hoàn thành. Quản lý vui lòng kiểm tra trước khi bàn giao cho khách kiểm thử."
+                            };
+
+                            var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
+
+                            if (returnValue == 1)
+                            {
+                                await signalRService.SendNotificationToManagers(content.Value.ToString());
+
+                                return true;
+                            }
+                            else
+                            {
+                                throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
                             }
                         }
                         else
                         {
-                            throw new UserException($"Không tìm thấy danh sách nhiệm vụ của sản phẩm: {product.Name}");
+                            throw new SystemsException("Lỗi trong quá trình kết thúc công việc", nameof(TaskService.StartTask));
                         }
                     }
                     else
                     {
-                        throw new UserException("Không tìm thấy sản phẩm hóa đơn");
+                        throw new UserException("Không tìm thấy sản phẩm");
                     }
                 }
                 else
                 {
-                    throw new UserException("Không tìm thấy hóa đơn");
+                    throw new UserException("Không tìm thấy công đoạn");
                 }
             }
-            else
+            catch (UserException ex)
             {
-                throw new UserException("Không tìm thấy sản phẩm");
+                if (imageNews != null && imageNews.Any())
+                {
+                    foreach (var image in imageNews)
+                    {
+                        Ultils.DeleteObject(JsonConvert.DeserializeObject<ImageFileDTO>(image).ObjectName);
+                    }
+                }
+                throw new UserException(ex.Message);
+            }
+            catch (SystemsException ex)
+            {
+                if (imageNews != null && imageNews.Any())
+                {
+                    foreach (var image in imageNews)
+                    {
+                        Ultils.DeleteObject(JsonConvert.DeserializeObject<ImageFileDTO>(image).ObjectName);
+                    }
+                }
+                throw new SystemsException(ex.Message, nameof(TaskService.FinishTask));
+            }
+            catch (Exception ex)
+            {
+                if (imageNews != null && imageNews.Any())
+                {
+                    foreach (var image in imageNews)
+                    {
+                        Ultils.DeleteObject(JsonConvert.DeserializeObject<ImageFileDTO>(image).ObjectName);
+                    }
+                }
+                throw new UserException(ex.Message);
             }
         }
 
@@ -1840,60 +1721,122 @@ namespace Etailor.API.Service.Service
         public async Task<bool> DefectsTask(string productId, string orderId)
         {
             var order = orderRepository.Get(orderId);
-            if (order != null && order.IsActive == true && order.Status != 0)
+            if (order != null && order.IsActive == true)
             {
-                if (order.Status != 6)
+                switch (order.Status)
                 {
-                    throw new UserException("Hóa đơn không trong giai đoạn chờ kiểm thử của khách");
+                    case 0:
+                        throw new UserException("Hóa đơn bị hủy");
+                    case 1:
+                        throw new UserException("Hóa đơn chưa được duyệt");
+                    case 2:
+                        throw new UserException("Hóa đơn chưa được bắt đầu");
+                    case 3:
+                        throw new UserException("Hóa đơn chưa bắt đầu");
+                    case 8:
+                        throw new UserException("Hóa đơn đã hoàn thành");
                 }
-                else
+
+                var product = productRepository.Get(productId);
+                if (product != null && product.IsActive == true && product.Status != 0 && product.OrderId == orderId)
                 {
-                    var product = productRepository.Get(productId);
-                    if (product != null && product.IsActive == true && product.Status != 0 && product.OrderId == orderId)
+                    if (product.Status != 5)
                     {
-                        if (product.Status != 5)
+                        throw new UserException("Sản phẩm chưa hoàn thành");
+                    }
+                    else
+                    {
+                        var title = new SqlParameter("@Title", SqlDbType.NVarChar);
+
+                        var content = new SqlParameter("@Title", SqlDbType.NVarChar);
+
+                        product.Status = 4;
+
+                        var productStages = productStageRepository.GetAll(x => x.ProductId == productId && x.IsActive == true && x.Status > 0);
+                        if (productStages != null && productStages.Any())
                         {
-                            throw new UserException("Sản phẩm chưa hoàn thành");
+                            productStages = productStages.ToList();
+
+                            foreach (var stage in productStages)
+                            {
+                                stage.Status = 1;
+
+                                productStageRepository.Update(stage.Id, stage);
+                            }
                         }
                         else
                         {
-                            product.Status = 4;
+                            throw new UserException("Không tìm thấy công đoạn của sản phẩm");
+                        }
+
+                        if (order.Status == 6)
+                        {
                             order.Status = 7;
-                            var title = new SqlParameter("@Title", SqlDbType.NVarChar)
-                            {
-                                Value = $"Hóa đơn {order.Id} vừa bị khách từ chối."
-                            };
 
-                            var content = new SqlParameter("@Title", SqlDbType.NVarChar)
-                            {
-                                Value = $"Sản phẩm {product.Id} : {product.Name} bị khách từ chối."
-                            };
+                            title.Value = $"Hóa đơn {order.Id} vừa bị khách từ chối.";
+                            content.Value = $"Sản phẩm {product.Id} : {product.Name} bị khách từ chối.";
+                        }
+                        else
+                        {
+                            title.Value = $"Hóa đơn {order.Id} vừa bị quản lý từ chối.";
+                            content.Value = $"Sản phẩm {product.Id} : {product.Name} bị quản lý từ chối.";
+                        }
 
+                        var notify = new Notification
+                        {
+                            Title = title.Value.ToString(),
+                            Content = content.Value.ToString(),
+                            StaffId = product.StaffMakerId,
+                            Id = Ultils.GenGuidString(),
+                            SendTime = DateTime.UtcNow.AddHours(7),
+                            IsRead = false,
+                            ReadTime = null,
+                            IsActive = true
+                        };
+
+                        if (notificationRepository.Create(notify))
+                        {
+                            await signalRService.SendNotificationToUser(notify.StaffId, notify.Title);
+                        }
+                        else
+                        {
+                            throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.DefectsTask));
+                        }
+
+                        if (order.Status == 6)
+                        {
                             var returnValue = await notificationRepository.GetStoreProcedureReturnInt(StoreProcName.Create_Manager_Notification, title, content);
 
                             if (returnValue == 1)
                             {
-                                await signalRService.SendNotificationToManagers(content.Value.ToString());
-
-                                if (orderRepository.Update(orderId, order))
-                                {
-                                    return productRepository.Update(productId, product);
-                                }
-                                else
-                                {
-                                    throw new SystemsException("Lỗi trong quá trình từ chối sản phẩm", nameof(TaskService.DefectsTask));
-                                }
+                                await signalRService.SendNotificationToManagers(title.Value.ToString());
                             }
                             else
                             {
                                 throw new SystemsException("Lỗi trong quá trình tạo thông báo", nameof(TaskService.FinishTask));
                             }
                         }
+
+                        if (order.Status == 6)
+                        {
+                            if (orderRepository.Update(orderId, order))
+                            {
+                                return productRepository.Update(productId, product);
+                            }
+                            else
+                            {
+                                throw new SystemsException("Lỗi trong quá trình từ chối sản phẩm", nameof(TaskService.DefectsTask));
+                            }
+                        }
+                        else
+                        {
+                            return productRepository.Update(productId, product);
+                        }
                     }
-                    else
-                    {
-                        throw new UserException("Không tìm thấy sản phẩm");
-                    }
+                }
+                else
+                {
+                    throw new UserException("Không tìm thấy sản phẩm");
                 }
             }
             else
@@ -1908,143 +1851,160 @@ namespace Etailor.API.Service.Service
             if (activeOrders != null && activeOrders.Any())
             {
                 activeOrders = activeOrders.ToList();
-
-                var orderProducts = productRepository.GetAll(x => activeOrders.Select(c => c.Id).Contains(x.OrderId) && x.Status >= 1 && x.Status <= 5 && x.IsActive == true);
-                if (orderProducts != null && orderProducts.Any())
-                {
-                    orderProducts = orderProducts.ToList();
-
-                    var templates = productTemplateRepository.GetAll(x => orderProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
-                    if (templates != null && templates.Any())
-                    {
-                        templates = templates.ToList();
-
-                        var categories = categoryRepository.GetAll(x => templates.Select(c => c.CategoryId).Contains(x.Id) || x.IsActive == true);
-                        if (categories != null && categories.Any())
-                        {
-                            categories = categories.ToList();
-
-                            var templateStages = templateStateRepository.GetAll(x => templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
-                            if (templateStages != null && templateStages.Any())
-                            {
-                                templateStages = templateStages.ToList();
-
-                                var productStages = productStageRepository.GetAll(x => x.IsActive == true && orderProducts.Select(c => c.Id).Contains(x.ProductId) && x.Status >= 1 && x.Status < 4);
-                                if (productStages != null && productStages.Any())
-                                {
-                                    productStages = productStages.ToList();
-
-                                    var staffs = staffRepository.GetAll(x => orderProducts.Select(x => x.StaffMakerId).Contains(x.Id) && x.IsActive == true);
-
-                                    if (staffs != null && staffs.Any())
-                                    {
-                                        staffs = staffs.ToList();
-                                    }
-
-                                    var fabricMaterialIds = string.Join(",", orderProducts.Select(x => x.FabricMaterialId).Distinct().ToList());
-
-                                    var fabricMaterials = materialRepository.GetAll(x => fabricMaterialIds.Contains(x.Id));
-
-                                    if (fabricMaterials != null && fabricMaterials.Any())
-                                    {
-                                        fabricMaterials = fabricMaterials.ToList();
-                                    }
-
-                                    var tasks = new List<Task>();
-                                    foreach (var category in categories)
-                                    {
-                                        tasks.Add(Task.Run(async () =>
-                                        {
-                                            category.ProductTemplates = templates.Where(x => x.CategoryId == category.Id)?.ToList();
-
-                                            if (category.ProductTemplates != null && category.ProductTemplates.Any())
-                                            {
-                                                var categoryTasks = new List<Task>();
-                                                foreach (var template in category.ProductTemplates)
-                                                {
-                                                    categoryTasks.Add(Task.Run(async () =>
-                                                    {
-                                                        template.Products.Clear();
-                                                        template.Products = orderProducts.Where(x => x.ProductTemplateId == template.Id)?.ToList();
-
-                                                        if (template.Products != null && template.Products.Any())
-                                                        {
-                                                            var templateTasks = new List<Task>();
-                                                            foreach (var product in template.Products)
-                                                            {
-                                                                templateTasks.Add(Task.Run(async () =>
-                                                                {
-                                                                    if (product.StaffMakerId != null && staffs != null && staffs.Any())
-                                                                    {
-                                                                        product.StaffMaker = staffs.SingleOrDefault(x => x.Id == product.StaffMakerId);
-
-                                                                        if (product.StaffMaker?.Avatar != null)
-                                                                        {
-                                                                            product.StaffMaker.Avatar = Ultils.GetUrlImage(product.StaffMaker.Avatar);
-                                                                        }
-                                                                    }
-                                                                    if (product.FabricMaterial == null)
-                                                                    {
-                                                                        product.FabricMaterial = fabricMaterials.FirstOrDefault(x => x.Id == product.FabricMaterialId);
-                                                                    }
-
-                                                                    if (product.FabricMaterial != null)
-                                                                    {
-                                                                        product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
-                                                                    }
-
-                                                                    product.ProductStages.Clear();
-                                                                    product.ProductStages.Add(productStages.Where(x => x.ProductId == product.Id)?.OrderBy(x => x.StageNum)?.FirstOrDefault());
-                                                                }));
-                                                            }
-                                                            await Task.WhenAll(templateTasks);
-
-                                                            template.Products = template.Products?.OrderBy(x => x.CreatedTime)?.ToList();
-                                                        }
-
-                                                        template.TemplateStages.Clear();
-                                                        template.TemplateStages = templateStages.Where(x => x.ProductTemplateId == template.Id)?.OrderBy(x => x.StageNum)?.ToList();
-                                                    }));
-                                                }
-                                                await Task.WhenAll(categoryTasks);
-
-                                                category.ProductTemplates = category.ProductTemplates?.OrderBy(x => x.Name)?.ToList();
-                                            }
-                                        }));
-                                    }
-                                    await Task.WhenAll(tasks);
-                                }
-                            }
-
-                            return categories;
-                        }
-                    }
-                }
+            }
+            else
+            {
+                activeOrders = null;
             }
 
-            return null;
+            var orderProducts = productRepository.GetAll(x => activeOrders != null && activeOrders.Any() && activeOrders.Select(c => c.Id).Contains(x.OrderId) && x.Status >= 1 && x.Status <= 5 && x.IsActive == true);
+            if (orderProducts != null && orderProducts.Any())
+            {
+                orderProducts = orderProducts.ToList();
+            }
+            else
+            {
+                orderProducts = null;
+            }
+
+            var templates = productTemplateRepository.GetAll(x => orderProducts != null && orderProducts.Any() && orderProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
+            if (templates != null && templates.Any())
+            {
+                templates = templates.ToList();
+            }
+            else
+            {
+                templates = null;
+            }
+
+            var categories = categoryRepository.GetAll(x => (templates != null && templates.Any() && templates.Select(c => c.CategoryId).Contains(x.Id)) || x.IsActive == true);
+            if (categories != null && categories.Any())
+            {
+                categories = categories.ToList();
+
+                var templateStages = templateStateRepository.GetAll(x => templates != null && templates.Any() && templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
+                if (templateStages != null && templateStages.Any())
+                {
+                    templateStages = templateStages.ToList();
+
+                    var productStages = productStageRepository.GetAll(x => x.IsActive == true && orderProducts.Select(c => c.Id).Contains(x.ProductId) && x.Status >= 1 && x.Status < 4);
+                    if (productStages != null && productStages.Any())
+                    {
+                        productStages = productStages.ToList();
+
+                        var staffs = staffRepository.GetAll(x => orderProducts.Select(x => x.StaffMakerId).Contains(x.Id) && x.IsActive == true);
+
+                        if (staffs != null && staffs.Any())
+                        {
+                            staffs = staffs.ToList();
+                        }
+
+                        var fabricMaterialIds = string.Join(",", orderProducts.Select(x => x.FabricMaterialId).Distinct().ToList());
+
+                        var fabricMaterials = materialRepository.GetAll(x => fabricMaterialIds.Contains(x.Id));
+
+                        if (fabricMaterials != null && fabricMaterials.Any())
+                        {
+                            fabricMaterials = fabricMaterials.ToList();
+                        }
+
+                        var tasks = new List<Task>();
+                        foreach (var category in categories)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                category.ProductTemplates = templates.Where(x => x.CategoryId == category.Id)?.ToList();
+
+                                if (category.ProductTemplates != null && category.ProductTemplates.Any())
+                                {
+                                    var categoryTasks = new List<Task>();
+                                    foreach (var template in category.ProductTemplates)
+                                    {
+                                        categoryTasks.Add(Task.Run(async () =>
+                                        {
+                                            template.Products.Clear();
+                                            template.Products = orderProducts.Where(x => x.ProductTemplateId == template.Id)?.ToList();
+
+                                            if (template.Products != null && template.Products.Any())
+                                            {
+                                                var templateTasks = new List<Task>();
+                                                foreach (var product in template.Products)
+                                                {
+                                                    templateTasks.Add(Task.Run(async () =>
+                                                    {
+                                                        if (product.StaffMakerId != null && staffs != null && staffs.Any())
+                                                        {
+                                                            product.StaffMaker = staffs.SingleOrDefault(x => x.Id == product.StaffMakerId);
+
+                                                            if (product.StaffMaker?.Avatar != null)
+                                                            {
+                                                                product.StaffMaker.Avatar = Ultils.GetUrlImage(product.StaffMaker.Avatar);
+                                                            }
+                                                        }
+                                                        if (product.FabricMaterial == null)
+                                                        {
+                                                            product.FabricMaterial = fabricMaterials.FirstOrDefault(x => x.Id == product.FabricMaterialId);
+                                                        }
+
+                                                        if (product.FabricMaterial != null)
+                                                        {
+                                                            product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                                        }
+
+                                                        product.ProductStages.Clear();
+                                                        product.ProductStages.Add(productStages.Where(x => x.ProductId == product.Id)?.OrderBy(x => x.StageNum)?.FirstOrDefault());
+                                                    }));
+                                                }
+                                                await Task.WhenAll(templateTasks);
+
+                                                template.Products = template.Products?.OrderBy(x => x.CreatedTime)?.ToList();
+                                            }
+
+                                            template.TemplateStages.Clear();
+                                            template.TemplateStages = templateStages.Where(x => x.ProductTemplateId == template.Id)?.OrderBy(x => x.StageNum)?.ToList();
+                                        }));
+                                    }
+                                    await Task.WhenAll(categoryTasks);
+
+                                    category.ProductTemplates = category.ProductTemplates?.OrderBy(x => x.Name)?.ToList();
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+                    }
+                }
+
+                return categories;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public async Task<bool> SetMaterialForTask(string taskId, string stageId, List<ProductStageMaterial> stageMaterials)
         {
             if (stageMaterials != null && stageMaterials.Any())
             {
-                var tasks = new List<Task>();
                 var paramsSql = new List<SqlParameter>();
 
-                tasks.Add(Task.Run(async () =>
+                var dataTable = new DataTable();
+                while (dataTable.Rows != null && dataTable.Rows.Count != stageMaterials.Count)
                 {
-                    var dataTable = new DataTable();
+                    dataTable = new DataTable();
+                    if (paramsSql.Find(x => x.ParameterName == "@StageMaterials") != null)
+                    {
+                        paramsSql.Remove(paramsSql.Find(x => x.ParameterName == "@StageMaterials"));
+                    }
+
                     dataTable.Columns.Add("MaterialId", typeof(string));
                     dataTable.Columns.Add("Value", typeof(decimal));
 
                     var insideTasks = new List<Task>();
+
                     foreach (var stageMaterial in stageMaterials)
                     {
-                        insideTasks.Add(Task.Run(() =>
-                        {
-                            dataTable.Rows.Add(!string.IsNullOrEmpty(stageMaterial.MaterialId) ? stageMaterial.MaterialId : DBNull.Value, stageMaterial.Quantity.HasValue ? stageMaterial.Quantity : DBNull.Value);
-                        }));
+                        dataTable.Rows.Add(!string.IsNullOrEmpty(stageMaterial.MaterialId) ? stageMaterial.MaterialId : DBNull.Value, stageMaterial.Quantity.HasValue ? stageMaterial.Quantity : DBNull.Value);
                     }
                     await Task.WhenAll(insideTasks);
 
@@ -2053,82 +2013,43 @@ namespace Etailor.API.Service.Service
                         TypeName = "dbo.MaterialStageType",
                         Value = dataTable
                     });
-                }));
+                };
 
-                tasks.Add(Task.Run(() =>
+                paramsSql.Add(new SqlParameter("@StageId", SqlDbType.NVarChar)
                 {
-                    paramsSql.Add(new SqlParameter("@StageId", SqlDbType.NVarChar)
+                    Value = stageId
+                });
+
+                paramsSql.Add(new SqlParameter("@TaskId", SqlDbType.NVarChar)
+                {
+                    Value = taskId
+                });
+
+                try
+                {
+                    var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Set_Material_For_Task,
+                        paramsSql.Find(x => x.ParameterName == "@TaskId"),
+                        paramsSql.Find(x => x.ParameterName == "@StageId"),
+                        paramsSql.Find(x => x.ParameterName == "@StageMaterials")
+                        );
+
+                    if (result == 1)
                     {
-                        Value = stageId
-                    });
-                }));
-
-                tasks.Add(Task.Run(() =>
-                {
-                    paramsSql.Add(new SqlParameter("@TaskId", SqlDbType.NVarChar)
+                        return true;
+                    }
+                    else
                     {
-                        Value = taskId
-                    });
-                }));
-
-                await Task.WhenAll(tasks);
-
-                var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Set_Material_For_Task,
-                    paramsSql.Find(x => x.ParameterName == "@TaskId"),
-                    paramsSql.Find(x => x.ParameterName == "@StageId"),
-                    paramsSql.Find(x => x.ParameterName == "@StageMaterials")
-                    );
-
-                switch (result)
+                        throw new SystemsException("Lỗi trong quá trình cập nhật nguyên vật liệu cho công đoạn", nameof(TaskService.SetMaterialForTask));
+                    }
+                }
+                catch (Exception ex)
                 {
-                    case 1: return true;
-
-                    default: throw new SystemsException("Lỗi trong quá trình cập nhật vật liệu", nameof(TaskService.SetMaterialForTask));
+                    throw new UserException(ex.Message);
                 }
             }
             else
             {
                 throw new UserException("Không có vật liệu");
-            }
-            var product = productRepository.Get(taskId);
-            if (product != null && product.IsActive == true)
-            {
-                switch (product.Status)
-                {
-                    case 0:
-                        throw new UserException("Nhiệm vụ bị hủy");
-                    case 5:
-                        throw new UserException("Nhiệm vụ đã hoàn thành");
-                }
-
-                var order = orderRepository.Get(product.OrderId);
-                if (order != null && order.IsActive == true)
-                {
-                    switch (order.Status)
-                    {
-                        case 0:
-                            throw new UserException("Hóa đơn bị hủy");
-                        case 1:
-                            throw new UserException("Hóa đơn chưa được xác nhận");
-                        case 5:
-                            throw new UserException("Các sản phẩm của hóa đơn đã xong");
-                        case 6:
-                            throw new UserException("Hóa đơn đang chờ khách hàng kiểm thử");
-                        case 8:
-                            throw new UserException("Hóa đơn đã hoàn thành");
-                    }
-
-                    throw new UserException("Đang sửa code");
-
-                }
-                else
-                {
-                    throw new UserException("Không tìm thấy hóa đơn");
-                }
-            }
-            else
-            {
-                throw new UserException("Không tìm thấy nhiệm vụ");
             }
         }
     }
