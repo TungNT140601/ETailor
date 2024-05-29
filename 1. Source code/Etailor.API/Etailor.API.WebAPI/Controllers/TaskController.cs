@@ -788,5 +788,22 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
+        [HttpPut("auto/create-and-assign-task")]
+        public async Task<IActionResult> RunAutoAssignTask()
+        {
+            try
+            {
+                await taskService.AutoCreateEmptyTaskProduct();
+
+                await taskService.AutoAssignTaskForStaff();
+
+                return Ok("Tự động phân nhiệm vụ thành công");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
     }
 }
