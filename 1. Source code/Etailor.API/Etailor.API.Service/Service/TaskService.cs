@@ -1774,16 +1774,16 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Không tìm thấy công đoạn của sản phẩm");
                         }
 
+                        title.Value = $"Sản phẩm {product.Id} đã bị từ chối.";
+
                         if (order.Status == 6)
                         {
                             order.Status = 7;
 
-                            title.Value = $"Hóa đơn {order.Id} đã bị khách từ chối.";
                             content.Value = $"Sản phẩm {product.Id} : {product.Name} bị khách từ chối.";
                         }
                         else
                         {
-                            title.Value = $"Hóa đơn {order.Id} đã bị quản lý từ chối.";
                             content.Value = $"Sản phẩm {product.Id} : {product.Name} bị quản lý từ chối.";
                         }
 
