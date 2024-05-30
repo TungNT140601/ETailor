@@ -18,7 +18,7 @@ FETCH NEXT FROM TableCursor INTO @TableName, @ColumnName
 WHILE @@FETCH_STATUS = 0
 BEGIN
     SET @SQL = 'UPDATE ' + QUOTENAME(@TableName) + 
-               ' SET ' + QUOTENAME(@ColumnName) + ' = DATEADD(DAY, -1, ' +  + QUOTENAME(@ColumnName) + ')' +
+               ' SET ' + QUOTENAME(@ColumnName) + ' = DATEADD(DAY, -30, ' +  + QUOTENAME(@ColumnName) + ')' +
                ' WHERE ' + QUOTENAME(@ColumnName) + ' IS NOT NULL;'
                + '--'+ QUOTENAME(@ColumnName) +' > DATEADD(HOUR, 7, GETUTCDATE());'
     PRINT @SQL;
