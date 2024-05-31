@@ -411,7 +411,12 @@ namespace Etailor.API.Service.Service
 
         public async Task<IEnumerable<Product>> GetTasksByStaffId(string staffId)
         {
-            return productRepository.GetAll(x => x.StaffMakerId == staffId && x.Status > 0 && x.IsActive == true);
+            return productRepository.GetStoreProcedure(StoreProcName.Get_Staff_Task, new SqlParameter()
+            {
+                ParameterName = "@StaffId",
+                SqlDbType = SqlDbType.NVarChar,
+                Value = staffId
+            });
         }
 
         public async Task AutoCreateEmptyTaskProduct()
