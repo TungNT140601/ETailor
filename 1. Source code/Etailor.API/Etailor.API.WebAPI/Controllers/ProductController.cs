@@ -99,8 +99,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
 
                         var check = await productService.AddProduct(wwwrootPath, orderId, product, productComponents,
-                            productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
-                            productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0, (quantity != null && quantity >= 1) ? quantity.Value : 1);
+                            productVM.MaterialId, productVM.ProfileId, false, 0, (quantity != null && quantity >= 1) ? quantity.Value : 1);
                         return !string.IsNullOrEmpty(check) ? Ok("Thêm sản phẩm vào hóa đơn thành công") : BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
                     }
                 }
@@ -183,8 +182,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
 
                         var check = await productService.UpdateProduct(wwwrootPath, orderId, product, productComponents,
-                             productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
-                             productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
+                             productVM.MaterialId, productVM.ProfileId, false, 0);
                         return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
                     }
                 }
