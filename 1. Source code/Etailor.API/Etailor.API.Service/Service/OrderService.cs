@@ -431,13 +431,15 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                // Raw SQL query to call the stored procedure
-                var result = await orderRepository.GetDbContext().Set<SpResult>()
-                                           .FromSqlRaw("EXEC dbo.CheckOrderDiscount {0}", id)
-                                           .AsNoTracking()
-                                           .ToListAsync();
+                var result = await orderRepository.GetStoreProcedureReturnInt(StoreProcName.Check_Order_Discount,
+                                       new SqlParameter
+                                       {
+                                           DbType = System.Data.DbType.String,
+                                           Value = id,
+                                           ParameterName = "@OrderId"
+                                       });
 
-                return result.FirstOrDefault()?.ReturnValue == 1;
+                return result == 1;
             }
             catch (SqlException ex)
             {
@@ -449,13 +451,15 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                // Raw SQL query to call the stored procedure
-                var result = await orderRepository.GetDbContext().Set<SpResult>()
-                                           .FromSqlRaw("EXEC dbo.CheckOrderPaid {0}", id)
-                                           .AsNoTracking()
-                                           .ToListAsync();
+                var result = await orderRepository.GetStoreProcedureReturnInt(StoreProcName.Check_Order_Paid,
+                                       new SqlParameter
+                                       {
+                                           DbType = System.Data.DbType.String,
+                                           Value = id,
+                                           ParameterName = "@OrderId"
+                                       });
 
-                return result.FirstOrDefault()?.ReturnValue == 1;
+                return result == 1;
             }
             catch (SqlException ex)
             {
