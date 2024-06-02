@@ -360,7 +360,6 @@ namespace Etailor.API.Service.Service
             return ListOfProductStage;
         }
 
-        //For manager to get all
         public async Task<IEnumerable<Product>> GetTasks()
         {
             var inProcessOrders = orderRepository.GetAll(x => x.Status >= 2 && x.Status < 8 && x.IsActive == true);
