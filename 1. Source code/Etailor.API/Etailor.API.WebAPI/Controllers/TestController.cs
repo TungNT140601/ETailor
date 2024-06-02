@@ -937,7 +937,7 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                taskService.AutoAssignTaskForStaff();
+                await taskService.AutoAssignTaskForStaff();
                 return Ok("Run successfully");
             }
             catch (Exception ex)
@@ -1465,6 +1465,12 @@ namespace Etailor.API.WebAPI.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpGet]
+        public IActionResult HashPass(string pass)
+        {
+            return Ok(Ultils.HashPassword(pass));
         }
 
         private string GetImageExtensionFromType(string imageType)
