@@ -727,7 +727,7 @@ namespace Etailor.API.Service.Service
         public async Task<Order> GetOrder(string id)
         {
             var order = orderRepository.Get(id);
-            if (order != null && order.Status >= 1)
+            if (order != null && order.Status >= 0)
             {
                 var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
                 if (orderMaterials != null && orderMaterials.Any())
@@ -825,7 +825,7 @@ namespace Etailor.API.Service.Service
         public async Task<Order> GetOrderByCustomer(string cusId, string orderId)
         {
             var order = orderRepository.Get(orderId);
-            if (order != null && order.IsActive == true && order.Status >= 1 && order.CustomerId == cusId)
+            if (order != null && order.IsActive == true && order.Status >= 0 && order.CustomerId == cusId)
             {
                 var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
                 if (orderMaterials != null && orderMaterials.Any())
