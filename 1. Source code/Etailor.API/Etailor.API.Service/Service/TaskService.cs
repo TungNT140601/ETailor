@@ -1757,7 +1757,7 @@ namespace Etailor.API.Service.Service
                     {
                         var title = new SqlParameter("@Title", SqlDbType.NVarChar);
 
-                        var content = new SqlParameter("@Title", SqlDbType.NVarChar);
+                        var content = new SqlParameter("@Content", SqlDbType.NVarChar);
 
                         product.Status = 4;
 
@@ -1788,6 +1788,7 @@ namespace Etailor.API.Service.Service
                         }
                         else
                         {
+                            order.Status = 4;
                             content.Value = $"Sản phẩm {product.Id} : {product.Name} bị quản lý từ chối.";
                         }
 
