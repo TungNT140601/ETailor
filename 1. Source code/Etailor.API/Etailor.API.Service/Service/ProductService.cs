@@ -326,8 +326,6 @@ namespace Etailor.API.Service.Service
 
         public async Task<string> UpdateProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
-            //throw new UserException("Nhắc tk Tùng sửa cái proc UpdateProduct lại");
-
             var dbProduct = productRepository.Get(product.Id);
             if (dbProduct == null)
             {
@@ -461,7 +459,7 @@ namespace Etailor.API.Service.Service
                                                     var listStringImage = JsonConvert.DeserializeObject<List<string>>(newOrderComponent.NoteImage);
                                                     if (listStringImage != null && listStringImage.Any())
                                                     {
-                                                        var listOldImageUrl = listStringImage.Where(x => x.Contains("http")).ToList();
+                                                        var listOldImageUrl = listStringImage.Where(x => x.Contains("https://firebase")).ToList();
                                                         if (listOldImageUrl != null && listOldImageUrl.Count > 0)
                                                         {
                                                             if (!string.IsNullOrEmpty(saveOrderComponent.NoteImage))
@@ -703,6 +701,7 @@ namespace Etailor.API.Service.Service
                 };
 
                 #endregion
+
                 try
                 {
                     var result = await productRepository.GetStoreProcedureReturnInt("UpdateProduct"
@@ -984,7 +983,7 @@ namespace Etailor.API.Service.Service
 
                             await Task.WhenAll(tasks);
 
-                            return products;
+                            return products.OrderBy(x => x.Name);
                         }
                     }
                 }
@@ -1078,7 +1077,7 @@ namespace Etailor.API.Service.Service
 
                             await Task.WhenAll(tasks);
 
-                            return products;
+                            return products.OrderBy(x => x.Name);
                         }
                     }
                 }
@@ -1162,7 +1161,7 @@ namespace Etailor.API.Service.Service
 
                     await Task.WhenAll(tasks);
 
-                    return products;
+                    return products.OrderBy(x => x.Name);
                 }
             }
             return null;

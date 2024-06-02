@@ -20,7 +20,7 @@ BEGIN
     SET @SQL = 'UPDATE ' + QUOTENAME(@TableName) + 
                ' SET ' + QUOTENAME(@ColumnName) + ' = DATEADD(DAY, -30, ' +  + QUOTENAME(@ColumnName) + ')' +
                ' WHERE ' + QUOTENAME(@ColumnName) + ' IS NOT NULL;'
-               + ' '+ QUOTENAME(@ColumnName) +' > DATEADD(HOUR, 7, GETUTCDATE());'
+               + '--'+ QUOTENAME(@ColumnName) +' > DATEADD(HOUR, 7, GETUTCDATE());'
     PRINT @SQL;
 
     EXEC sp_executesql @SQL;

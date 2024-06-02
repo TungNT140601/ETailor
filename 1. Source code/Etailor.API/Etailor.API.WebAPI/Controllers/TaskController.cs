@@ -328,7 +328,7 @@ namespace Etailor.API.WebAPI.Controllers
                     else
                     {
                         var tasks = mapper.Map<IEnumerable<TaskListByStaffVM>>(await taskService.GetTasksByStaffId(staffId));
-                        return Ok(tasks?.OrderBy(x => x.Index));
+                        return Ok(tasks);
                     }
                 }
             }
@@ -782,6 +782,23 @@ namespace Etailor.API.WebAPI.Controllers
             catch (SystemsException ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpPut("auto/create-and-assign-task")]
+        public async Task<IActionResult> RunAutoAssignTask()
+        {
+            try
+            {
+                await taskService.AutoCreateEmptyTaskProduct();
+
+                await taskService.AutoAssignTaskForStaff();
+
+                return Ok("Tự động phân nhiệm vụ thành công");
             }
             catch (Exception ex)
             {

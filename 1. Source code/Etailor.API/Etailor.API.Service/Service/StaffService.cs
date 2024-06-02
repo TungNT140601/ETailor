@@ -646,15 +646,16 @@ namespace Etailor.API.Service.Service
         {
             try
             {
+                var staffs = new List<Staff>();
                 if (string.IsNullOrEmpty(search))
                 {
-                    return staffRepository.GetAll(x =>
+                    staffs = staffRepository.GetAll(x =>
                         x.IsActive == true && (x.Role == 1 || x.Role == 2)
-                    );
+                    )?.ToList();
                 }
                 else
                 {
-                    return staffRepository.GetAll(x => ((
+                    staffs = staffRepository.GetAll(x => ((
                                 x.Fullname != null
                                 && x.Fullname.Trim().ToLower().Contains(search.Trim().ToLower())
                             ) || (
@@ -663,8 +664,21 @@ namespace Etailor.API.Service.Service
                             ))
                         && x.IsActive == true
                         && (x.Role == 1 || x.Role == 2)
-                    );
+                    )?.ToList();
                 }
+
+                if (staffs != null && staffs.Any())
+                {
+                    foreach (var staff in staffs)
+                    {
+                        if (!string.IsNullOrEmpty(staff.Avatar))
+                        {
+                            staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
+                        }
+                    }
+                }
+
+                return staffs;
             }
             catch (UserException ex)
             {
