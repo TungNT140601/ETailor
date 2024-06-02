@@ -19,7 +19,6 @@ namespace TestCase
 
         IMaterialRepository materialRepository;
         IMaterialCategoryRepository materialCategoryRepository;
-        IMaterialTypeRepository materialTypeRepository;
         IOrderMaterialRepository orderMaterialRepository;
         IOrderRepository orderRepository;
         IProductRepository productRepository;
@@ -29,12 +28,11 @@ namespace TestCase
         {
             materialRepository = new MaterialRepository(dBContext);
             materialCategoryRepository = new MaterialCategoryRepository(dBContext);
-            materialTypeRepository = new MaterialTypeRepository(dBContext);
             orderMaterialRepository = new OrderMaterialRepository(dBContext);
             orderRepository = new OrderRepository(dBContext);
             productRepository = new ProductRepository(dBContext);
 
-            materialService = new MaterialService(materialRepository, materialCategoryRepository, materialTypeRepository
+            materialService = new MaterialService(materialRepository, materialCategoryRepository
                 , orderMaterialRepository, orderRepository, productRepository);
         }
 

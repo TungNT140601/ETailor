@@ -217,35 +217,6 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpGet("material-type/{typeId}")]
-        public async Task<IActionResult> GetMaterialsByMaterialType(string typeId)
-        {
-            try
-            {
-                var materials = mapper.Map<IEnumerable<MaterialVM>>(materialService.GetMaterialsByMaterialType(typeId));
-                if (materials != null && materials.Any())
-                {
-                    foreach (var material in materials)
-                    {
-                        material.Image = Ultils.GetUrlImage(material.Image);
-                    }
-                }
-                return Ok(materials);
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-
         [HttpGet]
         public async Task<IActionResult> GetMaterials(string? search)
         {

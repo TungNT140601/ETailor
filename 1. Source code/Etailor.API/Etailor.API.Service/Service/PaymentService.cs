@@ -50,13 +50,13 @@ namespace Etailor.API.Service.Service
             {
                 if (payType == 1)
                 {
-                    if (amount.HasValue)
+                    if (paymentRepository.GetAll(x => x.OrderId == order.Id && x.PayType == 1 && x.Status == 0).Any())
                     {
-                        if (paymentRepository.GetAll(x => x.OrderId == order.Id && x.PayType == 1 && x.Status == 0).Any())
-                        {
-                            throw new UserException("Hóa đơn này đã được thanh toán cọc.");
-                        }
-                        else if (amount < 5000 || (order.DiscountId != null && amount.Value > order.AfterDiscountPrice) || (order.DiscountId == null && amount.Value > order.TotalPrice))
+                        throw new UserException("Hóa đơn này đã được thanh toán cọc.");
+                    }
+                    else if (amount.HasValue)
+                    {
+                        if (amount < 5000 || (order.DiscountId != null && amount.Value > order.AfterDiscountPrice) || (order.DiscountId == null && amount.Value > order.TotalPrice))
                         {
                             throw new UserException("Số tiền cọc không hợp lệ.");
                         }
@@ -230,45 +230,39 @@ namespace Etailor.API.Service.Service
 
                 if (paymentRepository.Create(paymentRefund))
                 {
-                    //var body = GetVNPayUrlRefunt(paymentRefund.Id, transactionType, paymentId, paymentRefund.Amount.Value);
+                    var body = GetVNPayUrlRefunt(paymentRefund.Id, transactionType, paymentId, paymentRefund.Amount.Value);
 
-                    var body = DemoRefund(paymentRefund.Id, transactionType, paymentId, paymentRefund.Amount.Value);
-                    throw new UserException("Gửi yêu cầu: " + body);
+                    HttpClient client = new HttpClient();
+                    var content = new StringContent(body, Encoding.UTF8, "application/json");
+                    HttpResponseMessage response = await client.PostAsync("https://sandbox.vnpayment.vn/merchant_webapi/api/transaction", content);
+                    string res = await response.Content.ReadAsStringAsync();
 
-                    //HttpClient client = new HttpClient();
+                    var json = JsonConvert.DeserializeObject<Dictionary<string, string>>(res);
 
-                    //var content = new StringContent(body, Encoding.UTF8, "application/json");
+                    if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        if (json["vnp_ResponseCode"] == "00")
+                        {
+                            paymentRefund.Status = 0;
+                            paymentRefund.PayTime = DateTime.UtcNow.AddHours(7);
 
-                    //HttpResponseMessage response = await client.PostAsync("https://sandbox.vnpayment.vn/merchant_webapi/api/transaction", content);
-
-                    //string res = await response.Content.ReadAsStringAsync();
-
-                    //var json = JsonConvert.DeserializeObject<Dictionary<string, string>>(res);
-
-                    //if (response.StatusCode == System.Net.HttpStatusCode.OK)
-                    //{
-                    //    if (json["vnp_ResponseCode"] == "00")
-                    //    {
-                    //        paymentRefund.Status = 0;
-                    //        paymentRefund.PayTime = DateTime.UtcNow.AddHours(7);
-
-                    //        return paymentRepository.Update(payment.Id, payment) && paymentRepository.Update(paymentRefund.Id, paymentRefund);
-                    //    }
-                    //    else
-                    //    {
-                    //        var result = "";
-                    //        foreach (var key in json.Keys)
-                    //        {
-                    //            json.TryGetValue(key, out string value);
-                    //            result = result + " | " + key + ": " + value;
-                    //        }
-                    //        throw new UserException("Giao dịch hoàn tiền thất bại: " + result);
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    throw new UserException("Gửi yêu cầu thất bại: " + response.StatusCode);
-                    //}
+                            return paymentRepository.Update(payment.Id, payment) && paymentRepository.Update(paymentRefund.Id, paymentRefund);
+                        }
+                        else
+                        {
+                            var result = "";
+                            foreach (var key in json.Keys)
+                            {
+                                json.TryGetValue(key, out string value);
+                                result = result + " | " + key + ": " + value;
+                            }
+                            throw new UserException("Giao dịch hoàn tiền thất bại: " + result);
+                        }
+                    }
+                    else
+                    {
+                        throw new UserException("Gửi yêu cầu thất bại: " + response.StatusCode);
+                    }
                 }
                 else
                 {
@@ -399,8 +393,9 @@ namespace Etailor.API.Service.Service
             {
                 payment.Amount = Math.Abs(payment.Amount.Value);
             }
-            var amout = Math.Round(payment.Amount.Value, 2);
-            vnpay.AddRequestData("vnp_Amount", (amout * 100).ToString()); //Số tiền thanh toán. Số tiền không mang các ký tự phân tách thập phân, phần nghìn, ký tự tiền tệ. Để gửi số tiền thanh toán là 100,000 VND (một trăm nghìn VNĐ) thì merchant cần nhân thêm 100 lần (khử phần thập phân), sau đó gửi sang VNPAY là: 10000000
+            var amout = Math.Round(payment.Amount.Value, 2) * 100;
+
+            vnpay.AddRequestData("vnp_Amount", ((int)amout).ToString()); //Số tiền thanh toán. Số tiền không mang các ký tự phân tách thập phân, phần nghìn, ký tự tiền tệ. Để gửi số tiền thanh toán là 100,000 VND (một trăm nghìn VNĐ) thì merchant cần nhân thêm 100 lần (khử phần thập phân), sau đó gửi sang VNPAY là: 10000000
             vnpay.AddRequestData("vnp_BankCode", "");
 
             vnpay.AddRequestData("vnp_CreateDate", DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"));
@@ -440,18 +435,14 @@ namespace Etailor.API.Service.Service
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .Build();
 
-            //Get Config Info
-            string vnp_TmnCodeConfig = _configuration["VNPayConfig:vnp_TmnCode"]; //Ma định danh merchant kết nối (Terminal Id)
-            string vnp_HashSecret = _configuration["VNPayConfig:vnp_HashSecret"]; //Secret Key
+            string vnp_TmnCodeConfig = _configuration["VNPayConfig:vnp_TmnCode"]; // Ma định danh merchant kết nối (Terminal Id)
+            string vnp_HashSecret = _configuration["VNPayConfig:vnp_HashSecret"]; // Secret Key
 
             var vnLib = new VnPayLibrary();
 
             vnLib.AddRequestData("vnp_RequestId", id);
-
             vnLib.AddRequestData("vnp_Version", VnPayLibrary.VERSION);
-
             vnLib.AddRequestData("vnp_Command", "refund");
-
             vnLib.AddRequestData("vnp_TmnCode", vnp_TmnCodeConfig);
 
             if (transactionType != 2 && transactionType != 3)
@@ -459,34 +450,24 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Loại giao dịch không phù hợp");
             }
 
-            vnLib.AddRequestData("vnp_TransactionType", transactionType.ToString("00"));    //Loại giao dịch tại hệ thống VNPAY:
-                                                                                            //02: Giao dịch hoàn trả toàn phần(vnp_TransactionType= 02)
-                                                                                            //03: Giao dịch hoàn trả một phần(vnp_TransactionType= 03)
-
-            vnLib.AddRequestData("vnp_TxnRef", paymentRefuntId); // Mã tham chiếu của giao dịch tại hệ thống của merchant. Mã này là duy nhất dùng để phân biệt các đơn hàng gửi sang VNPAY. Không được trùng lặp trong ngày
+            vnLib.AddRequestData("vnp_TransactionType", transactionType.ToString("00")); // Loại giao dịch tại hệ thống VNPAY
+            vnLib.AddRequestData("vnp_TxnRef", paymentRefuntId); // Mã tham chiếu của giao dịch tại hệ thống của merchant
 
             if (refuntAmount < 0)
             {
                 refuntAmount = Math.Abs(refuntAmount);
             }
 
-            var amout = Math.Round(refuntAmount, 2);
+            var amount = Math.Round(refuntAmount, 2);
 
-            vnLib.AddRequestData("vnp_Amount", (amout * 100).ToString()); //Số tiền thanh toán. Số tiền không mang các ký tự phân tách thập phân, phần nghìn, ký tự tiền tệ. Để gửi số tiền thanh toán là 100,000 VND (một trăm nghìn VNĐ) thì merchant cần nhân thêm 100 lần (khử phần thập phân), sau đó gửi sang VNPAY là: 10000000
-
-            vnLib.AddRequestData("vnp_OrderInfo", transactionType == 2 ? $"Giao dich hoan tra toan phan cua giao dich: {paymentRefuntId}" : transactionType == 3 ? $"Giao dich hoan tra mot phan cua giao dich: {paymentRefuntId}" : "Loi");
-
+            vnLib.AddRequestData("vnp_Amount", ((int)(amount * 100)).ToString()); // Số tiền thanh toán
+            vnLib.AddRequestData("vnp_OrderInfo", transactionType == 2 ? $"Giao dich hoan tra toan phan cua giao dich: {paymentRefuntId}" : $"Giao dich hoan tra mot phan cua giao dich: {paymentRefuntId}");
             vnLib.AddRequestData("vnp_TransactionDate", DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"));
-
             vnLib.AddRequestData("vnp_CreateBy", "ETailor");
-
             vnLib.AddRequestData("vnp_CreateDate", DateTime.UtcNow.AddHours(7).ToString("yyyyMMddHHmmss"));
-
-            //vnLib.AddRequestData("vnp_IpAddr", "125.235.238.233");
             vnLib.AddRequestData("vnp_IpAddr", "20.212.64.6");
 
             string vnp_SecureHash = vnLib.CreateRefundSecureHash(vnp_HashSecret);
-
             vnLib.AddRequestData("vnp_SecureHash", vnp_SecureHash);
 
             return vnLib.GetRequestDataJson();

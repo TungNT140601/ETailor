@@ -30,7 +30,6 @@ namespace Etailor.API.Service.Service
         private readonly IBodySizeRepository bodySizeRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IMaterialRepository materialRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly ITemplateStateRepository templateStateRepository;
         private readonly IComponentTypeRepository componentTypeRepository;
         private readonly IComponentStageRepository componentStageRepository;
@@ -50,7 +49,7 @@ namespace Etailor.API.Service.Service
             , IProductTemplateRepository productTemplateRepository, IComponentRepository componentRepository
             , IProductBodySizeRepository productBodySizeRepository, IBodySizeRepository bodySizeRepository
             , IMaterialCategoryRepository materialCategoryRepository, IMaterialRepository materialRepository
-            , IMaterialTypeRepository materialTypeRepository, ITemplateStateRepository templateStateRepository
+            , ITemplateStateRepository templateStateRepository
             , IComponentTypeRepository componentTypeRepository, IComponentStageRepository componentStageRepository
             , IProfileBodyRepository profileBodyRepository, IOrderMaterialRepository orderMaterialRepository
             , IStaffRepository staffRepository, IMasteryRepository masteryRepository, ICategoryRepository categoryRepository
@@ -66,7 +65,6 @@ namespace Etailor.API.Service.Service
             this.productBodySizeRepository = productBodySizeRepository;
             this.bodySizeRepository = bodySizeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
-            this.materialTypeRepository = materialTypeRepository;
             this.materialRepository = materialRepository;
             this.componentTypeRepository = componentTypeRepository;
             this.templateStateRepository = templateStateRepository;
@@ -362,7 +360,7 @@ namespace Etailor.API.Service.Service
 
         public async Task<IEnumerable<Product>> GetTasks()
         {
-            var inProcessOrders = orderRepository.GetAll(x => x.Status >= 2 && x.Status < 8 && x.IsActive == true);
+            var inProcessOrders = orderRepository.GetAll(x => x.Status >= 3 && x.Status < 8 && x.IsActive == true);
             if (inProcessOrders != null && inProcessOrders.Any())
             {
                 inProcessOrders = inProcessOrders.ToList();
@@ -412,7 +410,12 @@ namespace Etailor.API.Service.Service
 
         public async Task<IEnumerable<Product>> GetTasksByStaffId(string staffId)
         {
-            return productRepository.GetAll(x => x.StaffMakerId == staffId && x.Status > 0 && x.IsActive == true);
+            return productRepository.GetStoreProcedure(StoreProcName.Get_Staff_Task, new SqlParameter()
+            {
+                ParameterName = "@StaffId",
+                SqlDbType = SqlDbType.NVarChar,
+                Value = staffId
+            });
         }
 
         public async Task AutoCreateEmptyTaskProduct()
@@ -614,143 +617,148 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public void AutoAssignTaskForStaff()
+        public async Task AutoAssignTaskForStaff()
         {
             try
             {
-                var startTime = DateTime.UtcNow.AddHours(7);
-                var checkException = false;
-                var notStartOrders = orderRepository.GetAll(x => x.Status == 3 && x.IsActive == true);
-                if (notStartOrders != null && notStartOrders.Any())
-                {
-                    notStartOrders = notStartOrders.OrderBy(x => x.CreatedTime).ToList();
-
-                    var notStartEmptyTaskProducts = productRepository.GetAll(x => notStartOrders.Select(c => c.Id).Contains(x.OrderId) && x.StaffMakerId == null && x.Status > 0 && x.Status < 8 && x.IsActive == true);
-                    if (notStartEmptyTaskProducts != null && notStartEmptyTaskProducts.Any())
-                    {
-                        notStartEmptyTaskProducts = notStartEmptyTaskProducts.ToList();
-
-                        var templates = productTemplateRepository.GetAll(x => notStartEmptyTaskProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
-                        if (templates != null && templates.Any())
-                        {
-                            templates = templates.ToList();
-
-                            var allMasteryStaffs = masteryRepository.GetAll(x => templates.Select(c => c.CategoryId).Contains(x.CategoryId));
-                            if (allMasteryStaffs != null && allMasteryStaffs.Any())
-                            {
-                                allMasteryStaffs = allMasteryStaffs.ToList();
-
-                                var allStaffs = staffRepository.GetAll(x => allMasteryStaffs.Select(c => c.StaffId).Contains(x.Id) && (x.Role == 1 || x.Role == 2) && x.IsActive == true);
-                                if (allStaffs != null && allStaffs.Any())
-                                {
-                                    allStaffs = allStaffs.ToList();
-
-                                    foreach (var product in notStartEmptyTaskProducts)
-                                    {
-                                        product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
-                                        if (product.ProductTemplate != null)
-                                        {
-                                            var masteryStaffs = allMasteryStaffs.Where(x => x.CategoryId == product.ProductTemplate.CategoryId);
-                                            if (masteryStaffs != null && masteryStaffs.Any())
-                                            {
-                                                masteryStaffs = masteryStaffs.ToList();
-
-                                                var staffs = allStaffs.Where(x => masteryStaffs.Select(c => c.StaffId).Contains(x.Id) && x.IsActive == true);
-                                                if (staffs != null && staffs.Any())
-                                                {
-                                                    staffs = staffs.ToList();
-
-                                                    var findFreeStaff = new Dictionary<string, string>();
-                                                    findFreeStaff.Add("Id", "");
-                                                    findFreeStaff.Add("NumOfTask", "-1");
-                                                    findFreeStaff.Add("MaxIndex", "0");
-
-                                                    foreach (var staff in staffs)
-                                                    {
-                                                        var staffCurrentTasks = productRepository.GetAll(x => x.StaffMakerId == staff.Id && x.Status > 0 && x.Status < 5 && x.IsActive == true);
-                                                        if (staffCurrentTasks != null && staffCurrentTasks.Any())
-                                                        {
-                                                            staffCurrentTasks = staffCurrentTasks.OrderByDescending(x => x.Index).ToList();
-
-                                                            var numOfTasks = staffCurrentTasks.Count();
-
-                                                            if (findFreeStaff.Any())
-                                                            {
-                                                                findFreeStaff.TryGetValue("NumOfTask", out string numOfTask1);
-                                                                int.TryParse(numOfTask1, out int numOfTaskInt);
-                                                                if (numOfTaskInt == -1 || numOfTaskInt > numOfTasks)
-                                                                {
-                                                                    findFreeStaff.Clear();
-                                                                    findFreeStaff.Add("Id", staff.Id);
-                                                                    findFreeStaff.Add("NumOfTask", numOfTasks + "");
-                                                                    findFreeStaff.Add("MaxIndex", staffCurrentTasks.First().Index + "");
-                                                                }
-                                                            }
-                                                            else
-                                                            {
-                                                                findFreeStaff.Clear();
-                                                                findFreeStaff.Add("Id", staff.Id);
-                                                                findFreeStaff.Add("NumOfTask", numOfTasks + "");
-                                                                findFreeStaff.Add("MaxIndex", staffCurrentTasks.First().Index + "");
-                                                            }
-                                                        }
-                                                        else
-                                                        {
-                                                            findFreeStaff.Clear();
-                                                            findFreeStaff.Add("Id", staff.Id);
-                                                            findFreeStaff.Add("NumOfTask", "0");
-                                                            findFreeStaff.Add("MaxIndex", "0");
-                                                        }
-                                                    }
-                                                    findFreeStaff.TryGetValue("Id", out string staffId);
-                                                    product.StaffMakerId = staffId;
-
-                                                    findFreeStaff.TryGetValue("MaxIndex", out string maxIndex);
-                                                    int.TryParse(maxIndex, out int maxIndexInt);
-                                                    product.Index = maxIndexInt + 1;
-
-                                                    if (product.ProductStages == null || !product.ProductStages.Any())
-                                                    {
-                                                        product.ProductStages = productStageRepository.GetAll(x => x.ProductId == product.Id && x.IsActive == true).ToList();
-                                                        foreach (var stage in product.ProductStages)
-                                                        {
-                                                            stage.Staff = null;
-                                                            stage.StaffId = staffId;
-                                                            stage.TaskIndex = stage.StageNum;
-                                                        }
-                                                    }
-                                                    try
-                                                    {
-                                                        if (!productRepository.Update(product.Id, product))
-                                                        {
-                                                            throw new SystemsException($"Error in {nameof(TaskService.AutoAssignTaskForStaff)}: Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(TaskService.AutoAssignTaskForStaff));
-                                                        }
-                                                    }
-                                                    catch (SystemsException)
-                                                    {
-                                                        checkException = true;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (checkException)
-                {
-                    throw new SystemsException("Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(TaskService.AutoAssignTaskForStaff));
-                }
-
-                var endTime = DateTime.UtcNow.AddHours(7);
+                await productRepository.GetStoreProcedureReturnInt(StoreProcName.Auto_Assign_Task_For_Staff);
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(TaskService.AutoAssignTaskForStaff));
+                throw new SystemsException($"Error in {nameof(TaskService.AutoAssignTaskForStaff)}: {ex.Message}", nameof(TaskService.AutoAssignTaskForStaff));
             }
+            //try
+            //{
+            //    var checkException = false;
+            //    var notStartOrders = orderRepository.GetAll(x => x.Status == 3 && x.IsActive == true);
+            //    if (notStartOrders != null && notStartOrders.Any())
+            //    {
+            //        notStartOrders = notStartOrders.OrderBy(x => x.CreatedTime).ToList();
+
+            //        var notStartEmptyTaskProducts = productRepository.GetAll(x => notStartOrders.Select(c => c.Id).Contains(x.OrderId) && x.StaffMakerId == null && x.Status > 0 && x.Status < 5 && x.IsActive == true);
+            //        if (notStartEmptyTaskProducts != null && notStartEmptyTaskProducts.Any())
+            //        {
+            //            notStartEmptyTaskProducts = notStartEmptyTaskProducts.ToList();
+
+            //            var templates = productTemplateRepository.GetAll(x => notStartEmptyTaskProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
+            //            if (templates != null && templates.Any())
+            //            {
+            //                templates = templates.ToList();
+
+            //                var allMasteryStaffs = masteryRepository.GetAll(x => templates.Select(c => c.CategoryId).Contains(x.CategoryId));
+            //                if (allMasteryStaffs != null && allMasteryStaffs.Any())
+            //                {
+            //                    allMasteryStaffs = allMasteryStaffs.ToList();
+
+            //                    var allStaffs = staffRepository.GetAll(x => allMasteryStaffs.Select(c => c.StaffId).Contains(x.Id) && (x.Role == 1 || x.Role == 2) && x.IsActive == true);
+            //                    if (allStaffs != null && allStaffs.Any())
+            //                    {
+            //                        allStaffs = allStaffs.ToList();
+
+            //                        foreach (var product in notStartEmptyTaskProducts)
+            //                        {
+            //                            product.ProductTemplate = templates.SingleOrDefault(x => x.Id == product.ProductTemplateId);
+            //                            if (product.ProductTemplate != null)
+            //                            {
+            //                                var masteryStaffs = allMasteryStaffs.Where(x => x.CategoryId == product.ProductTemplate.CategoryId);
+            //                                if (masteryStaffs != null && masteryStaffs.Any())
+            //                                {
+            //                                    masteryStaffs = masteryStaffs.ToList();
+
+            //                                    var staffs = allStaffs.Where(x => masteryStaffs.Select(c => c.StaffId).Contains(x.Id) && x.IsActive == true);
+            //                                    if (staffs != null && staffs.Any())
+            //                                    {
+            //                                        staffs = staffs.ToList();
+
+            //                                        var findFreeStaff = new Dictionary<string, string>();
+            //                                        findFreeStaff.Add("Id", "");
+            //                                        findFreeStaff.Add("NumOfTask", "-1");
+            //                                        findFreeStaff.Add("MaxIndex", "0");
+
+            //                                        foreach (var staff in staffs)
+            //                                        {
+            //                                            var staffCurrentTasks = productRepository.GetAll(x => x.StaffMakerId == staff.Id && x.Status > 0 && x.Status < 5 && x.IsActive == true);
+            //                                            if (staffCurrentTasks != null && staffCurrentTasks.Any())
+            //                                            {
+            //                                                staffCurrentTasks = staffCurrentTasks.OrderByDescending(x => x.Index).ToList();
+
+            //                                                var numOfTasks = staffCurrentTasks.Count();
+
+            //                                                if (findFreeStaff.Any())
+            //                                                {
+            //                                                    findFreeStaff.TryGetValue("NumOfTask", out string numOfTask1);
+            //                                                    int.TryParse(numOfTask1, out int numOfTaskInt);
+            //                                                    if (numOfTaskInt == -1 || numOfTaskInt > numOfTasks)
+            //                                                    {
+            //                                                        findFreeStaff.Clear();
+            //                                                        findFreeStaff.Add("Id", staff.Id);
+            //                                                        findFreeStaff.Add("NumOfTask", numOfTasks + "");
+            //                                                        findFreeStaff.Add("MaxIndex", staffCurrentTasks.First().Index + "");
+            //                                                    }
+            //                                                }
+            //                                                else
+            //                                                {
+            //                                                    findFreeStaff.Clear();
+            //                                                    findFreeStaff.Add("Id", staff.Id);
+            //                                                    findFreeStaff.Add("NumOfTask", numOfTasks + "");
+            //                                                    findFreeStaff.Add("MaxIndex", staffCurrentTasks.First().Index + "");
+            //                                                }
+            //                                            }
+            //                                            else
+            //                                            {
+            //                                                findFreeStaff.Clear();
+            //                                                findFreeStaff.Add("Id", staff.Id);
+            //                                                findFreeStaff.Add("NumOfTask", "0");
+            //                                                findFreeStaff.Add("MaxIndex", "0");
+            //                                            }
+            //                                        }
+            //                                        findFreeStaff.TryGetValue("Id", out string staffId);
+            //                                        product.StaffMakerId = staffId;
+
+            //                                        findFreeStaff.TryGetValue("MaxIndex", out string maxIndex);
+            //                                        int.TryParse(maxIndex, out int maxIndexInt);
+            //                                        product.Index = maxIndexInt + 1;
+
+            //                                        if (product.ProductStages == null || !product.ProductStages.Any())
+            //                                        {
+            //                                            product.ProductStages = productStageRepository.GetAll(x => x.ProductId == product.Id && x.IsActive == true).ToList();
+            //                                            foreach (var stage in product.ProductStages)
+            //                                            {
+            //                                                stage.Staff = null;
+            //                                                stage.StaffId = staffId;
+            //                                                stage.TaskIndex = stage.StageNum;
+            //                                            }
+            //                                        }
+            //                                        try
+            //                                        {
+            //                                            if (!productRepository.Update(product.Id, product))
+            //                                            {
+            //                                                throw new SystemsException($"Error in {nameof(TaskService.AutoAssignTaskForStaff)}: Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(TaskService.AutoAssignTaskForStaff));
+            //                                            }
+            //                                        }
+            //                                        catch (SystemsException)
+            //                                        {
+            //                                            checkException = true;
+            //                                        }
+            //                                    }
+            //                                }
+            //                            }
+            //                        }
+            //                    }
+            //                }
+            //            }
+            //        }
+            //    }
+
+            //    if (checkException)
+            //    {
+            //        throw new SystemsException("Lỗi trong quá trình tự động phân công công việc cho nhân viên", nameof(TaskService.AutoAssignTaskForStaff));
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    throw new SystemsException(ex.Message, nameof(TaskService.AutoAssignTaskForStaff));
+            //}
         }
 
         public async Task<bool> SetDeadlineForTask(string productId, DateTime deadline)
@@ -1770,16 +1778,16 @@ namespace Etailor.API.Service.Service
                             throw new UserException("Không tìm thấy công đoạn của sản phẩm");
                         }
 
+                        title.Value = $"Sản phẩm bị từ chối.";
+
                         if (order.Status == 6)
                         {
                             order.Status = 7;
 
-                            title.Value = $"Hóa đơn {order.Id} vừa bị khách từ chối.";
                             content.Value = $"Sản phẩm {product.Id} : {product.Name} bị khách từ chối.";
                         }
                         else
                         {
-                            title.Value = $"Hóa đơn {order.Id} vừa bị quản lý từ chối.";
                             content.Value = $"Sản phẩm {product.Id} : {product.Name} bị quản lý từ chối.";
                         }
 
@@ -1852,121 +1860,135 @@ namespace Etailor.API.Service.Service
             if (activeOrders != null && activeOrders.Any())
             {
                 activeOrders = activeOrders.ToList();
-
-                var orderProducts = productRepository.GetAll(x => activeOrders.Select(c => c.Id).Contains(x.OrderId) && x.Status >= 1 && x.Status <= 5 && x.IsActive == true);
-                if (orderProducts != null && orderProducts.Any())
-                {
-                    orderProducts = orderProducts.ToList();
-
-                    var templates = productTemplateRepository.GetAll(x => orderProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
-                    if (templates != null && templates.Any())
-                    {
-                        templates = templates.ToList();
-
-                        var categories = categoryRepository.GetAll(x => templates.Select(c => c.CategoryId).Contains(x.Id) || x.IsActive == true);
-                        if (categories != null && categories.Any())
-                        {
-                            categories = categories.ToList();
-
-                            var templateStages = templateStateRepository.GetAll(x => templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
-                            if (templateStages != null && templateStages.Any())
-                            {
-                                templateStages = templateStages.ToList();
-
-                                var productStages = productStageRepository.GetAll(x => x.IsActive == true && orderProducts.Select(c => c.Id).Contains(x.ProductId) && x.Status >= 1 && x.Status < 4);
-                                if (productStages != null && productStages.Any())
-                                {
-                                    productStages = productStages.ToList();
-
-                                    var staffs = staffRepository.GetAll(x => orderProducts.Select(x => x.StaffMakerId).Contains(x.Id) && x.IsActive == true);
-
-                                    if (staffs != null && staffs.Any())
-                                    {
-                                        staffs = staffs.ToList();
-                                    }
-
-                                    var fabricMaterialIds = string.Join(",", orderProducts.Select(x => x.FabricMaterialId).Distinct().ToList());
-
-                                    var fabricMaterials = materialRepository.GetAll(x => fabricMaterialIds.Contains(x.Id));
-
-                                    if (fabricMaterials != null && fabricMaterials.Any())
-                                    {
-                                        fabricMaterials = fabricMaterials.ToList();
-                                    }
-
-                                    var tasks = new List<Task>();
-                                    foreach (var category in categories)
-                                    {
-                                        tasks.Add(Task.Run(async () =>
-                                        {
-                                            category.ProductTemplates = templates.Where(x => x.CategoryId == category.Id)?.ToList();
-
-                                            if (category.ProductTemplates != null && category.ProductTemplates.Any())
-                                            {
-                                                var categoryTasks = new List<Task>();
-                                                foreach (var template in category.ProductTemplates)
-                                                {
-                                                    categoryTasks.Add(Task.Run(async () =>
-                                                    {
-                                                        template.Products.Clear();
-                                                        template.Products = orderProducts.Where(x => x.ProductTemplateId == template.Id)?.ToList();
-
-                                                        if (template.Products != null && template.Products.Any())
-                                                        {
-                                                            var templateTasks = new List<Task>();
-                                                            foreach (var product in template.Products)
-                                                            {
-                                                                templateTasks.Add(Task.Run(async () =>
-                                                                {
-                                                                    if (product.StaffMakerId != null && staffs != null && staffs.Any())
-                                                                    {
-                                                                        product.StaffMaker = staffs.SingleOrDefault(x => x.Id == product.StaffMakerId);
-
-                                                                        if (product.StaffMaker?.Avatar != null)
-                                                                        {
-                                                                            product.StaffMaker.Avatar = Ultils.GetUrlImage(product.StaffMaker.Avatar);
-                                                                        }
-                                                                    }
-                                                                    if (product.FabricMaterial == null)
-                                                                    {
-                                                                        product.FabricMaterial = fabricMaterials.FirstOrDefault(x => x.Id == product.FabricMaterialId);
-                                                                    }
-
-                                                                    if (product.FabricMaterial != null)
-                                                                    {
-                                                                        product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
-                                                                    }
-
-                                                                    product.ProductStages.Clear();
-                                                                    product.ProductStages.Add(productStages.Where(x => x.ProductId == product.Id)?.OrderBy(x => x.StageNum)?.FirstOrDefault());
-                                                                }));
-                                                            }
-                                                            await Task.WhenAll(templateTasks);
-
-                                                            template.Products = template.Products?.OrderBy(x => x.CreatedTime)?.ToList();
-                                                        }
-
-                                                        template.TemplateStages.Clear();
-                                                        template.TemplateStages = templateStages.Where(x => x.ProductTemplateId == template.Id)?.OrderBy(x => x.StageNum)?.ToList();
-                                                    }));
-                                                }
-                                                await Task.WhenAll(categoryTasks);
-
-                                                category.ProductTemplates = category.ProductTemplates?.OrderBy(x => x.Name)?.ToList();
-                                            }
-                                        }));
-                                    }
-                                    await Task.WhenAll(tasks);
-                                }
-                            }
-
-                            return categories;
-                        }
-                    }
-                }
+            }
+            else
+            {
+                activeOrders = null;
             }
 
-            return null;
+            var orderProducts = productRepository.GetAll(x => activeOrders != null && activeOrders.Any() && activeOrders.Select(c => c.Id).Contains(x.OrderId) && x.Status >= 1 && x.Status <= 5 && x.IsActive == true);
+            if (orderProducts != null && orderProducts.Any())
+            {
+                orderProducts = orderProducts.ToList();
+            }
+            else
+            {
+                orderProducts = null;
+            }
+
+            var templates = productTemplateRepository.GetAll(x => orderProducts != null && orderProducts.Any() && orderProducts.Select(c => c.ProductTemplateId).Contains(x.Id));
+            if (templates != null && templates.Any())
+            {
+                templates = templates.ToList();
+            }
+            else
+            {
+                templates = null;
+            }
+
+            var categories = categoryRepository.GetAll(x => (templates != null && templates.Any() && templates.Select(c => c.CategoryId).Contains(x.Id)) || x.IsActive == true);
+            if (categories != null && categories.Any())
+            {
+                categories = categories.ToList();
+
+                var templateStages = templateStateRepository.GetAll(x => templates != null && templates.Any() && templates.Select(c => c.Id).Contains(x.ProductTemplateId) && x.IsActive == true);
+                if (templateStages != null && templateStages.Any())
+                {
+                    templateStages = templateStages.ToList();
+
+                    var productStages = productStageRepository.GetAll(x => x.IsActive == true && orderProducts.Select(c => c.Id).Contains(x.ProductId) && x.Status >= 1 && x.Status < 4);
+                    if (productStages != null && productStages.Any())
+                    {
+                        productStages = productStages.ToList();
+
+                        var staffs = staffRepository.GetAll(x => orderProducts.Select(x => x.StaffMakerId).Contains(x.Id) && x.IsActive == true);
+
+                        if (staffs != null && staffs.Any())
+                        {
+                            staffs = staffs.ToList();
+                        }
+
+                        var fabricMaterialIds = string.Join(",", orderProducts.Select(x => x.FabricMaterialId).Distinct().ToList());
+
+                        var fabricMaterials = materialRepository.GetAll(x => fabricMaterialIds.Contains(x.Id));
+
+                        if (fabricMaterials != null && fabricMaterials.Any())
+                        {
+                            fabricMaterials = fabricMaterials.ToList();
+                        }
+
+                        var tasks = new List<Task>();
+                        foreach (var category in categories)
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                category.ProductTemplates = templates.Where(x => x.CategoryId == category.Id)?.ToList();
+
+                                if (category.ProductTemplates != null && category.ProductTemplates.Any())
+                                {
+                                    var categoryTasks = new List<Task>();
+                                    foreach (var template in category.ProductTemplates)
+                                    {
+                                        categoryTasks.Add(Task.Run(async () =>
+                                        {
+                                            template.Products.Clear();
+                                            template.Products = orderProducts.Where(x => x.ProductTemplateId == template.Id)?.ToList();
+
+                                            if (template.Products != null && template.Products.Any())
+                                            {
+                                                var templateTasks = new List<Task>();
+                                                foreach (var product in template.Products)
+                                                {
+                                                    templateTasks.Add(Task.Run(async () =>
+                                                    {
+                                                        if (product.StaffMakerId != null && staffs != null && staffs.Any())
+                                                        {
+                                                            product.StaffMaker = staffs.SingleOrDefault(x => x.Id == product.StaffMakerId);
+
+                                                            if (product.StaffMaker?.Avatar != null)
+                                                            {
+                                                                product.StaffMaker.Avatar = Ultils.GetUrlImage(product.StaffMaker.Avatar);
+                                                            }
+                                                        }
+                                                        if (product.FabricMaterial == null)
+                                                        {
+                                                            product.FabricMaterial = fabricMaterials.FirstOrDefault(x => x.Id == product.FabricMaterialId);
+                                                        }
+
+                                                        if (product.FabricMaterial != null)
+                                                        {
+                                                            product.FabricMaterial.Image = Ultils.GetUrlImage(product.FabricMaterial.Image);
+                                                        }
+
+                                                        product.ProductStages.Clear();
+                                                        product.ProductStages.Add(productStages.Where(x => x.ProductId == product.Id)?.OrderBy(x => x.StageNum)?.FirstOrDefault());
+                                                    }));
+                                                }
+                                                await Task.WhenAll(templateTasks);
+
+                                                template.Products = template.Products?.OrderBy(x => x.CreatedTime)?.ToList();
+                                            }
+
+                                            template.TemplateStages.Clear();
+                                            template.TemplateStages = templateStages.Where(x => x.ProductTemplateId == template.Id)?.OrderBy(x => x.StageNum)?.ToList();
+                                        }));
+                                    }
+                                    await Task.WhenAll(categoryTasks);
+
+                                    category.ProductTemplates = category.ProductTemplates?.OrderBy(x => x.Name)?.ToList();
+                                }
+                            }));
+                        }
+                        await Task.WhenAll(tasks);
+                    }
+                }
+
+                return categories;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public async Task<bool> SetMaterialForTask(string taskId, string stageId, List<ProductStageMaterial> stageMaterials)

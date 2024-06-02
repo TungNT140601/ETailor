@@ -17,18 +17,16 @@ namespace Etailor.API.Service.Service
     {
         private readonly IMaterialRepository materialRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly IOrderMaterialRepository orderMaterialRepository;
         private readonly IOrderRepository orderRepository;
         private readonly IProductRepository productRepository;
 
         public MaterialService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository
-            , IMaterialTypeRepository materialTypeRepository, IOrderMaterialRepository orderMaterialRepository
+            , IOrderMaterialRepository orderMaterialRepository
             , IOrderRepository orderRepository, IProductRepository productRepository)
         {
             this.materialRepository = materialRepository;
             this.materialCategoryRepository = materialCategoryRepository;
-            this.materialTypeRepository = materialTypeRepository;
             this.orderMaterialRepository = orderMaterialRepository;
             this.orderRepository = orderRepository;
             this.productRepository = productRepository;
@@ -239,21 +237,6 @@ namespace Etailor.API.Service.Service
             }
 
             return materials;
-        }
-
-        public IEnumerable<Material> GetMaterialsByMaterialType(string materialTypeId)
-        {
-            var materialType = materialTypeRepository.Get(materialTypeId);
-            if (materialType != null && materialType.IsActive == true)
-            {
-                var materialCategories = materialCategoryRepository.GetAll(x => x.MaterialTypeId == materialType.Id && x.IsActive == true);
-
-                if (materialCategories.Any() && materialCategories.Count() > 0)
-                {
-                    return materialRepository.GetAll(x => materialCategories.Select(m => m.Id).Contains(x.MaterialCategoryId) && x.IsActive == true);
-                }
-            }
-            return new List<Material>();
         }
 
         public async Task<IEnumerable<Material>> GetFabricMaterials(string? search)

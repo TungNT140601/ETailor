@@ -23,7 +23,7 @@ namespace Etailor.API.Service.Interface
         bool PendingTask(string productId, string productStageId, string staffId);
         Task<bool> DefectsTask(string productId, string orderId);
         Task AutoCreateEmptyTaskProduct();
-        void AutoAssignTaskForStaff();
+        Task AutoAssignTaskForStaff();
         Task SwapTaskIndex(string productId, string? staffId, int? index);
         void ResetIndex(string? staffId);
         void ResetBlankIndex(string? staffId);

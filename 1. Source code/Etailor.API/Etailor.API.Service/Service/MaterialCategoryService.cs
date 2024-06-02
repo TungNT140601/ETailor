@@ -16,13 +16,11 @@ namespace Etailor.API.Service.Service
     public class MaterialCategoryService : IMaterialCategoryService
     {
         private readonly IMaterialCategoryRepository materialCategoryRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly IMaterialRepository materialRepository;
 
-        public MaterialCategoryService(IMaterialRepository materialRepository, IMaterialTypeRepository materialTypeRepository, IMaterialCategoryRepository materialCategoryRepository)
+        public MaterialCategoryService(IMaterialRepository materialRepository, IMaterialCategoryRepository materialCategoryRepository)
         {
             this.materialRepository = materialRepository;
-            this.materialTypeRepository = materialTypeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
         }
 
@@ -33,13 +31,6 @@ namespace Etailor.API.Service.Service
 
             var tasks = new List<Task>();
 
-            tasks.Add(Task.Run(async () =>
-            {
-                if (string.IsNullOrWhiteSpace(materialCategory.MaterialTypeId))
-                {
-                    throw new UserException("Vui lòng nhập Id");
-                }
-            }));
             tasks.Add(Task.Run(async () =>
             {
                 if (string.IsNullOrWhiteSpace(materialCategory.Name))
