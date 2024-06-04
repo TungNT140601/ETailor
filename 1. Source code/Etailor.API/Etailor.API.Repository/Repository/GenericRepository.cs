@@ -463,36 +463,5 @@ namespace Etailor.API.Repository.Repository
                 throw new Exception(ex.Message);
             }
         }
-
-        public DatabaseFacade GetDatabase()
-        {
-            try
-            {
-                return dBContext.Database;
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message, nameof(T));
-            }
-        }
-        public ETailor_DBContext GetDbContext()
-        {
-            try
-            {
-                return dBContext;
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message, nameof(T));
-            }
-        }
     }
 }

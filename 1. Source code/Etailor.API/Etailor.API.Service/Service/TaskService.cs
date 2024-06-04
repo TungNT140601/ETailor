@@ -1086,6 +1086,10 @@ namespace Etailor.API.Service.Service
                                                 {
                                                     if (i > 0)
                                                     {
+                                                        if (listTasks[i].Id == oldTaskMinIndex.Id)
+                                                        {
+                                                            listTasks[i].Index = minIndex;
+                                                        }
                                                         if (listTasks[i].Id == productId)
                                                         {
                                                             listTasks[i].Index = minIndex + 1;
@@ -1204,7 +1208,14 @@ namespace Etailor.API.Service.Service
                                         listTasks = listTasks.OrderBy(x => x.Index).ToList();
                                         for (int i = 2; i < listTasks.Count; i++)
                                         {
-                                            listTasks[i].Index = minIndex + i - 1;
+                                            if (listTasks[i].Id == oldTaskMinIndex.Id)
+                                            {
+                                                listTasks[i].Index = minIndex;
+                                            }
+                                            else
+                                            {
+                                                listTasks[i].Index = minIndex + i + 1;
+                                            }
                                             listTasks[i].StaffMakerId = staffId;
                                         }
 
@@ -1212,13 +1223,13 @@ namespace Etailor.API.Service.Service
                                     }
                                     else
                                     {
-                                        product.Index = minIndex - 1;
+                                        product.Index = minIndex;
 
                                         listTasks.Insert(0, product);
                                         listTasks = listTasks.OrderBy(x => x.Index).ToList();
                                         for (int i = 0; i < listTasks.Count; i++)
                                         {
-                                            listTasks[i].Index = minIndex + i;
+                                            listTasks[i].Index = minIndex + i + 1;
                                             listTasks[i].StaffMakerId = staffId;
                                         }
 
