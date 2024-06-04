@@ -1078,7 +1078,7 @@ namespace Etailor.API.Service.Service
                                         var oldTaskMinIndex = listTasks.FirstOrDefault(x => x.Index == minIndex);
                                         if (oldTaskMinIndex != null)
                                         {
-                                            if (oldTaskMinIndex.Status == 2)
+                                            if (oldTaskMinIndex.Status >= 2)
                                             {
                                                 listTasks = listTasks.OrderBy(x => x.Index).ToList();
 
@@ -1107,12 +1107,17 @@ namespace Etailor.API.Service.Service
                                             }
                                             else
                                             {
-                                                oldTask.Index = minIndex;
-
                                                 listTasks = listTasks.OrderBy(x => x.Index).ToList();
                                                 for (int i = 0; i < listTasks.Count; i++)
                                                 {
-                                                    listTasks[i].Index = minIndex + 1 + i;
+                                                    if (listTasks[i].Id == oldTask.Id)
+                                                    {
+                                                        listTasks[i].Index = minIndex;
+                                                    }
+                                                    else
+                                                    {
+                                                        listTasks[i].Index = minIndex + 1 + i;
+                                                    }
                                                     listTasks[i].StaffMakerId = staffId;
                                                     listTasks[i].LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
                                                 }
@@ -1200,13 +1205,10 @@ namespace Etailor.API.Service.Service
                                 if (index <= minIndex)
                                 {
                                     var oldTaskMinIndex = listTasks.FirstOrDefault(x => x.Index == minIndex);
-                                    if (oldTaskMinIndex.Status == 2)
+                                    if (oldTaskMinIndex.Status >= 2)
                                     {
-                                        product.Index = minIndex + 1;
-
-                                        listTasks.Insert(1, product);
                                         listTasks = listTasks.OrderBy(x => x.Index).ToList();
-                                        for (int i = 2; i < listTasks.Count; i++)
+                                        for (int i = 1; i < listTasks.Count; i++)
                                         {
                                             if (listTasks[i].Id == oldTaskMinIndex.Id)
                                             {
@@ -1219,19 +1221,24 @@ namespace Etailor.API.Service.Service
                                             listTasks[i].StaffMakerId = staffId;
                                         }
 
+                                        product.Index = minIndex + 1;
+                                        product.StaffMakerId = staffId;
+
+                                        listTasks.Insert(1, product);
+
                                         await productRepository.UpdateRangeProduct(listTasks);
                                     }
                                     else
                                     {
-                                        product.Index = minIndex;
-
-                                        listTasks.Insert(0, product);
                                         listTasks = listTasks.OrderBy(x => x.Index).ToList();
                                         for (int i = 0; i < listTasks.Count; i++)
                                         {
                                             listTasks[i].Index = minIndex + i + 1;
                                             listTasks[i].StaffMakerId = staffId;
                                         }
+                                        product.Index = minIndex;
+
+                                        listTasks.Insert(0, product);
 
                                         await productRepository.UpdateRangeProduct(listTasks);
                                     }
@@ -1264,7 +1271,7 @@ namespace Etailor.API.Service.Service
                                     {
                                         for (int i = oldIndexTaskIndex; i < listTasks.Count; i++)
                                         {
-                                            listTasks[i].Index = minIndex + 1 + i;
+                                            listTasks[i].Index = listTasks[i].Index + 1;
                                             listTasks[i].StaffMakerId = staffId;
                                         }
                                     }
