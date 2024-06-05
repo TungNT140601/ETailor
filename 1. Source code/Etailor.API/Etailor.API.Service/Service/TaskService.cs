@@ -1222,6 +1222,7 @@ namespace Etailor.API.Service.Service
                                         }
 
                                         product.Index = minIndex + 1;
+                                        product.StaffMaker = null;
                                         product.StaffMakerId = staffId;
 
                                         listTasks.Insert(1, product);
@@ -1237,6 +1238,8 @@ namespace Etailor.API.Service.Service
                                             listTasks[i].StaffMakerId = staffId;
                                         }
                                         product.Index = minIndex;
+                                        product.StaffMakerId = staffId;
+                                        product.StaffMaker = null;
 
                                         listTasks.Insert(0, product);
 
@@ -1251,6 +1254,7 @@ namespace Etailor.API.Service.Service
                                     product.Index = maxIndex;
 
                                     product.StaffMakerId = staffId;
+                                    product.StaffMaker = null;
                                     oldMaxIndex.StaffMakerId = staffId;
 
                                     productRepository.Update(product.Id, product);
@@ -1260,6 +1264,7 @@ namespace Etailor.API.Service.Service
                                 {
                                     product.Index = maxIndex + 1;
                                     product.StaffMakerId = staffId;
+                                    product.StaffMaker = null;
 
                                     productRepository.Update(productId, product);
                                 }
@@ -1276,6 +1281,7 @@ namespace Etailor.API.Service.Service
                                         }
                                     }
                                     product.Index = index;
+                                    product.StaffMaker = null;
                                     product.StaffMakerId = staffId;
 
                                     listTasks = listTasks.OrderBy(x => x.Index).ToList();
