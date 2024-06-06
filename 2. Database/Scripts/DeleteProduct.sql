@@ -14,12 +14,14 @@ BEGIN
     DECLARE @OrderDeposit DECIMAL(18,3);
     DECLARE @FabricMaterialId NVARCHAR(30);
 
-    IF NOT EXISTS (SELECT 1 FROM Product WHERE Id = @ProductId AND IsActive = 1 AND [Status] > 0)
+    IF NOT EXISTS (SELECT 1
+    FROM Product
+    WHERE Id = @ProductId AND IsActive = 1 AND [Status] > 0)
         THROW 50000, N'Không tìm thấy sản phẩm', 1;
-    ELSE
-        SELECT @FabricMaterialId = FabricMaterialId
-        FROM Product
-        WHERE Id = @ProductId
+
+    SELECT @FabricMaterialId = FabricMaterialId
+    FROM Product
+    WHERE Id = @ProductId
 
     SELECT @OrderStatus = [Status], @OrderPaidMoney = PaidMoney, @OrderDeposit = Deposit
     FROM [Order]
@@ -27,7 +29,7 @@ BEGIN
 
     IF @OrderStatus IS NULL
         THROW 50000, N'Không tìm thấy hóa đơn', 1;
-    
+
     IF @OrderStatus >= 2
     BEGIN
         IF @OrderStatus = 0
@@ -58,10 +60,15 @@ BEGIN
         InactiveTime = DATEADD(HOUR, 7, GETUTCDATE())
         WHERE Id = @ProductId
 
-        IF (SELECT COUNT(*) FROM Product WHERE OrderId = @OrderId AND FabricMaterialId = @FabricMaterialId) = 1
-        DELETE OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @FabricMaterialId
+        IF NOT EXISTS (SELECT 1
+        FROM Product
+        WHERE Id NOT LIKE @ProductId AND OrderId = @OrderId AND FabricMaterialId = @FabricMaterialId AND IsActive = 1 AND [Status] > 0)
+        BEGIN
+            DELETE FROM OrderMaterial WHERE OrderId = @OrderId AND MaterialId = @FabricMaterialId AND IsActive = 1 AND IsCusMaterial = 0;
+        END;
     END;
 
-    SELECT 1 AS ReturnValue; -- Instead of RETURN 1;
+    SELECT 1 AS ReturnValue;
+-- Instead of RETURN 1;
 END;
 GO

@@ -38,13 +38,6 @@ namespace Etailor.API.Service.Service
                     throw new UserException("Vui lòng nhập tên");
                 }
             }));
-            tasks.Add(Task.Run(async () =>
-            {
-                if (materialCategory.PricePerUnit < 0)
-                {
-                    throw new UserException("Vui lòng nhập giá");
-                }
-            }));
 
             await Task.WhenAll(tasks);
 
@@ -61,7 +54,6 @@ namespace Etailor.API.Service.Service
             if (existMaterialCategory != null)
             {
                 existMaterialCategory.Name = materialCategory.Name;
-                existMaterialCategory.PricePerUnit = materialCategory.PricePerUnit;
 
                 var tasks = new List<Task>();
 
@@ -70,13 +62,6 @@ namespace Etailor.API.Service.Service
                     if (string.IsNullOrWhiteSpace(materialCategory.Name))
                     {
                         throw new UserException("Vui lòng nhập tên");
-                    }
-                }));
-                tasks.Add(Task.Run(async () =>
-                {
-                    if (materialCategory.PricePerUnit < 0)
-                    {
-                        throw new UserException("Vui lòng nhập giá");
                     }
                 }));
 
