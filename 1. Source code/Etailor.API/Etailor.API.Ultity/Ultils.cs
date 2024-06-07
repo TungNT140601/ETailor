@@ -683,6 +683,14 @@ namespace Etailor.API.Ultity
 
             try
             {
+                if (!Directory.Exists(Path.Combine(wwwrootPath, "Log")))
+                {
+                    Directory.CreateDirectory(Path.Combine(wwwrootPath, "Log"));
+                }
+                if (!Directory.Exists(Path.Combine(wwwrootPath, "Log", "Check")))
+                {
+                    Directory.CreateDirectory(Path.Combine(wwwrootPath, "Log", "Check"));
+                }
                 if (!File.Exists(filePath))
                 {
                     var file = File.Create(filePath);

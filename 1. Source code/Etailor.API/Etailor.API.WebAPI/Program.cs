@@ -240,10 +240,11 @@ var allowSpecificOrigins = builder.Configuration.GetSection("AllowSpecificOrigin
 app.UseCors(option =>
 {
     option
-    .WithOrigins(allowSpecificOrigins)
+    //.WithOrigins(allowSpecificOrigins)
+    .AllowAnyOrigin()
     .AllowAnyHeader()
-    .AllowAnyMethod()
-    .AllowCredentials();
+    .AllowAnyMethod();
+    //.AllowCredentials();
 });
 
 app.UseHangfireDashboard();
