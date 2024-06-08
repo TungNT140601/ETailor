@@ -127,8 +127,6 @@ BEGIN
         END;
     END;
 
-    SET @ProducPrice = @ProducPrice
-
     IF NOT EXISTS(SELECT 1
     FROM ProfileBody
     WHERE Id = @NewProfileBodyId AND CustomerId = @CustomerId AND IsActive = 1)
@@ -163,7 +161,6 @@ BEGIN
         ,[Status] = 1
         ,[LastestUpdatedTime] = DATEADD(HOUR, 7, GETUTCDATE())
         ,[IsActive] = 1
-        ,[Price] = @ProducPrice
         ,[SaveOrderComponents] = @NewSaveOrderComponents
         ,[FabricMaterialId] = @NewFabricMaterialId
         ,[ReferenceProfileBodyId] = @NewProfileBodyId

@@ -96,8 +96,6 @@ BEGIN
         END;
     END;
 
-    SET @ProducPrice = @ProducPrice
-
     IF NOT EXISTS(SELECT 1
     FROM ProfileBody
     WHERE Id = @ProfileBodyId AND CustomerId = @CustomerId AND IsActive = 1)

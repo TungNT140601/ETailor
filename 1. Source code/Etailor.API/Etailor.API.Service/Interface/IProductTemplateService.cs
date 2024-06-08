@@ -20,6 +20,6 @@ namespace Etailor.API.Service.Interface
         bool DeleteTemplate(string id);
         Task<IEnumerable<ComponentType>> GetTemplateComponent(string templateId);
         Task<IEnumerable<ProductTemplate>> GetTemplates(string? search);
-        string ExportFile(string templateId);
+        Task<string> ExportFile(string templateId);
     }
 }

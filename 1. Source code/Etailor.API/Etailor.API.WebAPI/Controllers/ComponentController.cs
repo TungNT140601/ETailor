@@ -152,7 +152,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return Ok(componentService.DeleteComponent(id));
+                        return componentService.DeleteComponent(id) ? Ok("Xóa kiểu bộ phận thành công") : BadRequest("Xóa kiểu bộ phận thất bại");
                     }
                 }
             }
@@ -196,43 +196,53 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                if (role == null)
+                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                //if (role == null)
+                //{
+                //    return Unauthorized("Chưa đăng nhập");
+                //}
+                //else if (role != RoleName.MANAGER)
+                //{
+                //    return Unauthorized("Không có quyền truy cập");
+                //}
+                //else
+                //{
+                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                //    {
+                //        return Unauthorized("Chưa đăng nhập");
+                //    }
+                //    else
+                //    {
+                var filePath = await productTemplateService.ExportFile(templateId);
+
+                if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File")))
                 {
-                    return Unauthorized("Chưa đăng nhập");
+                    System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File"));
                 }
-                else if (role != RoleName.MANAGER)
+
+                if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File", "Export")))
                 {
-                    return Unauthorized("Không có quyền truy cập");
+                    System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File", "Export"));
+                }
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    throw new SystemsException("Không tìm thấy file", nameof(ComponentController.ExportFile));
                 }
                 else
                 {
-                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                    {
-                        return Unauthorized("Chưa đăng nhập");
-                    }
-                    else
-                    {
-                        var filePath = productTemplateService.ExportFile(templateId);
+                    var fileName = Path.GetFileName(filePath);
 
-                        if (!System.IO.File.Exists(filePath))
-                        {
-                            return NotFound("File not found");
-                        }
-                        else
-                        {
-                            var fileName = Path.GetFileName(filePath);
+                    byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
 
-                            byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                    System.IO.File.Delete(filePath);
 
-                            System.IO.File.Delete(filePath);
-
-                            return File(fileBytes, "application/octet-stream", fileName);
-                        }
-                    }
+                    return File(fileBytes, "application/octet-stream", fileName);
                 }
+                //    }
+                //}
             }
             catch (UserException ex)
             {
@@ -248,7 +258,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
         [HttpPost("import/template/{templateId}")]
-        public async Task<IActionResult> ExportFile(string templateId, IFormFile? file)
+        public async Task<IActionResult> ImportFile(string templateId, IFormFile? file)
         {
             try
             {
