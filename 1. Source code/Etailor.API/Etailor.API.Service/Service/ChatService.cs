@@ -53,13 +53,6 @@ namespace Etailor.API.Service.Service
                 var imagesParam = new SqlParameter("@Images", System.Data.SqlDbType.Text);
                 var replierIdParam = new SqlParameter("@ReplierId", System.Data.SqlDbType.NVarChar);
                 var customerIdParam = new SqlParameter("@CustomerId", System.Data.SqlDbType.NVarChar);
-                var returnValueParam = new SqlParameter
-                {
-                    ParameterName = "@ReturnValue",
-                    SqlDbType = System.Data.SqlDbType.Int,
-                    Direction = ParameterDirection.Output,
-                    Value = 0
-                };
                 if (!string.IsNullOrEmpty(customerId))
                 {
                     var customer = customerRepository.Get(customerId);
@@ -157,13 +150,7 @@ namespace Etailor.API.Service.Service
 
                     chatIdParam.Value = orderChat.Id;
 
-                    var database = chatRepository.GetDatabase();
-
-                    await database.ExecuteSqlRawAsync("EXEC @ReturnValue = dbo.InsertChatList @ChatId, @Message, @Images, @ReplierId, @CustomerId, @ReturnValue OUT"
-                        , chatIdParam, messageParam, imagesParam, replierIdParam, customerIdParam, returnValueParam);
-
-
-                    int result = (int)returnValueParam.Value;
+                    var result = await chatRepository.GetStoreProcedureReturnInt(StoreProcName.Insert_Chat_List, chatIdParam, messageParam, imagesParam, replierIdParam, customerIdParam);
 
                     if (result == 1)
                     {

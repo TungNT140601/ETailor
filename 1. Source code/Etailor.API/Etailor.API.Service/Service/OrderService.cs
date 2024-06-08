@@ -431,13 +431,15 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                // Raw SQL query to call the stored procedure
-                var result = await orderRepository.GetDbContext().Set<SpResult>()
-                                           .FromSqlRaw("EXEC dbo.CheckOrderDiscount {0}", id)
-                                           .AsNoTracking()
-                                           .ToListAsync();
+                var result = await orderRepository.GetStoreProcedureReturnInt(StoreProcName.Check_Order_Discount,
+                                       new SqlParameter
+                                       {
+                                           DbType = System.Data.DbType.String,
+                                           Value = id,
+                                           ParameterName = "@OrderId"
+                                       });
 
-                return result.FirstOrDefault()?.ReturnValue == 1;
+                return result == 1;
             }
             catch (SqlException ex)
             {
@@ -449,13 +451,15 @@ namespace Etailor.API.Service.Service
         {
             try
             {
-                // Raw SQL query to call the stored procedure
-                var result = await orderRepository.GetDbContext().Set<SpResult>()
-                                           .FromSqlRaw("EXEC dbo.CheckOrderPaid {0}", id)
-                                           .AsNoTracking()
-                                           .ToListAsync();
+                var result = await orderRepository.GetStoreProcedureReturnInt(StoreProcName.Check_Order_Paid,
+                                       new SqlParameter
+                                       {
+                                           DbType = System.Data.DbType.String,
+                                           Value = id,
+                                           ParameterName = "@OrderId"
+                                       });
 
-                return result.FirstOrDefault()?.ReturnValue == 1;
+                return result == 1;
             }
             catch (SqlException ex)
             {
@@ -727,7 +731,7 @@ namespace Etailor.API.Service.Service
         public async Task<Order> GetOrder(string id)
         {
             var order = orderRepository.Get(id);
-            if (order != null && order.Status >= 1)
+            if (order != null && order.Status >= 0)
             {
                 var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
                 if (orderMaterials != null && orderMaterials.Any())
@@ -764,10 +768,17 @@ namespace Etailor.API.Service.Service
 
         public async Task<IEnumerable<Order>> GetOrdersByCustomer(string cusId)
         {
-            var orders = orderRepository.GetAll(x => x.CustomerId == cusId && x.Status >= 1 && x.IsActive == true);
+            var orders = orderRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders,
+                new SqlParameter()
+                {
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                    Value = cusId,
+                    ParameterName = "@CustomerId"
+                });
+
             if (orders != null && orders.Any())
             {
-                orders = orders.ToList();
+                orders = orders.OrderByDescending(x => x.CreatedTime).ToList();
                 var orderIds = string.Join(",", orders.Select(x => x.Id).ToList());
                 var ordersProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders_Products, new Microsoft.Data.SqlClient.SqlParameter { DbType = System.Data.DbType.String, Value = orderIds, ParameterName = "@OrderIds" });
                 // var ordersProducts = productRepository.GetAll(x => orderIds.Contains(x.OrderId) && x.IsActive == true && x.Status > 0);
@@ -818,7 +829,7 @@ namespace Etailor.API.Service.Service
         public async Task<Order> GetOrderByCustomer(string cusId, string orderId)
         {
             var order = orderRepository.Get(orderId);
-            if (order != null && order.IsActive == true && order.Status >= 1 && order.CustomerId == cusId)
+            if (order != null && order.IsActive == true && order.Status >= 0 && order.CustomerId == cusId)
             {
                 var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
                 if (orderMaterials != null && orderMaterials.Any())
@@ -854,7 +865,13 @@ namespace Etailor.API.Service.Service
         }
         public async Task<IEnumerable<Order>> GetOrders()
         {
-            var orders = orderRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders);
+            var orders = orderRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders,
+                new SqlParameter()
+                {
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                    Value = DBNull.Value,
+                    ParameterName = "@CustomerId"
+                });
             if (orders != null && orders.Any())
             {
                 orders = orders.ToList();

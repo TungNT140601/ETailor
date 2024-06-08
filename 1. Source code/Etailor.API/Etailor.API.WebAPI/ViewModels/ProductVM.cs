@@ -39,8 +39,6 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? MaterialId { get; set; }
         public string? ProfileId { get; set; }
         public string? ProductTemplateId { get; set; }
-        public bool? IsCusMaterial { get; set; }
-        public double? MaterialQuantity { get; set; }
         public string? Name { get; set; }
         public string? Note { get; set; }
         public List<ProductComponentOrderVM>? ProductComponents { get; set; }
@@ -54,11 +52,10 @@ namespace Etailor.API.WebAPI.ViewModels
         public string? ProductTemplateId { get; set; }
         public string? ProductTemplateName { get; set; }
         public string? ProductTemplateImage { get; set; }
-        public bool? IsCusMaterial { get; set; }
-        public double? MaterialQuantity { get; set; }
         public string? Name { get; set; }
         public string? Note { get; set; }
         public List<ComponentTypeOrderVM>? ComponentTypeOrders { get; set; }
+        public FabricMaterialTaskVM? FabricMaterial { get; set; }
     }
     public class ProductListOrderDetailVM
     {

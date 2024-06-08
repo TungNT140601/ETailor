@@ -319,28 +319,10 @@ namespace Etailor.API.WebAPI.Controllers
                         }
                         else
                         {
-                            var listTask = new List<Task>();
-
-                            var staffVMs = new List<StaffListVM>();
-                            int stt = 1;
-                            foreach (var staff in staffs.OrderBy(x => x.Fullname))
-                            {
-                                listTask.Add(Task.Run(() =>
-                                {
-                                    var staffVM = mapper.Map<StaffListVM>(staff);
-                                    staffVM.STT = stt;
-                                    staffVM.Avatar = Ultils.GetUrlImage(staffVM.Avatar);
-                                    staffVMs.Add(staffVM);
-                                }));
-                                stt++;
-                            }
-
-                            await Task.WhenAll(listTask);
-
                             return Ok(new
                             {
                                 TotalData = staffs.Count(),
-                                Data = staffVMs.OrderBy(x => x.STT)
+                                Data = mapper.Map<IEnumerable<StaffListVM>>(staffs.OrderBy(x => x.Fullname))
                             });
                         }
                     }
