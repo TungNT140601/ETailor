@@ -27,8 +27,9 @@ BEGIN
         BodySizeId NVARCHAR(30),
         [Value] DECIMAL(18,0)
     );
+    DECLARE @OrderPlannedTime DATETIME;
 
-    SELECT @OrderStatus = [Status], @CustomerId = CustomerId
+    SELECT @OrderStatus = [Status], @CustomerId = CustomerId, @OrderPlannedTime = PlannedTime
     FROM [Order]
     WHERE Id = @orderId AND IsActive = 0;
 
@@ -45,7 +46,7 @@ BEGIN
 
     IF @ProducPrice IS NULL
     BEGIN
-        RAISERROR('Không tìm thấy bản mẫu', 16, 1);
+        RAISERROR('Không tìm thấy bản mẫu asas', 16, 1);
         RETURN;
     END
     IF @ProductTemplateId IS NULL
@@ -222,12 +223,19 @@ BEGIN
     CLOSE ProductBodySizeCursor;
     DEALLOCATE ProductBodySizeCursor;
 
+    --EXECUTE [dbo].[CheckNumOfDateToFinish];
+
     DECLARE @DayToFinish INT = dbo.CalculateNumOfDateToFinish(@ProductId);
+     
+    DECLARE @DateToFinish DATETIME;
+
     IF @DayToFinish > 0
     BEGIN
-    UPDATE Product
-    SET PlannedTime = DATEADD(DAY,@DayToFinish, CreatedTime)
-    WHERE Id = @ProductId
+    SET @DateToFinish = DATEADD(DAY,@DayToFinish,DATEADD(HOUR, 7, GETUTCDATE()));
+    
+    UPDATE Product SET PlannedTime = @DateToFinish WHERE Id = @ProductId;
+    IF @OrderPlannedTime IS NULL OR @OrderPlannedTime < @DateToFinish
+    UPDATE [Order] SET PlannedTime = @DateToFinish WHERE Id = @OrderId;
     END;
 
     SELECT 1 AS ReturnValue;

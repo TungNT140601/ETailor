@@ -99,8 +99,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
 
                         var check = await productService.AddProduct(wwwrootPath, orderId, product, productComponents,
-                            productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
-                            productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0, (quantity != null && quantity >= 1) ? quantity.Value : 1);
+                            productVM.MaterialId, productVM.ProfileId, false, 0, (quantity != null && quantity >= 1) ? quantity.Value : 1);
                         return !string.IsNullOrEmpty(check) ? Ok("Thêm sản phẩm vào hóa đơn thành công") : BadRequest("Thêm sản phẩm vào hóa đơn thất bại");
                     }
                 }
@@ -160,29 +159,22 @@ namespace Etailor.API.WebAPI.Controllers
 
                                     if (component.NoteImageObjects != null && component.NoteImageObjects.Any())
                                     {
-                                        foreach (var img in component.NoteImageObjects)
-                                        {
-                                            images.Add(img);
-                                        }
+                                        images.AddRange(component.NoteImageObjects);
                                     }
                                     if (component.NoteImageFiles != null && component.NoteImageFiles.Any())
                                     {
-                                        var insideTasks = new List<Task>();
                                         foreach (var image in component.NoteImageFiles)
                                         {
-                                            insideTasks.Add(Task.Run(() =>
+                                            images.Add(JsonConvert.SerializeObject(new FileDTO()
                                             {
-                                                images.Add(JsonConvert.SerializeObject(new FileDTO()
-                                                {
-                                                    Base64String = image.Base64String,
-                                                    FileName = image.FileName,
-                                                    ContentType = image.Type
-                                                }));
+                                                Base64String = image.Base64String,
+                                                FileName = image.FileName,
+                                                ContentType = image.Type
                                             }));
                                         }
-                                        await Task.WhenAll(insideTasks);
-                                        productComponent.NoteImage = JsonConvert.SerializeObject(images);
                                     }
+                                    productComponent.NoteImage = JsonConvert.SerializeObject(images);
+
                                     productComponents.Add(productComponent);
                                 }));
                             }
@@ -190,8 +182,7 @@ namespace Etailor.API.WebAPI.Controllers
                         }
 
                         var check = await productService.UpdateProduct(wwwrootPath, orderId, product, productComponents,
-                             productVM.MaterialId, productVM.ProfileId, productVM.IsCusMaterial.HasValue ? productVM.IsCusMaterial.Value : false,
-                             productVM.MaterialQuantity.HasValue ? productVM.MaterialQuantity.Value : 0);
+                             productVM.MaterialId, productVM.ProfileId, false, 0);
                         return !string.IsNullOrEmpty(check) ? Ok(check) : BadRequest("Cập nhật sản phẩm thất bại");
                     }
                 }
@@ -276,7 +267,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return await taskService.DefectsTask(orderId, productId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
+                        return await taskService.DefectsTask(productId, orderId) ? Ok("Báo lỗi sản phẩm thành công") : BadRequest("Báo lỗi sản phẩm thất bại");
                     }
                 }
             }
@@ -294,8 +285,8 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteProduct(string id)
+        [HttpDelete("{orderId}/{id}")]
+        public async Task<IActionResult> DeleteProduct(string orderId, string id)
         {
             try
             {
@@ -322,7 +313,7 @@ namespace Etailor.API.WebAPI.Controllers
                         {
                             return NotFound("Id sản phẩm không tồn tại");
                         }
-                        return (await productService.DeleteProduct(id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
+                        return (await productService.DeleteProduct(orderId, id)) ? Ok("Xóa sản phẩm thành công") : BadRequest("Xóa sản phẩm thất bại");
                     }
                 }
             }

@@ -15,5 +15,6 @@ namespace Etailor.API.Repository.StoreProcModels
         public string? Image { get; set; }
         public int? TotalProducts { get; set; }
         public int? TotalOrders { get; set;}
+        public decimal? Quantity { get; set; }
     }
 }

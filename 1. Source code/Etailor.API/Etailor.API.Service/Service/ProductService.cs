@@ -40,7 +40,6 @@ namespace Etailor.API.Service.Service
         private readonly IProductComponentRepository productComponentRepository;
         private readonly IMaterialRepository materialRepository;
         private readonly IProfileBodyRepository profileBodyRepository;
-        private readonly IMaterialTypeRepository materialTypeRepository;
         private readonly IMaterialCategoryRepository materialCategoryRepository;
         private readonly IOrderMaterialRepository orderMaterialRepository;
         private readonly IOrderService orderService;
@@ -61,7 +60,6 @@ namespace Etailor.API.Service.Service
             IMaterialRepository materialRepository,
             IProfileBodyRepository profileBodyRepository,
             IProductBodySizeService productBodySizeService,
-            IMaterialTypeRepository materialTypeRepository,
             IMaterialCategoryRepository materialCategoryRepository,
             IOrderMaterialRepository orderMaterialRepository,
             IOrderService orderService,
@@ -83,7 +81,6 @@ namespace Etailor.API.Service.Service
             this.materialRepository = materialRepository;
             this.profileBodyRepository = profileBodyRepository;
             this.productBodySizeService = productBodySizeService;
-            this.materialTypeRepository = materialTypeRepository;
             this.materialCategoryRepository = materialCategoryRepository;
             this.orderMaterialRepository = orderMaterialRepository;
             this.orderService = orderService;
@@ -95,7 +92,6 @@ namespace Etailor.API.Service.Service
 
         public async Task<string> AddProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity, int quantity)
         {
-            var i = 0;
 
             var listParams = new List<List<SqlParameter>>();
             var tasks = new List<Task>();
@@ -105,72 +101,92 @@ namespace Etailor.API.Service.Service
             };
 
             //các bộ phận của bản mẫu
-            var templateComponentTypes = componentTypeRepository.GetStoreProcedure(StoreProcName.Get_Template_Component_Types, templateId);
-            if (templateComponentTypes != null && templateComponentTypes.Any())
+            IEnumerable<ComponentType> templateComponentTypes;
+            try
             {
-                templateComponentTypes = templateComponentTypes.ToList();
+                templateComponentTypes = componentTypeRepository.GetStoreProcedure(StoreProcName.Get_Template_Component_Types, templateId);
+                if (templateComponentTypes != null && templateComponentTypes.Any())
+                {
+                    templateComponentTypes = templateComponentTypes.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new UserException(ex.Message);
             }
 
             //các kiểu bộ phận của bản mẫu
-            var templateComponents = componentRepository.GetStoreProcedure(StoreProcName.Get_Template_Components, templateId);
-            if (templateComponents != null && templateComponents.Any())
+            IEnumerable<Component> templateComponents;
+            try
             {
-                templateComponents = templateComponents.ToList();
+                templateComponents = componentRepository.GetStoreProcedure(StoreProcName.Get_Template_Components, templateId);
+                if (templateComponents != null && templateComponents.Any())
+                {
+                    templateComponents = templateComponents.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new UserException(ex.Message);
             }
 
             do
             {
-                tasks.Add(Task.Run(async () =>
+                listParams = new List<List<SqlParameter>>();
+                for (int i = 0; i < quantity; i++)
                 {
-                    #region InitProduct
-                    var id = Ultils.GenGuidString();
-
-                    try
+                    var index = i + 1;
+                    tasks.Add(Task.Run(async () =>
                     {
-                        var saveOrderComponents = new List<ProductComponent>();
+                        #region InitProduct
+                        var id = Ultils.GenGuidString();
 
-                        if (templateComponentTypes != null && templateComponentTypes.Any())
+                        try
                         {
-                            do
+                            var saveOrderComponents = new List<ProductComponent>();
+
+                            if (templateComponentTypes != null && templateComponentTypes.Any())
                             {
-                                saveOrderComponents = new List<ProductComponent>();
-                                var insideTasks = new List<Task>();
-                                foreach (var type in templateComponentTypes)
+                                do
                                 {
-                                    insideTasks.Add(
-                                        Task.Run(async () =>
-                                        {
-                                            var componentIds = string.Join(",", productComponents.Select(c => c.ComponentId));
-                                            var productComponentAdds = templateComponents.Where(x => x.ComponentTypeId == type.Id && componentIds.Contains(x.Id));
-                                            var component = new Component();
-                                            if (productComponentAdds != null && productComponentAdds.Any())
+                                    saveOrderComponents = new List<ProductComponent>();
+                                    var insideTasks = new List<Task>();
+                                    foreach (var type in templateComponentTypes)
+                                    {
+                                        insideTasks.Add(Task.Run(async () =>
                                             {
-                                                if (productComponentAdds.Count() > 1)
+                                                var productComponentAdds = templateComponents
+                                                    .Where(x => x.ComponentTypeId == type.Id
+                                                        && productComponents.Select(c => c.ComponentId).Contains(x.Id));
+
+                                                var component = new Component();
+
+                                                if (productComponentAdds != null && productComponentAdds.Any())
                                                 {
-                                                    throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
+                                                    if (productComponentAdds.Count() > 1)
+                                                    {
+                                                        throw new UserException("Chỉ được chọn 1 kiểu cho 1 bộ phận");
+                                                    }
+                                                    else
+                                                    {
+                                                        component = productComponentAdds.First();
+                                                    }
                                                 }
                                                 else
                                                 {
-                                                    component = productComponentAdds.First();
+                                                    component = templateComponents.FirstOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
                                                 }
-                                            }
-                                            else
-                                            {
-                                                component = templateComponents.FirstOrDefault(x => x.ComponentTypeId == type.Id && x.Default == true);
-                                            }
-                                            if (component != null)
-                                            {
-                                                var productComponent = productComponents.FirstOrDefault(x => x.ComponentId == component.Id);
-                                                if (productComponent != null && !string.IsNullOrEmpty(productComponent.NoteImage))
+
+                                                if (component != null)
                                                 {
-                                                    var listStringImage = JsonConvert.DeserializeObject<List<string>>(productComponent.NoteImage);
-                                                    var listImage = new List<string>();
-                                                    if (listStringImage != null && listStringImage.Count > 0)
+                                                    var productComponent = productComponents.FirstOrDefault(x => x.ComponentId == component.Id);
+                                                    if (productComponent != null && !string.IsNullOrEmpty(productComponent.NoteImage))
                                                     {
-                                                        var insideTask1s = new List<Task>();
-                                                        foreach (var item in listStringImage)
+                                                        var listStringImage = JsonConvert.DeserializeObject<List<string>>(productComponent.NoteImage);
+                                                        var listImage = new List<string>();
+                                                        if (listStringImage != null && listStringImage.Count > 0)
                                                         {
-                                                            insideTask1s.Add(Task.Run(async () =>
+                                                            foreach (var item in listStringImage)
                                                             {
                                                                 var image = JsonConvert.DeserializeObject<FileDTO>(item);
                                                                 if (!string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
@@ -184,50 +200,48 @@ namespace Etailor.API.Service.Service
                                                                             image.ContentType,
                                                                             null));
                                                                 }
-                                                            }));
+                                                            }
+
+                                                            productComponent.NoteImage = JsonConvert.SerializeObject(listImage);
                                                         }
-                                                        await Task.WhenAll(insideTask1s);
-
-                                                        productComponent.NoteImage = JsonConvert.SerializeObject(listImage);
                                                     }
+                                                    saveOrderComponents.Add(new ProductComponent()
+                                                    {
+                                                        ComponentId = component.Id,
+                                                        Id = Ultils.GenGuidString(),
+                                                        LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
+                                                        Name = component.Name,
+                                                        Image = "",
+                                                        ProductStageId = null,
+                                                        Note = productComponent?.Note,
+                                                        NoteImage = productComponent?.NoteImage
+                                                    });
                                                 }
-                                                saveOrderComponents.Add(new ProductComponent()
+                                                else
                                                 {
-                                                    ComponentId = component.Id,
-                                                    Id = Ultils.GenGuidString(),
-                                                    LastestUpdatedTime = DateTime.UtcNow.AddHours(7),
-                                                    Name = component.Name,
-                                                    Image = "",
-                                                    ProductStageId = null,
-                                                    Note = productComponent?.Note,
-                                                    NoteImage = productComponent?.NoteImage
-                                                });
-                                            }
-                                            else
-                                            {
-                                                throw new UserException($"Không tìm thấy kiểu bộ phận: {type.Name}");
-                                            }
-                                        })
-                                    );
-                                }
-                                await Task.WhenAll(insideTasks);
-                            } while (saveOrderComponents.Count < templateComponentTypes.Count());
+                                                    throw new UserException($"Không tìm thấy kiểu bộ phận: {type.Name}");
+                                                }
+                                            })
+                                        );
+                                    }
+                                    await Task.WhenAll(insideTasks);
+                                } while (saveOrderComponents.Count != templateComponentTypes.Count());
+                            }
+                            else
+                            {
+                                throw new UserException("Không tìm thấy kiểu bộ phận");
+                            }
+
+                            product.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            throw new UserException("Không tìm thấy kiểu bộ phận");
+                            throw new UserException(ex.Message);
                         }
+                        #endregion
 
-                        product.SaveOrderComponents = JsonConvert.SerializeObject(saveOrderComponents);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new UserException(ex.Message);
-                    }
-                    #endregion
-
-                    #region SetupProcParam
-                    listParams.Add(new List<SqlParameter>()
+                        #region SetupProcParam
+                        listParams.Add(new List<SqlParameter>()
                     {
                         new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar)
                     {
@@ -240,7 +254,7 @@ namespace Etailor.API.Service.Service
                         Value = product.ProductTemplateId != null ? product.ProductTemplateId : DBNull.Value
                     },new SqlParameter("@FabricMaterialId", System.Data.SqlDbType.NVarChar)
                     {
-                        Value = materialId
+                        Value = materialId != null ? materialId : DBNull.Value
                     },new SqlParameter("@MaterialValue", System.Data.SqlDbType.Decimal)
                     {
                         Value = materialQuantity != null ? materialQuantity : 0
@@ -249,7 +263,7 @@ namespace Etailor.API.Service.Service
                         Value = isCusMaterial ? 1 : 0
                     },new SqlParameter("@ProductName", System.Data.SqlDbType.NVarChar)
                     {
-                        Value = !string.IsNullOrWhiteSpace(product.Name) ? product.Name : DBNull.Value
+                        Value = !string.IsNullOrWhiteSpace(product.Name) ? ($"{product.Name} - ({index})") : DBNull.Value
                     },new SqlParameter("@Note", System.Data.SqlDbType.NVarChar)
                     {
                         Value = !string.IsNullOrWhiteSpace(product.Note) ? product.Note : DBNull.Value
@@ -261,13 +275,12 @@ namespace Etailor.API.Service.Service
                         Value = profileId
                     }
                     });
-                    #endregion
-                }));
+                        #endregion
+                    }));
+                }
+                await Task.WhenAll(tasks);
+            } while (listParams.Count != quantity);
 
-                i++;
-            } while (i < quantity);
-
-            await Task.WhenAll(tasks);
 
             var results = new List<int>();
 
@@ -291,7 +304,9 @@ namespace Etailor.API.Service.Service
                 }
                 catch (Exception ex)
                 {
-                    var result = await productRepository.GetStoreProcedureReturnInt("DeleteProduct", param.Find(x => x.ParameterName == "@ProductId"));
+                    var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Delete_Product,
+                        param.Find(x => x.ParameterName == "@ProductId"),
+                        param.Find(x => x.ParameterName == "@OrderId"));
 
                     throw new UserException(ex.Message);
                 }
@@ -311,8 +326,6 @@ namespace Etailor.API.Service.Service
 
         public async Task<string> UpdateProduct(string wwwroot, string orderId, Product product, List<ProductComponent> productComponents, string materialId, string profileId, bool isCusMaterial, double materialQuantity)
         {
-            //throw new UserException("Nhắc tk Tùng sửa cái proc UpdateProduct lại");
-
             var dbProduct = productRepository.Get(product.Id);
             if (dbProduct == null)
             {
@@ -397,16 +410,14 @@ namespace Etailor.API.Service.Service
                                                     var listImage = new List<string>();
                                                     if (listStringImage != null && listStringImage.Count > 0)
                                                     {
-                                                        var insideTask1s = new List<Task>();
                                                         foreach (var item in listStringImage)
                                                         {
-                                                            insideTask1s.Add(Task.Run(async () =>
+                                                            var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                            if (image != null && !string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
                                                             {
-                                                                var image = JsonConvert.DeserializeObject<FileDTO>(item);
                                                                 listImage.Add(await Ultils.UploadImageBase64(wwwroot, $"Product/{product.Id}/Component/{selectedComponent.Id}", image.Base64String, image.FileName, image.ContentType, null));
-                                                            }));
+                                                            }
                                                         }
-                                                        await Task.WhenAll(insideTask1s);
 
                                                         newOrderComponent.NoteImage = JsonConvert.SerializeObject(listImage);
                                                     }
@@ -448,7 +459,7 @@ namespace Etailor.API.Service.Service
                                                     var listStringImage = JsonConvert.DeserializeObject<List<string>>(newOrderComponent.NoteImage);
                                                     if (listStringImage != null && listStringImage.Any())
                                                     {
-                                                        var listOldImageUrl = listStringImage.Where(x => x.Contains("http")).ToList();
+                                                        var listOldImageUrl = listStringImage.Where(x => x.Contains("https://firebase")).ToList();
                                                         if (listOldImageUrl != null && listOldImageUrl.Count > 0)
                                                         {
                                                             if (!string.IsNullOrEmpty(saveOrderComponent.NoteImage))
@@ -480,12 +491,11 @@ namespace Etailor.API.Service.Service
                                                         var listNewImageFile = listStringImage.Where(x => !x.Contains("http")).ToList();
                                                         if (listNewImageFile != null && listNewImageFile.Count > 0)
                                                         {
-                                                            var insideTask1s = new List<Task>();
                                                             foreach (var item in listNewImageFile)
                                                             {
-                                                                insideTask1s.Add(Task.Run(async () =>
+                                                                var image = JsonConvert.DeserializeObject<FileDTO>(item);
+                                                                if (image != null && !string.IsNullOrEmpty(image.Base64String) && !string.IsNullOrEmpty(image.FileName) && !string.IsNullOrEmpty(image.ContentType))
                                                                 {
-                                                                    var image = JsonConvert.DeserializeObject<FileDTO>(item);
                                                                     listImage.Add(await Ultils.UploadImageBase64(
                                                                             wwwroot,
                                                                             $"Product/{product.Id}/Component/{selectedComponent.Id}",
@@ -493,11 +503,9 @@ namespace Etailor.API.Service.Service
                                                                             image.FileName,
                                                                             image.ContentType,
                                                                             null
-                                                                        )
-                                                                    );
-                                                                }));
+                                                                        ));
+                                                                }
                                                             }
-                                                            await Task.WhenAll(insideTask1s);
                                                         }
                                                     }
                                                     if (listImage.Count > 0)
@@ -665,7 +673,7 @@ namespace Etailor.API.Service.Service
                 };
                 var fabricMaterialId = new SqlParameter("@NewFabricMaterialId", System.Data.SqlDbType.NVarChar)
                 {
-                    Value = materialId
+                    Value = materialId != null ? materialId : DBNull.Value
                 };
                 var materialValue = new SqlParameter("@MaterialValue", System.Data.SqlDbType.Decimal)
                 {
@@ -693,6 +701,7 @@ namespace Etailor.API.Service.Service
                 };
 
                 #endregion
+
                 try
                 {
                     var result = await productRepository.GetStoreProcedureReturnInt("UpdateProduct"
@@ -773,115 +782,34 @@ namespace Etailor.API.Service.Service
             }
         }
 
-        public async Task<bool> DeleteProduct(string id)
+        public async Task<bool> DeleteProduct(string orderId, string id)
         {
-            var dbProduct = productRepository.Get(id);
-            if (dbProduct != null && dbProduct.IsActive == true)
+            try
             {
-                var order = orderRepository.Get(dbProduct.OrderId);
-                if (order != null)
-                {
-                    if (order.Status >= 2)
+                var result = await productRepository.GetStoreProcedureReturnInt(StoreProcName.Delete_Product
+                    , new SqlParameter("@ProductId", System.Data.SqlDbType.NVarChar)
                     {
-                        switch (order.Status)
-                        {
-                            case 0:
-                                throw new UserException("Đơn hàng đã hủy. Không thể xóa sản phẩm");
-                            case 2:
-                                throw new UserException(
-                                    "Đơn hàng đã duyệt. Không thể xóa sản phẩm"
-                                );
-                            case 3:
-                                throw new UserException(
-                                    "Đơn hàng đã vào giai đoạn thực hiện. Không thể xóa sản phẩm"
-                                );
-                            case 4:
-                                throw new UserException(
-                                    "Đơn hàng đang trong giai đoạn thực hiện. Không thể xóa sản phẩm"
-                                );
-                            case 5:
-                                throw new UserException(
-                                    "Đơn hàng đã vào giai đoạn hoàn thiện. Không thể xóa sản phẩm"
-                                );
-                            case 6:
-                                throw new UserException(
-                                    "Đơn hàng đang chờ khách hàng kiểm thử. Không thể xóa sản phẩm"
-                                );
-                            case 7:
-                                throw new UserException(
-                                    "Đơn hàng đã bàn giao cho khách. Không thể xóa sản phẩm"
-                                );
-                            default:
-                                throw new UserException("Đơn hàng đã hủy. Không thể xóa sản phẩm");
-                        }
+                        Value = id
                     }
-                    else if (order.PaidMoney > 0 || order.Deposit > 0)
+                    , new SqlParameter("@OrderId", System.Data.SqlDbType.NVarChar)
                     {
-                        throw new UserException("Đơn hàng đã thanh toán. Không thể xóa sản phẩm");
-                    }
-                    else
-                    {
-                        dbProduct.CreatedTime = null;
-                        dbProduct.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
-                        dbProduct.IsActive = false;
-                        dbProduct.InactiveTime = DateTime.UtcNow.AddHours(7);
+                        Value = orderId
+                    });
 
-                        if (productRepository.Update(dbProduct.Id, dbProduct))
-                        {
-                            var sameProductMaterialdbs = productRepository.GetAll(x => x.OrderId == order.Id && x.FabricMaterialId == dbProduct.FabricMaterialId && x.IsActive == true && x.Status > 0);
-                            if (sameProductMaterialdbs != null && sameProductMaterialdbs.Any())
-                            {
-                                sameProductMaterialdbs = null;
-                            }
-                            else
-                            {
-                                sameProductMaterialdbs = null;
-                                var orderMaterial = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.MaterialId == dbProduct.FabricMaterialId && x.IsActive == true);
-                                if (orderMaterial != null && orderMaterial.Any())
-                                {
-                                    orderMaterial = orderMaterial.ToList();
-                                    if (orderMaterial.Count() > 1)
-                                    {
-                                        throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
-                                    }
-                                    else
-                                    {
-                                        if (!orderMaterialRepository.Delete(orderMaterial.First().Id))
-                                        {
-                                            throw new SystemsException("Lỗi trong quá trình xóa order materials", nameof(ProductService));
-                                        }
-                                    }
-                                }
-                            }
-                            if (await orderService.CheckOrderPaid(dbProduct.OrderId))
-                            {
-                                return true;
-                            }
-                            else
-                            {
-                                throw new SystemsException(
-                                    $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật hóa đơn",
-                                    nameof(ProductService)
-                                );
-                            }
-                        }
-                        else
-                        {
-                            throw new SystemsException(
-                                $"Error in {nameof(ProductService)}: Lỗi trong quá trình cập nhật sản phẩm",
-                                nameof(ProductService)
-                            );
-                        }
-                    }
+                if (result == 1)
+                {
+                    await orderService.CheckOrderPaid(orderId);
+
+                    return true;
                 }
                 else
                 {
-                    throw new UserException("Không tìm thấy hóa đơn");
+                    throw new SystemsException($"Error in {nameof(ProductService.DeleteProduct)}: Lỗi trong quá trình xóa sản phẩm", nameof(ProductService.DeleteProduct));
                 }
             }
-            else
+            catch (Exception ex)
             {
-                throw new UserException("Không tìm thấy sản phầm");
+                throw new UserException(ex.Message);
             }
         }
 
@@ -1055,7 +983,7 @@ namespace Etailor.API.Service.Service
 
                             await Task.WhenAll(tasks);
 
-                            return products;
+                            return products.OrderBy(x => x.Name);
                         }
                     }
                 }
@@ -1149,7 +1077,7 @@ namespace Etailor.API.Service.Service
 
                             await Task.WhenAll(tasks);
 
-                            return products;
+                            return products.OrderBy(x => x.Name);
                         }
                     }
                 }
@@ -1233,7 +1161,7 @@ namespace Etailor.API.Service.Service
 
                     await Task.WhenAll(tasks);
 
-                    return products;
+                    return products.OrderBy(x => x.Name);
                 }
             }
             return null;

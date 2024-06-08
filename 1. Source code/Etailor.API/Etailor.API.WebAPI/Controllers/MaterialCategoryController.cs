@@ -16,15 +16,12 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IMaterialCategoryService materialCategoryService;
         private readonly IStaffService staffService;
         private readonly IMapper mapper;
-        private readonly IMaterialTypeService materialTypeService;
 
-        public MaterialCategoryController(IMaterialCategoryService materialCategoryService, IStaffService staffService, IMapper mapper,
-            IMaterialTypeService materialTypeService)
+        public MaterialCategoryController(IMaterialCategoryService materialCategoryService, IStaffService staffService, IMapper mapper)
         {
             this.materialCategoryService = materialCategoryService;
             this.mapper = mapper;
             this.staffService = staffService;
-            this.materialTypeService = materialTypeService;
         }
         [HttpGet("{id}")]
         public IActionResult Get(string? id)
@@ -32,10 +29,6 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var materialCategory = mapper.Map<MaterialCategoryVM>(materialCategoryService.GetMaterialCategory(id));
-                
-                var materialType = materialTypeService.GetMaterialType(materialCategory.MaterialTypeId).Name;
-
-                materialCategory.MaterialTypeName = materialType;
 
                 return materialCategory != null ? Ok(materialCategory) : NotFound("không tìm thấy loại danh mục");
             }
@@ -59,13 +52,6 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var materialCategoryList = mapper.Map<IEnumerable<MaterialCategoryVM>>(materialCategoryService.GetMaterialCategorys(search));
-
-                var materialTypeList = materialTypeService.GetMaterialTypes("").Select(x => new {x.Id, x.Name});
-
-                foreach (var materialCategory in materialCategoryList)
-                {
-                    materialCategory.MaterialTypeName = materialTypeList.FirstOrDefault(x => x.Id == materialCategory.MaterialTypeId).Name;
-                }
 
                 return Ok(materialCategoryList);
             }

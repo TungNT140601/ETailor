@@ -19,10 +19,7 @@ namespace Etailor.API.Service.Interface
         Task<IEnumerable<Product>> GetTasks();
         Task<IEnumerable<Product>> GetTasksByStaffId(string? search);
         Task AutoCreateEmptyTaskProduct();
-        void AutoAssignTaskForStaff();
-        Task<bool> SetDeadlineForTask(string productId, DateTime deadline);
-        Task<bool> AssignTaskToStaff(string productId, string staffId);
-        Task<bool> UnAssignStaffTask(string productId, string staffId);
+        Task AutoAssignTaskForStaff();
         Task SwapTaskIndex(string productId, string? staffId, int? index);
         void ResetIndex(string? staffId);
         void ResetBlankIndex(string? staffId);

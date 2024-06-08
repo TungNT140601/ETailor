@@ -239,15 +239,7 @@ namespace Etailor.API.WebAPI.Controllers
                 var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                if (id == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (role != RoleName.CUSTOMER)
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
+                if (id != null && role == RoleName.CUSTOMER && customerService.CheckSecerctKey(id, secrectKey))
                 {
                     customerService.Logout(id);
                 }
@@ -360,15 +352,7 @@ namespace Etailor.API.WebAPI.Controllers
                 var id = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
                 var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                if (id == null)
-                {
-                    return Unauthorized("Chưa đăng nhập");
-                }
-                else if (role == RoleName.CUSTOMER)
-                {
-                    return Unauthorized("Không có quyền truy cập");
-                }
-                else
+                if (id != null && staffService.CheckSecrectKey(id, secrectKey))
                 {
                     staffService.Logout(id);
                 }
@@ -389,80 +373,6 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
 
-        #endregion
-
-        #region MMA
-        [HttpPost("mma/regis")]
-        public async Task<IActionResult> CusMMARegis([FromForm] CusRegis cusRegis)
-        {
-
-            try
-            {
-                var check = await authService.Regis(cusRegis.Username, cusRegis.Email, cusRegis.Fullname, cusRegis.Phone, cusRegis.Address, cusRegis.Password, cusRegis.AvatarImage);
-                return check ? Ok("Đăng ký tài khoản thành công") : BadRequest("Đăng ký tài khoản thất bại");
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
-        [HttpPost("mma/login")]
-        public async Task<IActionResult> MMALogin([FromBody] CusLoginEmail cusLoginEmail)
-        {
-
-            try
-            {
-                var customer = authService.CheckLoginCus(cusLoginEmail.EmailOrUsername, cusLoginEmail.Password);
-                if (customer == null)
-                {
-                    var staff = authService.CheckLoginStaff(cusLoginEmail.EmailOrUsername, cusLoginEmail.Password);
-                    if (staff == null)
-                    {
-                        throw new UserException("Sai thông tin đăng nhập");
-                    }
-                    else
-                    {
-                        return Ok(new
-                        {
-                            Name = staff.Fullname ?? string.Empty,
-                            Avatar = staff.Avatar != string.Empty ? Ultils.GetUrlImage(staff.Avatar) : "",
-                            Token = Ultils.GetToken(staff.Id, staff.Fullname, staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF, staff.SecrectKeyLogin, configuration),
-                            Role = staff.Role == 0 ? RoleName.ADMIN : staff.Role == 1 ? RoleName.MANAGER : RoleName.STAFF
-                        });
-                    }
-                }
-                else
-                {
-                    return Ok(new
-                    {
-                        Name = customer.Fullname ?? "",
-                        Avatar = customer.Avatar != string.Empty ? Ultils.GetUrlImage(customer.Avatar) : "",
-                        Token = Ultils.GetToken(customer.Id, customer.Fullname ?? string.Empty, RoleName.CUSTOMER, customer.SecrectKeyLogin, configuration),
-                        Role = RoleName.CUSTOMER
-                    });
-                }
-            }
-            catch (UserException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, ex.Message);
-            }
-        }
         #endregion
     }
 }

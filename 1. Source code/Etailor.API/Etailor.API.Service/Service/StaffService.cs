@@ -15,6 +15,7 @@ using Etailor.API.Ultity.CustomException;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 
 namespace Etailor.API.Service.Service
 {
@@ -173,7 +174,7 @@ namespace Etailor.API.Service.Service
             tasks.Add(
                 Task.Run(() =>
                 {
-                    staff.Password = Ultils.HashPassword(staff.Password);
+                    staff.Password = Ultils.HashPassword(staff.Password != null ? staff.Password : "1");
                 })
             );
             tasks.Add(
@@ -302,6 +303,11 @@ namespace Etailor.API.Service.Service
                     {
                         if (avatar != null)
                         {
+                            if (!string.IsNullOrEmpty(dbStaff.Avatar))
+                            {
+                                Ultils.DeleteObject(JsonConvert.DeserializeObject<ImageFileDTO>(dbStaff.Avatar).ObjectName);
+                            }
+
                             dbStaff.Avatar = await Ultils.UploadImage(
                                 wwwroot,
                                 "StaffAvatar",
@@ -435,39 +441,32 @@ namespace Etailor.API.Service.Service
         }
 
         public async Task<bool> ChangePass(
-            string id,
+            string staffId,
             string? oldPassword,
-            string newPassword,
-            string role
+            string newPassword
         )
         {
             try
             {
-                var dbStaff = staffRepository.Get(id);
+                var dbStaff = staffRepository.Get(staffId);
                 if (dbStaff != null)
                 {
-                    if (role == RoleName.MANAGER)
+                    if (Ultils.VerifyPassword(oldPassword, dbStaff.Password))
                     {
                         dbStaff.Password = Ultils.HashPassword(newPassword);
                     }
-                    else if (role == RoleName.STAFF)
+                    else
                     {
-                        if (Ultils.VerifyPassword(oldPassword, dbStaff.Password))
-                        {
-                            dbStaff.Password = Ultils.HashPassword(newPassword);
-                        }
-                        else
-                        {
-                            throw new UserException("Mật khẩu không chính xác");
-                        }
+                        throw new UserException("Mật khẩu không chính xác");
                     }
+
                     dbStaff.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
 
                     return staffRepository.Update(dbStaff.Id, dbStaff);
                 }
                 else
                 {
-                    throw new UserException("Staff không tồn tại");
+                    throw new UserException("Nhân viên không tồn tại");
                 }
             }
             catch (UserException ex)
@@ -544,9 +543,26 @@ namespace Etailor.API.Service.Service
                     {
                         staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
                     }
-                    staff.Masteries = masteryRepository
-                        .GetAll(x => x.StaffId == staff.Id)
-                        ?.ToList();
+                    var masteries = masteryRepository.GetAll(x => x.StaffId == staff.Id);
+                    var categories = categoryRepository.GetAll(x => x.IsActive == true);
+                    if (masteries != null && masteries.Any())
+                    {
+                        masteries = masteries.ToList();
+                        if (categories != null && categories.Any())
+                        {
+                            categories = categories.ToList();
+
+                            staff.Masteries = masteries.Where(x => categories.Select(c => c.Id).Contains(x.CategoryId))?.ToList();
+                        }
+                        else
+                        {
+                            staff.Masteries = new List<Mastery>();
+                        }
+                    }
+                    else
+                    {
+                        staff.Masteries = new List<Mastery>();
+                    }
                 }
                 return staff;
             }
@@ -630,141 +646,39 @@ namespace Etailor.API.Service.Service
         {
             try
             {
+                var staffs = new List<Staff>();
                 if (string.IsNullOrEmpty(search))
                 {
-                    return staffRepository.GetAll(x =>
+                    staffs = staffRepository.GetAll(x =>
                         x.IsActive == true && (x.Role == 1 || x.Role == 2)
-                    );
+                    )?.ToList();
                 }
                 else
                 {
-                    return staffRepository.GetAll(x =>
-                        (
-                            (
+                    staffs = staffRepository.GetAll(x => ((
                                 x.Fullname != null
                                 && x.Fullname.Trim().ToLower().Contains(search.Trim().ToLower())
-                            )
-                            || (
+                            ) || (
                                 x.Phone != null
                                 && x.Phone.Trim().ToLower().Contains(search.Trim().ToLower())
-                            )
-                        )
+                            ))
                         && x.IsActive == true
                         && (x.Role == 1 || x.Role == 2)
-                    );
+                    )?.ToList();
                 }
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (SystemsException ex)
-            {
-                throw new SystemsException(ex.Message, nameof(StaffService));
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message, nameof(StaffService));
-            }
-        }
 
-        public IEnumerable<Staff> GetAllWithPagination(
-            string? search,
-            int? pageIndex,
-            int? itemPerPage
-        )
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(search))
+                if (staffs != null && staffs.Any())
                 {
-                    var totalData = staffRepository.Count(x =>
-                        x.IsActive == true && (x.Role == 1 || x.Role == 2)
-                    );
-                    if (totalData == 0)
+                    foreach (var staff in staffs)
                     {
-                        return new List<Staff>();
-                    }
-                    else
-                    {
-                        if (itemPerPage == null)
+                        if (!string.IsNullOrEmpty(staff.Avatar))
                         {
-                            itemPerPage = 10;
+                            staff.Avatar = Ultils.GetUrlImage(staff.Avatar);
                         }
-                        if (pageIndex == null || pageIndex == 0)
-                        {
-                            pageIndex = 1;
-                        }
-                        var totalPage = (int)Math.Ceiling((double)totalData / (double)itemPerPage);
-                        if (pageIndex > totalPage || pageIndex < 1)
-                        {
-                            pageIndex = 1;
-                        }
-                        return staffRepository.GetAllPagination(
-                            x => x.IsActive == true && (x.Role == 1 || x.Role == 2),
-                            pageIndex,
-                            itemPerPage
-                        );
                     }
                 }
-                else
-                {
-                    var totalData = staffRepository.Count(x =>
-                        (
-                            (
-                                x.Fullname != null
-                                && x.Fullname.Trim().ToLower().Contains(search.Trim().ToLower())
-                            )
-                            || (
-                                x.Phone != null
-                                && x.Phone.Trim().ToLower().Contains(search.Trim().ToLower())
-                            )
-                        )
-                        && x.IsActive == true
-                        && (x.Role == 1 || x.Role == 2)
-                    );
-                    if (totalData == 0)
-                    {
-                        return new List<Staff>();
-                    }
-                    else
-                    {
-                        if (itemPerPage == null)
-                        {
-                            itemPerPage = 10;
-                        }
-                        if (pageIndex == null || pageIndex == 0)
-                        {
-                            pageIndex = 1;
-                        }
-                        var totalPage = (int)Math.Ceiling((double)totalData / (double)itemPerPage);
-                        if (pageIndex > totalPage || pageIndex < 1)
-                        {
-                            pageIndex = 1;
-                        }
-                        return staffRepository.GetAllPagination(
-                            x =>
-                                (
-                                    (
-                                        x.Fullname != null
-                                        && x.Fullname.Trim()
-                                            .ToLower()
-                                            .Contains(search.Trim().ToLower())
-                                    )
-                                    || (
-                                        x.Phone != null
-                                        && x.Phone.Trim()
-                                            .ToLower()
-                                            .Contains(search.Trim().ToLower())
-                                    )
-                                )
-                                && x.IsActive == true
-                                && (x.Role == 1 || x.Role == 2),
-                            pageIndex,
-                            itemPerPage
-                        );
-                    }
-                }
+
+                return staffs;
             }
             catch (UserException ex)
             {
@@ -791,7 +705,7 @@ namespace Etailor.API.Service.Service
                 if (staffTasks != null && staffTasks.Any())
                 {
                     throw new UserException(
-                        "Nhân viên đang có công việc chưa hoàn thành. Vui lòng bàn giao hết các công việc của nhân viên sang nhân viên khác."
+                        "Nhân viên đang có công việc chưa hoàn thành. Vui lòng bàn giao hết các công việc của nhân viên sang nhân viên khác trước khi xóa."
                     );
                 }
                 else

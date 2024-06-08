@@ -38,7 +38,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -52,7 +52,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -66,7 +66,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -80,7 +80,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -113,7 +113,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -146,7 +146,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -165,7 +165,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -184,7 +184,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -196,7 +196,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -220,7 +220,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
         public int Count(Func<T, bool> where)
@@ -231,7 +231,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -244,7 +244,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -256,7 +256,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -283,7 +283,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -310,7 +310,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -328,7 +328,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -346,7 +346,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -366,7 +366,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -382,7 +382,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -398,7 +398,7 @@ namespace Etailor.API.Repository.Repository
             }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new SystemsException(ex.Message, typeof(T).Name);
             }
         }
 
@@ -423,13 +423,9 @@ namespace Etailor.API.Repository.Repository
                     return dbSet.FromSqlRaw(sqlQueryString, parameters).AsNoTracking();
                 }
             }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new Exception(ex.Message);
             }
         }
 
@@ -462,44 +458,9 @@ namespace Etailor.API.Repository.Repository
                     return result.FirstOrDefault().ReturnValue;
                 }
             }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
             catch (Exception ex)
             {
-                throw new SystemsException(ex.Message, nameof(T));
-            }
-        }
-
-        public DatabaseFacade GetDatabase()
-        {
-            try
-            {
-                return dBContext.Database;
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message, nameof(T));
-            }
-        }
-        public ETailor_DBContext GetDbContext()
-        {
-            try
-            {
-                return dBContext;
-            }
-            catch (UserException ex)
-            {
-                throw new UserException(ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw new SystemsException(ex.Message, nameof(T));
+                throw new Exception(ex.Message);
             }
         }
     }

@@ -14,13 +14,12 @@ namespace Etailor.API.Service.Interface
 
         Task<bool> UpdateMaterial(Material material, IFormFile? image, string wwwroot);
 
-        Task<bool> DeleteMaterial(string id);
+        bool DeleteMaterial(string id);
 
         Material GetMaterial(string id);
 
         IEnumerable<Material> GetMaterialsByMaterialCategory(string materialCategoryId);
         IEnumerable<Material> GetMaterials(string? search);
-        IEnumerable<Material> GetMaterialsByMaterialType(string materialTypeId);
-        IEnumerable<Material> GetFabricMaterials(string? search);
+        Task<IEnumerable<Material>> GetFabricMaterials(string? search);
     }
 }

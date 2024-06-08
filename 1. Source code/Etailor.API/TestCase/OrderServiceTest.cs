@@ -4,6 +4,8 @@ using Etailor.API.Repository.Interface;
 using Etailor.API.Repository.Repository;
 using Etailor.API.Service.Interface;
 using Etailor.API.Service.Service;
+using Etailor.API.Ultity;
+using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +29,7 @@ namespace TestCase
         IProductStageRepository productStageRepository;
         IOrderMaterialRepository orderMaterialRepository;
         IMaterialRepository materialRepository;
+        INotificationRepository notificationRepository;
 
         IProductTemplateRepository productTemplateRepository;
         ICategoryRepository categoryRepository;
@@ -38,9 +41,12 @@ namespace TestCase
         IBodySizeRepository bodySizeRepository;
 
         IOrderService orderService;
+        ISignalRService signalRService;
+
+        IHubContext<SignalRHub> hubContext;
 
         [SetUp]
-        public void Setup()
+        public void Setup(IHubContext<SignalRHub> hubContext)
         {
             staffRepository = new StaffRepository(dBContext);
             customerRepository = new CustomerRepository(dBContext);
@@ -58,13 +64,19 @@ namespace TestCase
             componentRepository = new ComponentRepository(dBContext);
             componentTypeRepository = new ComponentTypeRepository(dBContext);
 
+            notificationRepository = new NotificationRepository(dBContext);
+
+            this.hubContext = hubContext;
+
+            signalRService = new SignalRService(hubContext);
+
             templateBodySizeRepository = new TemplateBodySizeRepository(dBContext);
             bodySizeRepository = new BodySizeRepository(dBContext);
             templateBodySizeService = new TemplateBodySizeService(templateBodySizeRepository, productTemplateRepository, bodySizeRepository);
             productTemplateService = new ProductTemplateService(productTemplateRepository, categoryRepository, templateBodySizeService, componentTypeRepository, componentRepository);
 
             orderService = new OrderService(staffRepository, customerRepository, orderRepository, discountRepository, productRepository, paymentRepository, productTemplaTeRepository,
-                productTemplateService, productStageRepository, orderMaterialRepository, materialRepository);
+                productTemplateService, productStageRepository, orderMaterialRepository, materialRepository, notificationRepository, signalRService);
         }
 
         //GetOrderList no param

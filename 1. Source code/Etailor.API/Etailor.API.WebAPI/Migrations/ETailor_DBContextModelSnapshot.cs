@@ -100,7 +100,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("Value")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.HasKey("Id");
 
@@ -147,10 +147,10 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<decimal?>("MaxValidValue")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<decimal?>("MinValidValue")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<string>("Name")
                         .HasMaxLength(100)
@@ -474,10 +474,10 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("ConditionPriceMax")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<decimal?>("ConditionPriceMin")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<int?>("ConditionProductMin")
                         .HasColumnType("int");
@@ -489,7 +489,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("float(18)");
 
                     b.Property<decimal?>("DiscountPrice")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime");
@@ -572,7 +572,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal?>("Quantity")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.HasKey("Id");
 
@@ -601,10 +601,6 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<DateTime?>("LastestUpdatedTime")
                         .HasColumnType("datetime");
 
-                    b.Property<string>("MaterialTypeId")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
                     b.Property<string>("Name")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -614,42 +610,7 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MaterialTypeId");
-
                     b.ToTable("MaterialCategory", (string)null);
-                });
-
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialType", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<DateTime?>("CreatedTime")
-                        .HasColumnType("datetime");
-
-                    b.Property<DateTime?>("InactiveTime")
-                        .HasColumnType("datetime");
-
-                    b.Property<bool?>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValueSql("((1))");
-
-                    b.Property<DateTime?>("LastestUpdatedTime")
-                        .HasColumnType("datetime");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Unit")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MaterialType", (string)null);
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Notification", b =>
@@ -705,7 +666,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("AfterDiscountPrice")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<DateTime?>("ApproveTime")
                         .HasColumnType("datetime");
@@ -740,7 +701,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("Deposit")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<string>("DiscountCode")
                         .HasMaxLength(30)
@@ -751,7 +712,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("DiscountPrice")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<DateTime?>("FinishTime")
                         .HasColumnType("datetime2");
@@ -768,7 +729,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("datetime");
 
                     b.Property<decimal?>("PaidMoney")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<bool?>("PayDeposit")
                         .ValueGeneratedOnAdd()
@@ -785,7 +746,7 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.Property<decimal?>("TotalPrice")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,0)")
+                        .HasColumnType("decimal(18,3)")
                         .HasDefaultValueSql("((0))");
 
                     b.Property<int?>("TotalProduct")
@@ -794,7 +755,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasDefaultValueSql("((0))");
 
                     b.Property<decimal?>("UnPaidMoney")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.HasKey("Id");
 
@@ -869,10 +830,10 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("Amount")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<decimal?>("AmountAfterRefund")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.Property<DateTime?>("CreatedTime")
                         .HasColumnType("datetime");
@@ -967,7 +928,7 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.Property<decimal?>("Price")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,0)")
+                        .HasColumnType("decimal(18,3)")
                         .HasDefaultValueSql("((0))");
 
                     b.Property<string>("ProductTemplateId")
@@ -1034,7 +995,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("Value")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.HasKey("Id");
 
@@ -1167,7 +1128,7 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("Quantity")
-                        .HasColumnType("decimal(18,0)");
+                        .HasColumnType("decimal(18,3)");
 
                     b.HasKey("Id");
 
@@ -1225,7 +1186,7 @@ namespace Etailor.API.WebAPI.Migrations
 
                     b.Property<decimal?>("Price")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,0)")
+                        .HasColumnType("decimal(18,3)")
                         .HasDefaultValueSql("((0))");
 
                     b.Property<string>("ThumbnailImage")
@@ -1437,6 +1398,9 @@ namespace Etailor.API.WebAPI.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<decimal?>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int?>("TotalOrders")
                         .HasColumnType("int");
 
@@ -1638,16 +1602,6 @@ namespace Etailor.API.WebAPI.Migrations
                         .HasConstraintName("FK__Material__Materi__004002F9");
 
                     b.Navigation("MaterialCategory");
-                });
-
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialCategory", b =>
-                {
-                    b.HasOne("Etailor.API.Repository.EntityModels.MaterialType", "MaterialType")
-                        .WithMany("MaterialCategories")
-                        .HasForeignKey("MaterialTypeId")
-                        .HasConstraintName("FK__MaterialC__Mater__7C6F7215");
-
-                    b.Navigation("MaterialType");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Notification", b =>
@@ -1968,11 +1922,6 @@ namespace Etailor.API.WebAPI.Migrations
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialCategory", b =>
                 {
                     b.Navigation("Materials");
-                });
-
-            modelBuilder.Entity("Etailor.API.Repository.EntityModels.MaterialType", b =>
-                {
-                    b.Navigation("MaterialCategories");
                 });
 
             modelBuilder.Entity("Etailor.API.Repository.EntityModels.Order", b =>
