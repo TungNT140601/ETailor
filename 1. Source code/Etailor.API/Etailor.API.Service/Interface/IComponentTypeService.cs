@@ -10,8 +10,8 @@ namespace Etailor.API.Service.Interface
     public interface IComponentTypeService
     {
         Task<bool> AddComponentType(ComponentType componentType);
+        Task<bool> UpdateComponentType(ComponentType componentType); 
         Task<List<ComponentType>> AddComponentTypes(string categoryId, List<ComponentType> componentTypes);
-        Task<bool> UpdateComponentType(ComponentType componentType);
         bool DeleteComponentType(string id);
         ComponentType GetComponentType(string id);
         IEnumerable<ComponentType> GetComponentTypes(string? search);

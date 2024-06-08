@@ -34,6 +34,7 @@ namespace Etailor.API.Service.Service
             var templateState = templateStateRepository.Get(id);
             return templateState == null ? null : templateState.IsActive == true ? templateState : null;
         }
+
         public List<TemplateStage> GetAll(string templateId, string? search)
         {
             var template = productTemplateRepository.Get(templateId);
@@ -56,6 +57,7 @@ namespace Etailor.API.Service.Service
                 return stages;
             }
         }
+
         public async Task<bool> CreateTemplateStages(string templateId, List<TemplateStage> templateStages)
         {
             var tasks = new List<Task>();
@@ -240,6 +242,7 @@ namespace Etailor.API.Service.Service
                 }
             }
         }
+
         public async Task<bool> UpdateTemplateStages(string templateId, List<TemplateStage> inputStages, string wwwroot)
         {
 

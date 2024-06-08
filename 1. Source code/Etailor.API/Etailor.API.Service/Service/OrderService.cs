@@ -918,6 +918,7 @@ namespace Etailor.API.Service.Service
             }
             return new List<Order>();
         }
+
         public async Task<Order> GetOrderByCustomer(string cusId, string orderId)
         {
             var order = orderRepository.Get(orderId);
@@ -955,6 +956,7 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
+
         public async Task<IEnumerable<Order>> GetOrders()
         {
             var orders = orderRepository.GetStoreProcedure(StoreProcName.Get_Active_Orders);
@@ -1008,6 +1010,7 @@ namespace Etailor.API.Service.Service
             }
             return new List<Order>();
         }
+
         public async Task<bool> UpdateOrderMaterial(List<OrderMaterial> orderMaterials)
         {
             var dbOrder = orderRepository.Get(orderMaterials.FirstOrDefault().OrderId);

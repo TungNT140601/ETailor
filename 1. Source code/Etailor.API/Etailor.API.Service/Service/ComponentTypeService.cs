@@ -59,6 +59,7 @@ namespace Etailor.API.Service.Service
 
             return componentTypeRepository.Create(componentType);
         }
+
         public async Task<bool> UpdateComponentType(ComponentType componentType)
         {
             var dbComponentType = componentTypeRepository.Get(componentType.Id);

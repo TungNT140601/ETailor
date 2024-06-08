@@ -366,6 +366,7 @@ namespace Etailor.API.Service.Service
                 return dbTemplate.Id;
             }
         }
+
         public bool CreateSaveActiveTemplate(string id)
         {
             var dbTemplate = productTemplateRepository.Get(id);
@@ -382,6 +383,7 @@ namespace Etailor.API.Service.Service
                 return false;
             }
         }
+
         public async Task<string> UpdateTemplate(string wwwroot, ProductTemplate productTemplate, IFormFile? thumbnailImage, List<IFormFile>? images, List<string>? existOldImages, List<IFormFile>? collectionImages, List<string>? existOldCollectionImages)
         {
 
@@ -595,6 +597,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
         }
+
         public async Task<IEnumerable<ProductTemplate>> GetByCategory(string id)
         {
             var templates = productTemplateRepository.GetAll(x => x.CategoryId == id && x.IsActive == true);
@@ -622,6 +625,7 @@ namespace Etailor.API.Service.Service
                 return null;
             }
         }
+
         public async Task<IEnumerable<ProductTemplate>> GetByCategorys(List<string> ids)
         {
             var templates = productTemplateRepository.GetAll(x => ids.Contains(x.CategoryId) && x.IsActive == true);
@@ -649,6 +653,7 @@ namespace Etailor.API.Service.Service
                 return null;
             }
         }
+
         public async Task<ProductTemplate> GetByUrlPath(string urlPath)
         {
             var template = productTemplateRepository.GetAll(x => x.UrlPath == urlPath && x.IsActive == true).FirstOrDefault();
@@ -718,6 +723,7 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
+
         public async Task<ProductTemplate> GetById(string Id)
         {
             var template = productTemplateRepository.Get(Id);
@@ -777,6 +783,7 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
+
         public bool DeleteTemplate(string id)
         {
             var dbTemplate = productTemplateRepository.Get(id);
@@ -795,6 +802,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Mẫu sản phẩm không tìm thấy");
             }
         }
+
         public async Task<IEnumerable<ComponentType>> GetTemplateComponent(string templateId)
         {
             var template = productTemplateRepository.Get(templateId);
@@ -864,6 +872,7 @@ namespace Etailor.API.Service.Service
                 return null;
             }
         }
+
         public async Task<IEnumerable<ProductTemplate>> GetTemplates(string? search)
         {
             var activeCategories = categoryRepository.GetAll(x => x.IsActive == true);

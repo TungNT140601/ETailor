@@ -10,18 +10,18 @@ namespace Etailor.API.Service.Interface
     public interface IOrderService
     {
         Task<string> CreateOrder(Order order, string? role);
-        Task<string> UpdateOrder(Order order, string? role);
+        Task<bool> FinishOrder(string orderId, string role);
         Task<bool> ApplyDiscount(string orderId, string code);
-        Task<bool> DeleteOrder(string id);
-        Task<Order> GetOrder(string id);
-        Task<IEnumerable<Order>> GetOrders();
-        Task<Order> GetOrderByCustomer(string cusId, string orderId);
-        Task<IEnumerable<Order>> GetOrdersByCustomer(string cusId);
+        Task<string> UpdateOrder(Order order, string? role);
         Task<bool> PayDeposit(string orderId, decimal amount);
         Task<bool> CheckOrderPaid(string id);
-        Task<bool> FinishOrder(string orderId, string role);
         Task<bool> ApproveOrder(string id);
         Task<bool> UpdateOrderPrice(string id, int price);
+        Task<bool> DeleteOrder(string id);
+        Task<Order> GetOrder(string id);
+        Task<IEnumerable<Order>> GetOrdersByCustomer(string cusId);
+        Task<Order> GetOrderByCustomer(string cusId, string orderId);
+        Task<IEnumerable<Order>> GetOrders();
         Task<bool> UpdateOrderMaterial(List<OrderMaterial> orderMaterials);
     }
 }

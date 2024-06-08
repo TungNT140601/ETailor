@@ -112,6 +112,7 @@ namespace Etailor.API.Service.Service
                 throw new UserException("Không có số đo nào trong hệ thống");
             }
         }
+
         public async Task<bool> UpdateProfileBody(string customerId, string? staffId, string name, string profileBodyId, List<BodyAttribute>? bodyAttributes, ProfileBody profileBody)
         {
             var dbProfileBody = profileBodyRepository.Get(profileBodyId);

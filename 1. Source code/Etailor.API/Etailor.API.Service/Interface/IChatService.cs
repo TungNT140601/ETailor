@@ -10,7 +10,7 @@ namespace Etailor.API.Service.Interface
 {
     public interface IChatService
     {
-        Task<Chat> GetChatDetail(string orderId, string role, string id);
         Task SendChat(string wwwrootPath, string orderId, string? staffId, string? customerId, string? message, List<IFormFile>? images);
+        Task<Chat> GetChatDetail(string orderId, string role, string id);
     }
 }

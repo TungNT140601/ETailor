@@ -19,6 +19,7 @@ namespace Etailor.API.WebAPI.Controllers
         private readonly IBlogService blogService;
         private readonly IStaffService staffService;
         private readonly ICategoryService categoryService;
+        private readonly IDiscountService diosService;
         private readonly IMapper mapper;
         private readonly string _wwwrootPath;
 
@@ -37,6 +38,7 @@ namespace Etailor.API.WebAPI.Controllers
             try
             {
                 var blog = await blogService.GetBlog(id);
+                var d = diosService.GetDiscount("");
                 if (blog == null)
                 {
                     return NotFound("không tìm thấy bài blog này");
