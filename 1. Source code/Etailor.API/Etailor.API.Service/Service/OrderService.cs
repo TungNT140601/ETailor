@@ -76,6 +76,42 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
+                    if (!string.IsNullOrEmpty(order.CusAddress) && string.IsNullOrWhiteSpace(order.CusAddress))
+                    {
+                        throw new UserException("Vui lòng nhập địa chỉ khách hàng");
+                    }
+                    if (!string.IsNullOrEmpty(order.CusEmail) && string.IsNullOrWhiteSpace(order.CusEmail))
+                    {
+                        throw new UserException("Vui lòng nhập địa chỉ mail khách hàng");
+                    }
+                    if (!string.IsNullOrEmpty(order.CusName) && string.IsNullOrWhiteSpace(order.CusName))
+                    {
+                        throw new UserException("Vui lòng nhập tên khách hàng");
+                    }
+                    if (!string.IsNullOrEmpty(order.CusPhone) && string.IsNullOrWhiteSpace(order.CusPhone))
+                    {
+                        throw new UserException("Vui lòng nhập số điện thoại khách hàng");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(order.CusEmail))
+                    {
+                        if (!Ultils.IsValidEmail(order.CusEmail))
+                        {
+                            throw new UserException("Email không hợp lệ");
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(order.CusPhone))
+                    {
+                        if (!Ultils.IsValidVietnamesePhoneNumber(order.CusPhone))
+                        {
+                            throw new UserException("Số điện thoại không hợp lệ");
+                        }
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
                     order.Id = Ultils.GenOrderId();
                     order.CreatedTime = DateTime.UtcNow.AddHours(7);
                     order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
@@ -410,6 +446,53 @@ namespace Etailor.API.Service.Service
                             else if (usedDiscountCode.Any())
                             {
                                 throw new UserException("Mã giảm giá đã được sử dụng");
+                            }
+                        }
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (!string.IsNullOrEmpty(order.CusAddress) && string.IsNullOrWhiteSpace(order.CusAddress))
+                        {
+                            throw new UserException("Vui lòng nhập địa chỉ khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusEmail) && string.IsNullOrWhiteSpace(order.CusEmail))
+                        {
+                            throw new UserException("Vui lòng nhập địa chỉ mail khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusName) && string.IsNullOrWhiteSpace(order.CusName))
+                        {
+                            throw new UserException("Vui lòng nhập tên khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusPhone) && string.IsNullOrWhiteSpace(order.CusPhone))
+                        {
+                            throw new UserException("Vui lòng nhập số điện thoại khách hàng");
+                        }
+
+                        dbOrder.CusAddress = order.CusAddress;
+                        dbOrder.CusName = order.CusName;
+
+                        if (!string.IsNullOrWhiteSpace(order.CusEmail))
+                        {
+                            if (!Ultils.IsValidEmail(order.CusEmail))
+                            {
+                                throw new UserException("Email không hợp lệ");
+                            }
+                            else
+                            {
+                                dbOrder.CusEmail = order.CusEmail;
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(order.CusPhone))
+                        {
+                            if (!Ultils.IsValidVietnamesePhoneNumber(order.CusPhone))
+                            {
+                                throw new UserException("Số điện thoại không hợp lệ");
+                            }
+                            else
+                            {
+                                dbOrder.CusPhone = order.CusPhone;
                             }
                         }
                     }));

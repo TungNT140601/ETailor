@@ -196,53 +196,53 @@ namespace Etailor.API.WebAPI.Controllers
         {
             try
             {
-                //var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
-                //if (role == null)
-                //{
-                //    return Unauthorized("Chưa đăng nhập");
-                //}
-                //else if (role != RoleName.MANAGER)
-                //{
-                //    return Unauthorized("Không có quyền truy cập");
-                //}
-                //else
-                //{
-                //    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                //    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
-                //    if (!staffService.CheckSecrectKey(staffId, secrectKey))
-                //    {
-                //        return Unauthorized("Chưa đăng nhập");
-                //    }
-                //    else
-                //    {
-                var filePath = await productTemplateService.ExportFile(templateId);
-
-                if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File")))
+                var role = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (role == null)
                 {
-                    System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File"));
+                    return Unauthorized("Chưa đăng nhập");
                 }
-
-                if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File", "Export")))
+                else if (role != RoleName.MANAGER)
                 {
-                    System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File", "Export"));
-                }
-
-                if (!System.IO.File.Exists(filePath))
-                {
-                    throw new SystemsException("Không tìm thấy file", nameof(ComponentController.ExportFile));
+                    return Unauthorized("Không có quyền truy cập");
                 }
                 else
                 {
-                    var fileExtension = Path.GetExtension(filePath);
+                    var staffId = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                    var secrectKey = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.CookiePath)?.Value;
+                    if (!staffService.CheckSecrectKey(staffId, secrectKey))
+                    {
+                        return Unauthorized("Chưa đăng nhập");
+                    }
+                    else
+                    {
+                        var filePath = await productTemplateService.ExportFile(templateId);
 
-                    byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                        if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File")))
+                        {
+                            System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File"));
+                        }
 
-                    System.IO.File.Delete(filePath);
+                        if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File", "Export")))
+                        {
+                            System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File", "Export"));
+                        }
 
-                    return File(fileBytes, "application/octet-stream", $"Output{fileExtension}");
+                        if (!System.IO.File.Exists(filePath))
+                        {
+                            throw new SystemsException("Không tìm thấy file", nameof(ComponentController.ExportFile));
+                        }
+                        else
+                        {
+                            var fileExtension = Path.GetExtension(filePath);
+
+                            byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+
+                            System.IO.File.Delete(filePath);
+
+                            return File(fileBytes, "application/octet-stream", $"Output{fileExtension}");
+                        }
+                    }
                 }
-                //    }
-                //}
             }
             catch (UserException ex)
             {
