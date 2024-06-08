@@ -78,6 +78,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpGet("customer/verify-email")]
         public async Task<IActionResult> VerifyEmail(string email)
         {

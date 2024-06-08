@@ -23,7 +23,7 @@ namespace TestCase
         ITemplateBodySizeRepository templateBodySizeRepository;
         IBodySizeRepository bodySizeRepository;
 
-        [SetUp]
+        [OneTimeSetUp]
         public void Setup()
         {
 
@@ -98,7 +98,7 @@ namespace TestCase
         [Test]
         public async Task ProductTemplateList_WithCategoryIdData()
         {
-            var result = await productTemplateService.GetByCategory("97d686fb-0ca1-4441-be85-8fb7cd");
+            var result = await productTemplateService.GetByCategory("72d50e40-81b7-452d-84fa-298068");
 
             Assert.IsNotNull(result, "The result should not be null.");
 
@@ -132,7 +132,7 @@ namespace TestCase
         [Test]
         public async Task ProductTemplateList_WithCategoryIdsData()
         {
-            List<string> categoryIds = new List<string> { "97d686fb-0ca1-4441-be85-8fb7cd", "e8ae497b-7b87-4587-9865-e89514" };
+            List<string> categoryIds = new List<string> { "72d50e40-81b7-452d-84fa-298068", "e10cee9f-00aa-4fef-a89e-f6663f" };
 
             var result = await productTemplateService.GetByCategorys(categoryIds);
 
@@ -192,7 +192,7 @@ namespace TestCase
         [Test]
         public async Task ProductTemplateDetail_WithUrlPathData()
         {
-            var result = await productTemplateService.GetByUrlPath("ao-vest-caro-slimfit-co-nhon-av038-mau-đen");
+            var result = await productTemplateService.GetByUrlPath("ao-đam-co-đan-tong");
 
             Assert.IsNotNull(result, "The result should not be null.");
 

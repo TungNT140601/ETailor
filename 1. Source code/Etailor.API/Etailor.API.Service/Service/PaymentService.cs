@@ -365,6 +365,7 @@ namespace Etailor.API.Service.Service
         {
             return paymentRepository.GetAll(x => (string.IsNullOrWhiteSpace(orderId) || orderId == x.OrderId) && x.Status == 0);
         }
+
         public IEnumerable<Payment> GetAllPayments()
         {
             return paymentRepository.GetAll(x => x.Status == 0);

@@ -9,8 +9,8 @@ namespace Etailor.API.Service.Interface
     public interface ISignalRService
     {
         Task SendNotificationToUser(string userId, string Notification);
-        Task SendNotificationToManagers(string Notification);
         Task SendVNPayResult(string Notification);
         Task CheckMessage(string id);
+        Task SendNotificationToManagers(string Notification);
     }
 }

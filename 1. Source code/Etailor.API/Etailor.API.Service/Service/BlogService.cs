@@ -230,6 +230,7 @@ namespace Etailor.API.Service.Service
             }
             return null;
         }
+
         public async Task<Blog> GetBlogUrl(string urlPath)
         {
             var blog = blogRepository.FirstOrDefault(x => x.UrlPath == urlPath && x.IsActive == true);

@@ -107,7 +107,7 @@ namespace TestCase
         [Test]
         public void MaterialList_WithNullMaterialTypeIdData()
         {
-            var result = materialService.GetMaterialsByMaterialCategory(null);
+            var result = materialService.GetMaterialsByMaterialType(null);
 
             Assert.IsEmpty(result, "The result should be empty");
         }
@@ -115,7 +115,7 @@ namespace TestCase
         [Test]
         public void MaterialList_WithEmptyMaterialTypeIdData()
         {
-            var result = materialService.GetMaterialsByMaterialCategory("");
+            var result = materialService.GetMaterialsByMaterialType("");
 
             Assert.IsEmpty(result, "The result should be empty");
         }
@@ -123,12 +123,68 @@ namespace TestCase
         [Test]
         public void MaterialList_WithMaterialTypeIdData()
         {
-            var result = materialService.GetMaterialsByMaterialCategory("c17e5767-6206-4883-820a-dba689");
+            var result = materialService.GetMaterialsByMaterialType("c17e5767-6206-4883-820a-dba689");
 
             Assert.IsNotNull(result, "The result should not be null.");
 
             Assert.IsInstanceOf<IEnumerable<Material>>(result, "The result should be as List of Material object.");
         }
 
+        //GetMaterialList (exact is Fabric) By name (= "vai","vải", "vãi")
+        //IsActive == true is nested in code func GetMaterials of MaterialService
+        //[Test]
+        //public void MaterialList_WithNullFabricNameData()
+        //{
+        //    var result = materialService.GetFabricMaterials(null);
+            
+        //    //Assert.IsInstanceOf<IEnumerable<Material>>(result, "The result should be as List of Material object.");
+        //    //Assert.IsEmpty(result, "The result should be empty");
+        //}
+
+        //[Test]
+        //public void MaterialList_WithEmptyFabricNameData()
+        //{
+        //    var result = materialService.GetFabricMaterials("");
+
+        //    Assert.IsEmpty(result, "The result should be empty");
+        //}
+
+        [Test]
+        public void MaterialList_WithFabricNameData()
+        {
+            var result = materialService.GetFabricMaterials("Vãi");
+
+            Assert.IsNotNull(result, "The result should not be null.");
+
+            Assert.IsInstanceOf<IEnumerable<Material>>(result, "The result should be as List of Material object.");
+        }
+
+        //GetMaterial By Id 
+        //IsActive == true is nested in code func GetStaff of StaffService
+        [Test]
+        public void MaterialDetail_WithNullIdData()
+        {
+            var result = materialService.GetMaterial(null);
+
+            Assert.IsNull(result, "The result should be null");
+        }
+
+        [Test]
+        public void MaterialDetail_WithEmptyIdData()
+        {
+            var result = materialService.GetMaterial("");
+
+            Assert.AreEqual(null, result, "The result should be null");
+        }
+
+        [Test]
+        public void MaterialDetail_WithIdData()
+        {
+            var result = materialService.GetMaterial("031bc211-d984-4278-97d3-a54fa8");
+
+            Assert.IsNotNull(result, "The result should not be null.");
+
+            Assert.IsInstanceOf<Material>(result, "The result should be as Material object.");
+        }
     }
 }

@@ -10,8 +10,8 @@ namespace Etailor.API.Service.Interface
     public interface ITemplateStageService
     {
         TemplateStage GetTemplateStage(string id);
-        Task<bool> CreateTemplateStages(string templateId, List<TemplateStage> templateStages);
         List<TemplateStage> GetAll(string templateId, string? search);
+        Task<bool> CreateTemplateStages(string templateId, List<TemplateStage> templateStages);
         Task<bool> UpdateTemplateStages(string templateId, List<TemplateStage> inputStages,string wwwroot);
     }
 }

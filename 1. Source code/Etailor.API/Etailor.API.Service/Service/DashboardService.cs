@@ -150,6 +150,7 @@ namespace Etailor.API.Service.Service
 
             return returnResult.OrderBy(x => x.Month);
         }
+
         public async Task<object> GetStaffWithTotalTask()
         {
             var staffs = staffWithTotalTaskRepository.GetStoreProcedure(StoreProcName.Get_Staff_With_Total_Task);
@@ -181,6 +182,7 @@ namespace Etailor.API.Service.Service
 
             return null;
         }
+
         public int GetTotalOrder(int? year, int? month)
         {
             if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
@@ -204,6 +206,7 @@ namespace Etailor.API.Service.Service
                 return 0;
             }
         }
+
         public double GetOrderRate(int? year, int? month)
         {
             if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
@@ -254,6 +257,7 @@ namespace Etailor.API.Service.Service
                 return (double)(totalThisMonth - totalPreMonth) / totalPreMonth;
             }
         }
+
         public decimal GetTotalOrderPrice(int? year, int? month)
         {
             if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
@@ -277,6 +281,7 @@ namespace Etailor.API.Service.Service
                 return 0;
             }
         }
+
         public double GetOrderTotalPriceRate(int? year, int? month)
         {
             if (year == null || year > DateTime.UtcNow.AddHours(7).Year)
@@ -367,6 +372,7 @@ namespace Etailor.API.Service.Service
 
             return null;
         }
+
         public async Task<List<TemplateDashboard>> GetTemplateCommonUsedByMonth(int? year, int? month)
         {
             if (year == null || year > DateTime.UtcNow.AddHours(7).Year)

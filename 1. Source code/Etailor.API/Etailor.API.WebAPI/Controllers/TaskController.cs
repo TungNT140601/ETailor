@@ -474,6 +474,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpPut("task/{productId}/deadline")]
         public async Task<IActionResult> SetDeadlineForTask(string productId, string? deadlineTickString)
         {
@@ -573,6 +574,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpPut("staff/{staffId}/unassign/{productId}")]
         public async Task<IActionResult> UnAssignTaskToStaff(string productId, string staffId)
         {
@@ -615,6 +617,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpPut("swap-task/{taskId}")]
         public async Task<IActionResult> SwapTaskIndex(string taskId, string? staffId, int? index)
         {
@@ -661,6 +664,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpGet("dashboard")]
         public async Task<IActionResult> TaskDashboard()
         {
@@ -746,6 +750,7 @@ namespace Etailor.API.WebAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
+
         [HttpPut("{taskId}/stage/{stageId}/material")]
         public async Task<IActionResult> SetMaterialForTask(string taskId, string stageId, [FromBody] List<ProductStageMaterialVM> materials)
         {

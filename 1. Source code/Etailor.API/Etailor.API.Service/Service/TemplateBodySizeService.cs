@@ -201,6 +201,7 @@ namespace Etailor.API.Service.Service
                 }
             }
         }
+
         public async Task<bool> UpdateTemplateBodySize(List<string> ids, string templateId)
         {
             var template = productTemplateRepository.Get(templateId);
