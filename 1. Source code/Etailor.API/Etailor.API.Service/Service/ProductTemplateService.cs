@@ -938,11 +938,6 @@ namespace Etailor.API.Service.Service
                                 worksheet.Cells[2, 3].Value = "Hình ảnh";
                                 worksheet.Cells[2, 4].Value = "Kiểu mặc định (x)";
 
-                                for (int i = 3; i < 13; i++)
-                                {
-                                    worksheet.Cells[i, 1].Value = i - 2;
-                                    worksheet.Rows[i].Height = 50;
-                                }
 
                                 worksheet.Columns[1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Left;
                                 worksheet.Columns[1].Style.VerticalAlignment = OfficeOpenXml.Style.ExcelVerticalAlignment.Center;
