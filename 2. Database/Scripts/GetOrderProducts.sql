@@ -1,0 +1,13 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE PROCEDURE [dbo].[GetOrderProductTemplates]
+    @OrderId NVARCHAR(30)
+AS
+BEGIN
+SELECT *
+FROM Product
+WHERE OrderId = @OrderId ANd IsActive = 1 AND [Status] > 0
+END;
+GO

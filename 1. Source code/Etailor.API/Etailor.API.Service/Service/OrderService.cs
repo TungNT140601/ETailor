@@ -855,11 +855,27 @@ namespace Etailor.API.Service.Service
             var order = orderRepository.Get(id);
             if (order != null && order.Status >= 0)
             {
-                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                var orderIdParam = new SqlParameter()
+                {
+                    ParameterName = "@OrderId",
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                    Value = id
+                };
+                var orderMaterials = orderMaterialRepository.GetStoreProcedure(StoreProcName.Get_Order_Materials, orderIdParam);
+
+                var orderProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Order_Products, orderIdParam);
+
+                var orderProductTemplates = productTemplaTeRepository.GetStoreProcedure(StoreProcName.Get_Order_Product_Templates, orderIdParam);
+
                 if (orderMaterials != null && orderMaterials.Any())
                 {
                     order.OrderMaterials = orderMaterials.ToList();
-                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    var materials = materialRepository.GetStoreProcedure(StoreProcName.Get_Materials, new SqlParameter()
+                    {
+                        ParameterName = "@MaterialIds",
+                        SqlDbType = System.Data.SqlDbType.NVarChar,
+                        Value = string.Join(",", orderMaterials.Select(x => x.MaterialId).ToList())
+                    });
                     if (materials != null && materials.Any())
                     {
                         materials = materials.ToList();
@@ -881,6 +897,43 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                if (orderProducts != null && orderProducts.Any() && orderProductTemplates != null && orderProductTemplates.Any())
+                {
+                    order.Products = orderProducts.OrderBy(x => x.Name).ToList();
+
+                    orderProductTemplates = orderProductTemplates.ToList();
+
+                    var tasks = new List<Task>();
+
+                    foreach (var product in order.Products)
+                    {
+                        tasks.Add(Task.Run(() =>
+                        {
+                            product.ProductTemplate = orderProductTemplates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
+
+                            if (product.ProductTemplate != null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(product.ProductTemplate.ThumbnailImage))
+                                {
+                                    if (!product.ProductTemplate.ThumbnailImage.StartsWith("http"))
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                    }
+                                    else
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = product.ProductTemplate.ThumbnailImage;
+                                    }
+                                }
+                            }
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+                else
+                {
+                    order.Products = new List<Product>();
                 }
 
                 return order;
@@ -953,11 +1006,27 @@ namespace Etailor.API.Service.Service
             var order = orderRepository.Get(orderId);
             if (order != null && order.IsActive == true && order.Status >= 0 && order.CustomerId == cusId)
             {
-                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                var orderIdParam = new SqlParameter()
+                {
+                    ParameterName = "@OrderId",
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                    Value = orderId
+                };
+                var orderMaterials = orderMaterialRepository.GetStoreProcedure(StoreProcName.Get_Order_Materials, orderIdParam);
+
+                var orderProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Order_Products, orderIdParam);
+
+                var orderProductTemplates = productTemplaTeRepository.GetStoreProcedure(StoreProcName.Get_Order_Product_Templates, orderIdParam);
+
                 if (orderMaterials != null && orderMaterials.Any())
                 {
                     order.OrderMaterials = orderMaterials.ToList();
-                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    var materials = materialRepository.GetStoreProcedure(StoreProcName.Get_Materials, new SqlParameter()
+                    {
+                        ParameterName = "@MaterialIds",
+                        SqlDbType = System.Data.SqlDbType.NVarChar,
+                        Value = string.Join(",", orderMaterials.Select(x => x.MaterialId).ToList())
+                    });
                     if (materials != null && materials.Any())
                     {
                         materials = materials.ToList();
@@ -979,6 +1048,43 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                if (orderProducts != null && orderProducts.Any() && orderProductTemplates != null && orderProductTemplates.Any())
+                {
+                    order.Products = orderProducts.OrderBy(x => x.Name).ToList();
+
+                    orderProductTemplates = orderProductTemplates.ToList();
+
+                    var tasks = new List<Task>();
+
+                    foreach (var product in order.Products)
+                    {
+                        tasks.Add(Task.Run(() =>
+                        {
+                            product.ProductTemplate = orderProductTemplates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
+
+                            if (product.ProductTemplate != null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(product.ProductTemplate.ThumbnailImage))
+                                {
+                                    if (!product.ProductTemplate.ThumbnailImage.StartsWith("http"))
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                    }
+                                    else
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = product.ProductTemplate.ThumbnailImage;
+                                    }
+                                }
+                            }
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+                else
+                {
+                    order.Products = new List<Product>();
                 }
 
                 return order;

@@ -60,6 +60,16 @@ BEGIN
         InactiveTime = DATEADD(HOUR, 7, GETUTCDATE())
         WHERE Id = @ProductId
 
+        DECLARE @GreatestDatePlan DATETIME2;
+
+        SELECT TOP 1 @GreatestDatePlan = PlannedTime
+        FROM Product WHERE OrderId = @OrderId AND IsActive = 1 AND [Status] > 0
+        ORDER BY PlannedTime DESC
+
+        UPDATE [Order]
+        SET PlannedTime = @GreatestDatePlan
+        WHERE Id = @OrderId
+        
         IF NOT EXISTS (SELECT 1
         FROM Product
         WHERE Id NOT LIKE @ProductId AND OrderId = @OrderId AND FabricMaterialId = @FabricMaterialId AND IsActive = 1 AND [Status] > 0)
