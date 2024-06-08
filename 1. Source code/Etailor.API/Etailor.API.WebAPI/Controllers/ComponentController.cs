@@ -233,13 +233,13 @@ namespace Etailor.API.WebAPI.Controllers
                 }
                 else
                 {
-                    var fileName = Path.GetFileName(filePath);
+                    var fileExtension = Path.GetExtension(filePath);
 
                     byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
 
                     System.IO.File.Delete(filePath);
 
-                    return File(fileBytes, "application/octet-stream", fileName);
+                    return File(fileBytes, "application/octet-stream", $"Output{fileExtension}");
                 }
                 //    }
                 //}

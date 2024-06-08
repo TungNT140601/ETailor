@@ -913,11 +913,13 @@ namespace Etailor.API.Service.Service
                         // Set the license context
                         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-                        FileInfo templateFile = new FileInfo("./wwwroot/File/Export/Output.xlsx");
+                        string filePath = $"./wwwroot/File/Export/Output_{DateTime.UtcNow.ToString("yyyyMMddHHmmssfffffff")}_{Guid.NewGuid().ToString("N")}.xlsx";
+
+                        FileInfo templateFile = new FileInfo(filePath);
                         if (templateFile.Exists)
                         {
                             templateFile.Delete();
-                            templateFile = new FileInfo("./wwwroot/File/Export/Output.xlsx");
+                            templateFile = new FileInfo(filePath);
                         }
                         using (ExcelPackage excelPackage = new ExcelPackage(templateFile))
                         {
@@ -980,7 +982,7 @@ namespace Etailor.API.Service.Service
                             excelPackage.Save();
                         }
 
-                        return "./wwwroot/File/Export/Output.xlsx";
+                        return filePath;
                     }
                     else
                     {
