@@ -102,41 +102,13 @@ namespace TestCase
             Assert.IsInstanceOf<IEnumerable<Material>>(result, "The result should be as List of Material object.");
         }
 
-        //GetMaterialList By Material Type Id
-        //IsActive == true is nested in code func GetMaterials of MaterialService
-        [Test]
-        public void MaterialList_WithNullMaterialTypeIdData()
-        {
-            var result = materialService.GetMaterialsByMaterialType(null);
-
-            Assert.IsEmpty(result, "The result should be empty");
-        }
-
-        [Test]
-        public void MaterialList_WithEmptyMaterialTypeIdData()
-        {
-            var result = materialService.GetMaterialsByMaterialType("");
-
-            Assert.IsEmpty(result, "The result should be empty");
-        }
-
-        [Test]
-        public void MaterialList_WithMaterialTypeIdData()
-        {
-            var result = materialService.GetMaterialsByMaterialType("c17e5767-6206-4883-820a-dba689");
-
-            Assert.IsNotNull(result, "The result should not be null.");
-
-            Assert.IsInstanceOf<IEnumerable<Material>>(result, "The result should be as List of Material object.");
-        }
-
         //GetMaterialList (exact is Fabric) By name (= "vai","vải", "vãi")
         //IsActive == true is nested in code func GetMaterials of MaterialService
         //[Test]
         //public void MaterialList_WithNullFabricNameData()
         //{
         //    var result = materialService.GetFabricMaterials(null);
-            
+
         //    //Assert.IsInstanceOf<IEnumerable<Material>>(result, "The result should be as List of Material object.");
         //    //Assert.IsEmpty(result, "The result should be empty");
         //}

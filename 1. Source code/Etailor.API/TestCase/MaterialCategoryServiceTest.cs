@@ -19,16 +19,14 @@ namespace TestCase
 
         IMaterialRepository materialRepository;
         IMaterialCategoryRepository materialCategoryRepository;
-        IMaterialTypeRepository materialTypeRepository;
 
         [SetUp]
         public void Setup()
         {
             materialRepository = new MaterialRepository(dBContext);
             materialCategoryRepository = new MaterialCategoryRepository(dBContext);
-            materialTypeRepository = new MaterialTypeRepository(dBContext);
 
-            materialCategoryService = new MaterialCategoryService(materialRepository, materialTypeRepository, materialCategoryRepository);
+            materialCategoryService = new MaterialCategoryService(materialRepository, materialCategoryRepository);
         }
 
         //GetMaterialCategoryList By Name
@@ -36,7 +34,7 @@ namespace TestCase
         [Test]
         public void MaterialCategoryList_WithNullNameData()
         {
-            var result =  materialCategoryService.GetMaterialCategorys(null);
+            var result = materialCategoryService.GetMaterialCategorys(null);
 
             Assert.IsNotNull(result, "The result should not be null.");
 

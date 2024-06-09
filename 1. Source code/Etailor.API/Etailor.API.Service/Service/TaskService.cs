@@ -1891,7 +1891,7 @@ namespace Etailor.API.Service.Service
                 activeOrders = null;
             }
 
-            var orderProducts = productRepository.GetAll(x => activeOrders != null && activeOrders.Any() && activeOrders.Select(c => c.Id).Contains(x.OrderId) && x.Status >= 1 && x.Status <= 5 && x.IsActive == true);
+            var orderProducts = productRepository.GetAll(x => activeOrders != null && activeOrders.Any() && activeOrders.Select(c => c.Id).Contains(x.OrderId) && x.Status >= 1 && x.Status < 5 && x.IsActive == true);
             if (orderProducts != null && orderProducts.Any())
             {
                 orderProducts = orderProducts.ToList();

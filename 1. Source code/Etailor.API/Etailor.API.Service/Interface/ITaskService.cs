@@ -29,5 +29,8 @@ namespace Etailor.API.Service.Interface
         Task<bool> DefectsTask(string productId, string orderId);
         Task<IEnumerable<Category>> GetTaskByCategories();
         Task<bool> SetMaterialForTask(string taskId, string stageId, List<ProductStageMaterial> stageMaterials);
+        Task<bool> SetDeadlineForTask(string productId, DateTime deadline);
+        Task<bool> AssignTaskToStaff(string productId, string staffId);
+        Task<bool> UnAssignStaffTask(string productId, string staffId);
     }
 }
