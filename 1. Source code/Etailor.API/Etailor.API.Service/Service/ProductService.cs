@@ -734,9 +734,13 @@ namespace Etailor.API.Service.Service
             var dbOrder = orderRepository.Get(orderId);
             if (dbOrder != null)
             {
-                if (dbOrder.Status >= 2)
+                if (dbOrder.Status > 2)
                 {
                     throw new UserException("Đơn hàng đã duyệt. Không thể chỉnh sửa");
+                }
+                else if (dbOrder.PaidMoney > 0)
+                {
+                    throw new UserException("Đơn hàng đã thanh toán. Không thể chỉnh sửa");
                 }
                 else
                 {

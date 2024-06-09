@@ -2,7 +2,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE [dbo].[GetTemplateComponents]
+ALTER PROCEDURE [dbo].[GetTemplateComponents]
                     @ProductTemplateId NVARCHAR(30) NULL
 AS
 BEGIN

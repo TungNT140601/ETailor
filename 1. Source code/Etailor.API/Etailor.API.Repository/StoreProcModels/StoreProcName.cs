@@ -32,6 +32,15 @@ namespace Etailor.API.Repository.StoreProcModels
         public static string Read_All_Notification = "ReadAllNotification";
         public static string Auto_Assign_Task_For_Staff = "AutoAssignTaskForStaff";
         public static string Get_Staff_Task = "GetStaffTask";
+        public static string Get_Order_Materials = "GetOrderMaterials";
+        public static string Get_Materials = "GetMaterials";
+        public static string Get_Order_Products = "GetOrderProducts";
+        public static string Get_Order_Product_Templates = "GetOrderProductTemplates";
+        public static string Get_Approve_Orders_Products = "GetApproveOrdersProducts";
+        public static string Get_Order_Product_TemplateStage = "GetOrderProductTemplateStage";
+        public static string Get_Component_Stage = "GetComponentStage";
+        public static string Get_ProductTemplate_Component = "GetProductTemplateComponent";
+        public static string Get_Greatest_Index_Value = "GetGreatestIndexValue";
     }
     public class SpResult
     {

@@ -152,7 +152,7 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        return Ok(componentService.DeleteComponent(id));
+                        return componentService.DeleteComponent(id) ? Ok("Xóa kiểu bộ phận thành công") : BadRequest("Xóa kiểu bộ phận thất bại");
                     }
                 }
             }
@@ -215,21 +215,31 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var filePath = productTemplateService.ExportFile(templateId);
+                        var filePath = await productTemplateService.ExportFile(templateId);
+
+                        if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File")))
+                        {
+                            System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File"));
+                        }
+
+                        if (!System.IO.Directory.Exists(Path.Combine(_wwwroot, "File", "Export")))
+                        {
+                            System.IO.Directory.CreateDirectory(Path.Combine(_wwwroot, "File", "Export"));
+                        }
 
                         if (!System.IO.File.Exists(filePath))
                         {
-                            return NotFound("File not found");
+                            throw new SystemsException("Không tìm thấy file", nameof(ComponentController.ExportFile));
                         }
                         else
                         {
-                            var fileName = Path.GetFileName(filePath);
+                            var fileExtension = Path.GetExtension(filePath);
 
                             byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
 
                             System.IO.File.Delete(filePath);
 
-                            return File(fileBytes, "application/octet-stream", fileName);
+                            return File(fileBytes, "application/octet-stream", $"Output{fileExtension}");
                         }
                     }
                 }
@@ -248,7 +258,7 @@ namespace Etailor.API.WebAPI.Controllers
             }
         }
         [HttpPost("import/template/{templateId}")]
-        public async Task<IActionResult> ExportFile(string templateId, IFormFile? file)
+        public async Task<IActionResult> ImportFile(string templateId, IFormFile? file)
         {
             try
             {

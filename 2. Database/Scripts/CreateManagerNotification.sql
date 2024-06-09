@@ -2,7 +2,8 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE [dbo].[CreateManagerNotification]
+
+ALTER PROCEDURE [dbo].[CreateManagerNotification]
     @Title NVARCHAR(255),
     @Content NVARCHAR(MAX)
 AS
@@ -48,7 +49,9 @@ BEGIN
 
     CLOSE ManagerCursor;
     DEALLOCATE ManagerCursor;
-
-    RETURN 1
+	
+    -- Optionally, return a success indicator or the updated order details
+    SELECT 1 AS ReturnValue;
+-- Instead of RETURN 1;
 END
 GO

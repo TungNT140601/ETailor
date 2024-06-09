@@ -86,23 +86,25 @@ BEGIN
         WHERE Id = @ProductId;
 
         SET @ReturnValue = 2; -- Notify hoàn thành sản phẩm
-    END;
+        
 
-    IF NOT EXISTS (SELECT 1 FROM Product WHERE Id NOT LIKE @ProductId AND OrderId = @OrderId AND [Status] > 0 AND [Status] < 5 AND IsActive = 1)
-    BEGIN
-        IF @OrderStatus NOT LIKE 7 -- Đơn không bị từ chối
+        IF NOT EXISTS (SELECT 1 FROM Product WHERE Id NOT LIKE @ProductId AND OrderId = @OrderId AND [Status] > 0 AND [Status] < 5 AND IsActive = 1)
         BEGIN
+
             UPDATE [Order] SET
             [Status] = 5,
             LastestUpdatedTime = DATEADD(HOUR,7,GETUTCDATE()),
             FinishTime = DATEADD(HOUR,7,GETUTCDATE())
             WHERE Id = @OrderId;
 
-            SET @ReturnValue = 3; -- Notify hoàn thành đơn
-        END;
-        ELSE
-        BEGIN
-            SET @ReturnValue = 4; -- Notify hoàn thành đơn bị từ chối
+            IF @OrderStatus NOT LIKE 7 -- Đơn không bị từ chối
+            BEGIN
+                SET @ReturnValue = 3; -- Notify hoàn thành đơn
+            END;
+            ELSE
+            BEGIN
+                SET @ReturnValue = 4; -- Notify hoàn thành đơn bị từ chối
+            END;
         END;
     END;
 

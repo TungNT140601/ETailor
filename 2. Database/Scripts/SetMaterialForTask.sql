@@ -63,7 +63,7 @@ BEGIN
         THROW 50000, N'Không tìm thấy quy trình của nhiệm vụ', 1;
     ELSE IF @TaskStageStatus = 0
         THROW 50000, N'Quy trình bị hủy', 1;
-    ELSE IF @TaskStageStatus = 5
+    ELSE IF @TaskStageStatus = 4
         THROW 50000, N'Quy trình đã hoàn thành', 1;
 
     IF NOT EXISTS (SELECT 1

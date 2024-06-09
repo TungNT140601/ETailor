@@ -34,16 +34,31 @@ namespace Etailor.API.Ultity.CustomException
             // Path to your text file
             string filePath = Path.Combine("./wwwroot", "Log", "Check", "ErrorLog.txt");
 
-            if (!File.Exists(filePath))
+            try
             {
-                var file = File.Create(filePath);
-                file.Close();
+                if (!Directory.Exists(Path.Combine("./wwwroot", "Log")))
+                {
+                    Directory.CreateDirectory(Path.Combine("./wwwroot", "Log"));
+                }
+                if (!Directory.Exists(Path.Combine("./wwwroot", "Log", "Check")))
+                {
+                    Directory.CreateDirectory(Path.Combine("./wwwroot", "Log", "Check"));
+                }
+                if (!File.Exists(filePath))
+                {
+                    var file = File.Create(filePath);
+                    file.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error when write log");
             }
 
             // Open the file in append mode so that it appends new lines
             using (StreamWriter writer = new StreamWriter(filePath, true))
             {
-                writer.WriteLine($"Error: {errorMsg} at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}");
+                writer.WriteLine($"Error: \"{errorMsg}\" at :{DateTime.UtcNow.AddHours(7).ToString("yyyy/MM/dd HH:mm:ss")}");
             }
         }
     }

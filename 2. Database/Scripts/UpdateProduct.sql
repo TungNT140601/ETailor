@@ -19,8 +19,6 @@ BEGIN
 
     DECLARE @OrderStatus INT;
     DECLARE @ProducPrice DECIMAL(18, 0) = 0;
-    DECLARE @MaterialPrice DECIMAL(18, 0);
-    DECLARE @MaterialCategoryPricePerUnit DECIMAL(18, 2);
     DECLARE @CustomerId NVARCHAR(50);
     DECLARE @StaffMakeProfileBody NVARCHAR(50);
     DECLARE @OldProductTemplateId NVARCHAR(30);
@@ -34,14 +32,17 @@ BEGIN
     );
     DECLARE @OrderPlannedTime DATETIME;
 
+    IF @NewFabricMaterialId IS NULL
+        THROW 50000, N'Vui lòng chọn loại vải chính cho sản phẩm', 1;
+
     SELECT @OrderStatus = [Status], @CustomerId = CustomerId, @OrderPlannedTime = PlannedTime
     FROM [Order]
-    WHERE Id = @orderId AND IsActive = 0;
+    WHERE Id = @orderId AND [Status] > 0;
 
     IF @OrderStatus IS NULL
         THROW 50000, N'Không tìm thấy hóa đơn', 1;
 
-    IF @OrderStatus >= 2
+    IF @OrderStatus > 2
         THROW 50000, N'Đơn hàng đã duyệt. Không thể chỉnh sửa', 1;
 
     SELECT @OldFabricMaterialId = FabricMaterialId, @OldProductName = [Name], @OldProductStatus = [Status], @OldProfileBodyId = ReferenceProfileBodyId, @OldProductTemplateId = ProductTemplateId
@@ -78,8 +79,6 @@ BEGIN
         THROW 50000, N'Không tìm thấy nguyên liệu', 1;
     ELSE
     BEGIN
-        SELECT @MaterialPrice = MC.PricePerUnit
-        FROM MaterialCategory MC INNER JOIN Material M ON MC.Id = M.MaterialCategoryId
 
         IF @NewFabricMaterialId NOT LIKE @OldFabricMaterialId
         BEGIN
@@ -128,11 +127,6 @@ BEGIN
         END;
     END;
 
-    IF(@IsCusMaterial = 0)
-    SET @ProducPrice = @ProducPrice + ROUND((@MaterialPrice * @MaterialValue), 2);
-    ELSE
-    SET @ProducPrice = @ProducPrice
-
     IF NOT EXISTS(SELECT 1
     FROM ProfileBody
     WHERE Id = @NewProfileBodyId AND CustomerId = @CustomerId AND IsActive = 1)
@@ -167,7 +161,6 @@ BEGIN
         ,[Status] = 1
         ,[LastestUpdatedTime] = DATEADD(HOUR, 7, GETUTCDATE())
         ,[IsActive] = 1
-        ,[Price] = @ProducPrice
         ,[SaveOrderComponents] = @NewSaveOrderComponents
         ,[FabricMaterialId] = @NewFabricMaterialId
         ,[ReferenceProfileBodyId] = @NewProfileBodyId

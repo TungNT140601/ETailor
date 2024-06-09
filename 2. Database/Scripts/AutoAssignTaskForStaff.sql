@@ -1,4 +1,8 @@
-ALTER PROCEDURE dbo.AutoAssignTaskForStaff
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[AutoAssignTaskForStaff]
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -22,24 +26,22 @@ BEGIN
         SET @IndexTask = 0;
         SET @StaffMakerId = NULL;
 
-        SELECT TOP 1
-            @StaffMakerId = S.Id, @IndexTask = P.[Index]
+        SELECT TOP 1 @StaffMakerId = S.Id, @IndexTask = P.[Index]
             FROM Staff S INNER JOIN (
-            SELECT TOP 1
-                S.Id, COUNT(S.Id) AS NumOfTask
-                FROM Staff S INNER JOIN Mastery M ON (M.StaffId = S.Id AND M.CategoryId = @CategoryId)
-                INNER JOIN Product P ON P.StaffMakerId = S.Id
-                INNER JOIN [Order] O ON O.Id = P.OrderId
-                WHERE S.IsActive = 1 AND P.IsActive = 1 AND P.[Status] > 0 AND P.[Status] < 5
-                AND O.IsActive = 1 AND O.[Status] >= 3 AND O.Status < 8
-                GROUP BY S.Id
-                ORDER BY NumOfTask ASC
-            ) AS ST ON S.Id = ST.Id
-            INNER JOIN Product P ON P.StaffMakerId = S.Id
-            INNER JOIN [Order] O ON O.Id = P.OrderId
-            WHERE S.IsActive = 1 AND P.IsActive = 1 AND P.[Status] > 0 AND P.[Status] < 5
-            AND O.IsActive = 1 AND O.[Status] >= 3 AND O.Status < 8
-            ORDER BY P.[Index] DESC
+            SELECT TOP 1 S.Id, COUNT(P.Id) AS NumOfTask
+            FROM Staff S INNER JOIN Mastery M ON (M.StaffId = S.Id AND M.CategoryId = @CategoryId)
+            LEFT JOIN Product P ON (P.StaffMakerId = S.Id AND P.IsActive = 1 AND P.[Status] > 0 AND P.[Status] < 5)
+            LEFT JOIN [Order] O ON (O.Id = P.OrderId AND O.IsActive = 1 AND O.[Status] >= 3 AND O.Status < 8)
+            WHERE S.IsActive = 1
+            GROUP BY S.Id
+            ORDER BY NumOfTask ASC
+        ) AS ST ON S.Id = ST.Id
+        INNER JOIN Product P ON P.StaffMakerId = S.Id
+        INNER JOIN [Order] O ON O.Id = P.OrderId
+        WHERE S.IsActive = 1
+        AND P.IsActive = 1 AND P.[Status] > 0 AND P.[Status] <= 5
+        AND O.IsActive = 1 AND O.[Status] >= 3 AND O.Status <= 8
+        ORDER BY P.[Index] DESC
 
         IF @StaffMakerId IS NOT NULL
         BEGIN

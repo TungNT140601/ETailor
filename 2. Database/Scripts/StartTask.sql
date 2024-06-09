@@ -68,7 +68,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM ProductStage WHERE Id NOT LIKE @ProductStageId AND ProductId = @ProductId AND [Status] > 1 AND [Status] < 4 AND IsActive = 1)
         THROW 50000, N'Có công đoạn đang chờ hoặc đang thực hiện. Vui lòng hoàn thành trước khi bắt đầu công đoạn này', 1;
 
-    IF EXISTS (SELECT 1 FROM ProductStage WHERE Id NOT LIKE @ProductStageId AND ProductId = @ProductId AND [Status] > 0 AND IsActive = 1 AND StageNum < @ProductStageNum)
+    IF EXISTS (SELECT 1 FROM ProductStage WHERE Id NOT LIKE @ProductStageId AND ProductId = @ProductId AND [Status] > 0 AND [Status] < 4 AND IsActive = 1 AND StageNum < @ProductStageNum)
         THROW 50000, N'Công đoạn trước chưa hoàn thành. Vui lòng thực hiện theo trình tự', 1;
 
     IF NOT EXISTS (SELECT 1 FROM ProductStageMaterial WHERE ProductStageId = @ProductStageId)
@@ -79,7 +79,12 @@ BEGIN
     LastestUpdatedTime = DATEADD(HOUR,7,GETUTCDATE())
     WHERE Id = @ProductId;
 
-    IF @OrderStatus NOT LIKE 7
+    IF @OrderStatus = 7
+    UPDATE [Order] SET
+    [Status] = 7,
+    LastestUpdatedTime = DATEADD(HOUR,7,GETUTCDATE())
+    WHERE Id = @OrderId;
+    ELSE
     UPDATE [Order] SET
     [Status] = 4,
     LastestUpdatedTime = DATEADD(HOUR,7,GETUTCDATE())
