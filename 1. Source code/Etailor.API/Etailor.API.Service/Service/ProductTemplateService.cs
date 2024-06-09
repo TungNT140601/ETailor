@@ -906,7 +906,7 @@ namespace Etailor.API.Service.Service
             return null;
         }
 
-        public string ExportFile(string templateId)
+        public async Task<string> ExportFile(string templateId)
         {
             var template = productTemplateRepository.Get(templateId);
             if (template != null)
@@ -922,7 +922,14 @@ namespace Etailor.API.Service.Service
                         // Set the license context
                         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-                        FileInfo templateFile = new FileInfo("./wwwroot/File/Export/Output.xlsx");
+                        string filePath = $"./wwwroot/File/Export/Output_{DateTime.UtcNow.ToString("yyyyMMddHHmmssfffffff")}_{Guid.NewGuid().ToString("N")}.xlsx";
+
+                        FileInfo templateFile = new FileInfo(filePath);
+                        if (templateFile.Exists)
+                        {
+                            templateFile.Delete();
+                            templateFile = new FileInfo(filePath);
+                        }
                         using (ExcelPackage excelPackage = new ExcelPackage(templateFile))
                         {
                             if (excelPackage.Workbook.Worksheets.Any(ws => ws.Name == "Sheet1"))
@@ -930,6 +937,8 @@ namespace Etailor.API.Service.Service
                                 // Delete the sheet
                                 excelPackage.Workbook.Worksheets.Delete("Sheet1");
                             }
+
+                            var tasks = new List<Task>();
 
                             foreach (var componentType in componentTypes)
                             {
@@ -945,12 +954,11 @@ namespace Etailor.API.Service.Service
                                 worksheet.Cells[2, 1].Value = "STT";
                                 worksheet.Cells[2, 2].Value = "Tên kiểu";
                                 worksheet.Cells[2, 3].Value = "Hình ảnh";
-                                worksheet.Cells[2, 4].Value = "Kiểu mặc định (x)";
+                                worksheet.Cells[2, 4].Value = "Kiểu mặc định (X)";
 
                                 for (int i = 3; i < 13; i++)
                                 {
                                     worksheet.Cells[i, 1].Value = i - 2;
-                                    worksheet.Rows[i].Height = 50;
                                 }
 
                                 worksheet.Columns[1].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Left;
@@ -966,88 +974,24 @@ namespace Etailor.API.Service.Service
 
                                 worksheet.Cells.Style.Locked = false;
                                 worksheet.Cells["A1:D2"].Style.Locked = true;
+                                worksheet.Protection.AllowSort = true;
+                                worksheet.Protection.AllowDeleteRows = true;
+                                worksheet.Protection.AllowFormatCells = true;
+                                worksheet.Protection.AllowFormatColumns = true;
+                                worksheet.Protection.AllowSelectLockedCells = true;
+                                worksheet.Protection.AllowAutoFilter = true;
+                                worksheet.Protection.AllowInsertRows = true;
                                 worksheet.Protection.IsProtected = true;
 
-                                #region ExportData
-
-                                //var templateComponents = componentRepository.GetAll(x => x.ProductTemplateId == templateId && x.IsActive == true);
-                                //if (templateComponents != null && templateComponents.Any())
-                                //{
-                                //    templateComponents = templateComponents.OrderBy(x => x.Name).ToList();
-
-                                //}
-                                //else
-                                //{
-                                //    templateComponents = new List<Component>();
-                                //}
-
-                                //int startRow = 2; // Assuming data starts from row 2
-
-                                //if (templateComponents != null && templateComponents.Any(x => x.ComponentTypeId == componentType.Id))
-                                //{
-                                //    var componentOfType = templateComponents.Where(x => x.ComponentTypeId == componentType.Id).ToList();
-
-                                //    for (int i = 0; i < componentOfType.Count; i++)
-                                //    {
-                                //        var row = startRow + i;
-                                //        worksheet.Rows[row].Height = 100;
-                                //        var colName = 1;
-                                //        worksheet.Columns[colName].AutoFit();
-                                //        var colImage = 2;
-                                //        worksheet.Columns[colImage].Width = 20;
-                                //        var colDefault = 3;
-                                //        worksheet.Columns[colDefault].AutoFit();
-                                //        var rowData = componentOfType[i];
-
-                                //        worksheet.Cells[row, colName].Value = rowData.Name;
-
-
-                                //        if (!string.IsNullOrEmpty(rowData.Image))
-                                //        {
-
-                                //            var fileDtp = JsonConvert.DeserializeObject<ImageFileDTO>(rowData.Image);
-
-                                //            byte[] imageBytes = Ultils.DownloadImageFromFirebase(fileDtp.ObjectName);
-
-                                //            var fileName = fileDtp.ObjectName.Split("/").Last();
-                                //            var filePath = $"./wwwroot/File/Template/{fileName}";
-                                //            File.WriteAllBytes(filePath, imageBytes);
-
-                                //            using (var fileStream = System.IO.File.OpenRead(filePath))
-                                //            {
-                                //                ExcelPicture picture = worksheet.Drawings.AddPicture(fileDtp.ObjectName, fileStream);
-
-                                //                picture.SetPosition(row - 1, 1, colImage - 1, 1); // Set the position of the image within the cell
-                                //                picture.SetSize(100, 100);
-                                //            }
-                                //            System.IO.File.Delete(filePath);
-
-                                //        }
-                                //        worksheet.Cells[startRow + i, 3].Value = rowData.Default;
-
-
-                                //    }
-
-
-                                //    ExcelRange range = worksheet.Cells[2, 1, componentOfType.Count + 1, 3];
-
-                                //    // Set border style
-                                //    var border = range.Style.Border;
-                                //    border.Bottom.Style = border.Left.Style = border.Top.Style = border.Right.Style = OfficeOpenXml.Style.ExcelBorderStyle.Medium; // Set border style to thin
-                                //    border.Bottom.Color.SetColor(System.Drawing.Color.Black); // Set border color to black
-                                //    border.Left.Color.SetColor(System.Drawing.Color.Black);
-                                //    border.Top.Color.SetColor(System.Drawing.Color.Black);
-                                //    border.Right.Color.SetColor(System.Drawing.Color.Black);
-
-                                //} 
-                                #endregion
                                 excelPackage.Save();
                             }
+
+                            await Task.WhenAll(tasks);
 
                             excelPackage.Save();
                         }
 
-                        return "./wwwroot/File/Export/Output.xlsx";
+                        return filePath;
                     }
                     else
                     {

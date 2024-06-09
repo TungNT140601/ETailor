@@ -2,7 +2,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE [dbo].[CustomerRegis]
+ALTER PROCEDURE [dbo].[CustomerRegis]
     @Username NVARCHAR(255) NULL,
     @Email NVARCHAR(255) NULL,
     @Fullname NVARCHAR(255) NULL,
@@ -34,14 +34,28 @@ BEGIN
     UPDATE [dbo].[Customer]
     SET
         [Username] = @Username,
-        [Phone] = @Phone,
-        [Fullname] = @Fullname,
-        [Avatar] = @Avatar,
-        [Address] = @Address,
         [Password] = @Password,
         [IsActive] = 1,
         [CreatedTime] = DATEADD(HOUR, 7, GETUTCDATE()),
         [LastestUpdatedTime] = DATEADD(HOUR, 7, GETUTCDATE())
+    WHERE Id = @CustomerId
+
+    IF(@Phone IS NOT NULL)
+    UPDATE [dbo].[Customer]
+    SET
+        [Phone] = @Phone
+    WHERE Id = @CustomerId
+
+    IF(@Fullname IS NOT NULL)
+    UPDATE [dbo].[Customer]
+    SET
+        [Fullname] = @Fullname
+    WHERE Id = @CustomerId
+    
+    IF(@Address IS NOT NULL)
+    UPDATE [dbo].[Customer]
+    SET
+        [Address] = @Address
     WHERE Id = @CustomerId
 
     -- Optionally, return a success indicator or the updated order details

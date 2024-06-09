@@ -76,6 +76,42 @@ namespace Etailor.API.Service.Service
 
                 tasks.Add(Task.Run(() =>
                 {
+                    if (!string.IsNullOrEmpty(order.CusAddress) && string.IsNullOrWhiteSpace(order.CusAddress))
+                    {
+                        throw new UserException("Vui lòng nhập địa chỉ khách hàng");
+                    }
+                    if (!string.IsNullOrEmpty(order.CusEmail) && string.IsNullOrWhiteSpace(order.CusEmail))
+                    {
+                        throw new UserException("Vui lòng nhập địa chỉ mail khách hàng");
+                    }
+                    if (!string.IsNullOrEmpty(order.CusName) && string.IsNullOrWhiteSpace(order.CusName))
+                    {
+                        throw new UserException("Vui lòng nhập tên khách hàng");
+                    }
+                    if (!string.IsNullOrEmpty(order.CusPhone) && string.IsNullOrWhiteSpace(order.CusPhone))
+                    {
+                        throw new UserException("Vui lòng nhập số điện thoại khách hàng");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(order.CusEmail))
+                    {
+                        if (!Ultils.IsValidEmail(order.CusEmail))
+                        {
+                            throw new UserException("Email không hợp lệ");
+                        }
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(order.CusPhone))
+                    {
+                        if (!Ultils.IsValidVietnamesePhoneNumber(order.CusPhone))
+                        {
+                            throw new UserException("Số điện thoại không hợp lệ");
+                        }
+                    }
+                }));
+
+                tasks.Add(Task.Run(() =>
+                {
                     order.Id = Ultils.GenOrderId();
                     order.CreatedTime = DateTime.UtcNow.AddHours(7);
                     order.LastestUpdatedTime = DateTime.UtcNow.AddHours(7);
@@ -125,10 +161,49 @@ namespace Etailor.API.Service.Service
 
                     tasks.Add(Task.Run(() =>
                     {
+                        if (!string.IsNullOrEmpty(order.CusAddress) && string.IsNullOrWhiteSpace(order.CusAddress))
+                        {
+                            throw new UserException("Vui lòng nhập địa chỉ khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusEmail) && string.IsNullOrWhiteSpace(order.CusEmail))
+                        {
+                            throw new UserException("Vui lòng nhập địa chỉ mail khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusName) && string.IsNullOrWhiteSpace(order.CusName))
+                        {
+                            throw new UserException("Vui lòng nhập tên khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusPhone) && string.IsNullOrWhiteSpace(order.CusPhone))
+                        {
+                            throw new UserException("Vui lòng nhập số điện thoại khách hàng");
+                        }
+
                         dbOrder.CusAddress = order.CusAddress;
-                        dbOrder.CusEmail = order.CusEmail;
                         dbOrder.CusName = order.CusName;
-                        dbOrder.CusPhone = order.CusPhone;
+
+                        if (!string.IsNullOrWhiteSpace(order.CusEmail))
+                        {
+                            if (!Ultils.IsValidEmail(order.CusEmail))
+                            {
+                                throw new UserException("Email không hợp lệ");
+                            }
+                            else
+                            {
+                                dbOrder.CusEmail = order.CusEmail;
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(order.CusPhone))
+                        {
+                            if (!Ultils.IsValidVietnamesePhoneNumber(order.CusPhone))
+                            {
+                                throw new UserException("Số điện thoại không hợp lệ");
+                            }
+                            else
+                            {
+                                dbOrder.CusPhone = order.CusPhone;
+                            }
+                        }
                     }));
 
                     tasks.Add(Task.Run(() =>
@@ -371,6 +446,53 @@ namespace Etailor.API.Service.Service
                             else if (usedDiscountCode.Any())
                             {
                                 throw new UserException("Mã giảm giá đã được sử dụng");
+                            }
+                        }
+                    }));
+
+                    tasks.Add(Task.Run(() =>
+                    {
+                        if (!string.IsNullOrEmpty(order.CusAddress) && string.IsNullOrWhiteSpace(order.CusAddress))
+                        {
+                            throw new UserException("Vui lòng nhập địa chỉ khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusEmail) && string.IsNullOrWhiteSpace(order.CusEmail))
+                        {
+                            throw new UserException("Vui lòng nhập địa chỉ mail khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusName) && string.IsNullOrWhiteSpace(order.CusName))
+                        {
+                            throw new UserException("Vui lòng nhập tên khách hàng");
+                        }
+                        if (!string.IsNullOrEmpty(order.CusPhone) && string.IsNullOrWhiteSpace(order.CusPhone))
+                        {
+                            throw new UserException("Vui lòng nhập số điện thoại khách hàng");
+                        }
+
+                        dbOrder.CusAddress = order.CusAddress;
+                        dbOrder.CusName = order.CusName;
+
+                        if (!string.IsNullOrWhiteSpace(order.CusEmail))
+                        {
+                            if (!Ultils.IsValidEmail(order.CusEmail))
+                            {
+                                throw new UserException("Email không hợp lệ");
+                            }
+                            else
+                            {
+                                dbOrder.CusEmail = order.CusEmail;
+                            }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(order.CusPhone))
+                        {
+                            if (!Ultils.IsValidVietnamesePhoneNumber(order.CusPhone))
+                            {
+                                throw new UserException("Số điện thoại không hợp lệ");
+                            }
+                            else
+                            {
+                                dbOrder.CusPhone = order.CusPhone;
                             }
                         }
                     }));
@@ -733,11 +855,27 @@ namespace Etailor.API.Service.Service
             var order = orderRepository.Get(id);
             if (order != null && order.Status >= 0)
             {
-                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                var orderIdParam = new SqlParameter()
+                {
+                    ParameterName = "@OrderId",
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                    Value = id
+                };
+                var orderMaterials = orderMaterialRepository.GetStoreProcedure(StoreProcName.Get_Order_Materials, orderIdParam);
+
+                var orderProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Order_Products, orderIdParam);
+
+                var orderProductTemplates = productTemplaTeRepository.GetStoreProcedure(StoreProcName.Get_Order_Product_Templates, orderIdParam);
+
                 if (orderMaterials != null && orderMaterials.Any())
                 {
                     order.OrderMaterials = orderMaterials.ToList();
-                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    var materials = materialRepository.GetStoreProcedure(StoreProcName.Get_Materials, new SqlParameter()
+                    {
+                        ParameterName = "@MaterialIds",
+                        SqlDbType = System.Data.SqlDbType.NVarChar,
+                        Value = string.Join(",", orderMaterials.Select(x => x.MaterialId).ToList())
+                    });
                     if (materials != null && materials.Any())
                     {
                         materials = materials.ToList();
@@ -759,6 +897,43 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                if (orderProducts != null && orderProducts.Any() && orderProductTemplates != null && orderProductTemplates.Any())
+                {
+                    order.Products = orderProducts.OrderBy(x => x.Name).ToList();
+
+                    orderProductTemplates = orderProductTemplates.ToList();
+
+                    var tasks = new List<Task>();
+
+                    foreach (var product in order.Products)
+                    {
+                        tasks.Add(Task.Run(() =>
+                        {
+                            product.ProductTemplate = orderProductTemplates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
+
+                            if (product.ProductTemplate != null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(product.ProductTemplate.ThumbnailImage))
+                                {
+                                    if (!product.ProductTemplate.ThumbnailImage.StartsWith("http"))
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                    }
+                                    else
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = product.ProductTemplate.ThumbnailImage;
+                                    }
+                                }
+                            }
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+                else
+                {
+                    order.Products = new List<Product>();
                 }
 
                 return order;
@@ -832,11 +1007,27 @@ namespace Etailor.API.Service.Service
             var order = orderRepository.Get(orderId);
             if (order != null && order.IsActive == true && order.Status >= 0 && order.CustomerId == cusId)
             {
-                var orderMaterials = orderMaterialRepository.GetAll(x => x.OrderId == order.Id && x.IsActive == true);
+                var orderIdParam = new SqlParameter()
+                {
+                    ParameterName = "@OrderId",
+                    SqlDbType = System.Data.SqlDbType.NVarChar,
+                    Value = orderId
+                };
+                var orderMaterials = orderMaterialRepository.GetStoreProcedure(StoreProcName.Get_Order_Materials, orderIdParam);
+
+                var orderProducts = productRepository.GetStoreProcedure(StoreProcName.Get_Order_Products, orderIdParam);
+
+                var orderProductTemplates = productTemplaTeRepository.GetStoreProcedure(StoreProcName.Get_Order_Product_Templates, orderIdParam);
+
                 if (orderMaterials != null && orderMaterials.Any())
                 {
                     order.OrderMaterials = orderMaterials.ToList();
-                    var materials = materialRepository.GetAll(x => order.OrderMaterials.Select(c => c.MaterialId).Contains(x.Id));
+                    var materials = materialRepository.GetStoreProcedure(StoreProcName.Get_Materials, new SqlParameter()
+                    {
+                        ParameterName = "@MaterialIds",
+                        SqlDbType = System.Data.SqlDbType.NVarChar,
+                        Value = string.Join(",", orderMaterials.Select(x => x.MaterialId).ToList())
+                    });
                     if (materials != null && materials.Any())
                     {
                         materials = materials.ToList();
@@ -858,6 +1049,43 @@ namespace Etailor.API.Service.Service
                 else
                 {
                     order.OrderMaterials = new List<OrderMaterial>();
+                }
+
+                if (orderProducts != null && orderProducts.Any() && orderProductTemplates != null && orderProductTemplates.Any())
+                {
+                    order.Products = orderProducts.OrderBy(x => x.Name).ToList();
+
+                    orderProductTemplates = orderProductTemplates.ToList();
+
+                    var tasks = new List<Task>();
+
+                    foreach (var product in order.Products)
+                    {
+                        tasks.Add(Task.Run(() =>
+                        {
+                            product.ProductTemplate = orderProductTemplates.FirstOrDefault(x => x.Id == product.ProductTemplateId);
+
+                            if (product.ProductTemplate != null)
+                            {
+                                if (!string.IsNullOrWhiteSpace(product.ProductTemplate.ThumbnailImage))
+                                {
+                                    if (!product.ProductTemplate.ThumbnailImage.StartsWith("http"))
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = Ultils.GetUrlImage(product.ProductTemplate.ThumbnailImage);
+                                    }
+                                    else
+                                    {
+                                        product.ProductTemplate.ThumbnailImage = product.ProductTemplate.ThumbnailImage;
+                                    }
+                                }
+                            }
+                        }));
+                    }
+                    await Task.WhenAll(tasks);
+                }
+                else
+                {
+                    order.Products = new List<Product>();
                 }
 
                 return order;

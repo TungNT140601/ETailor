@@ -457,8 +457,6 @@ namespace Etailor.API.Repository.DataAccess
                 entity.Property(e => e.LastestUpdatedTime).HasColumnType("datetime");
 
                 entity.Property(e => e.Name).HasMaxLength(100);
-
-                entity.Property(e => e.PricePerUnit).HasColumnType("decimal");
             });
 
             modelBuilder.Entity<Notification>(entity =>

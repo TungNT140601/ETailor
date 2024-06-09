@@ -1,16 +1,9 @@
--- Create a new stored procedure called 'ReadAllNotification' in schema 'dbo'
--- Drop the stored procedure if it already exists
-IF EXISTS (
-SELECT *
-    FROM INFORMATION_SCHEMA.ROUTINES
-WHERE SPECIFIC_SCHEMA = N'dbo'
-    AND SPECIFIC_NAME = N'ReadAllNotification'
-    AND ROUTINE_TYPE = N'PROCEDURE'
-)
-DROP PROCEDURE dbo.ReadAllNotification
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
 GO
 -- Create the stored procedure in the specified schema
-CREATE PROCEDURE dbo.ReadAllNotification
+ALTER PROCEDURE [dbo].[ReadAllNotification]
     @UserId NVARCHAR(30),
     @Role INT 
 AS
@@ -24,3 +17,4 @@ BEGIN
 
     SELECT 1 AS ReturnValue;
 END;
+GO

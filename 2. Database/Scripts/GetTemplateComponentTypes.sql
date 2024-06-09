@@ -2,7 +2,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE [dbo].[GetTemplateComponentTypes]
+ALTER PROCEDURE [dbo].[GetTemplateComponentTypes]
                     @ProductTemplateId NVARCHAR(30) NULL
 AS
 BEGIN
@@ -18,6 +18,6 @@ BEGIN
         THROW 50000, N'Không tìm thấy bản mẫu', 1;
 
     SELECT CT.*
-    FROM ComponentType CT INNER JOIN ProductTemplate PT ON (CT.CategoryId = PT.CategoryId AND CT.IsActive = 1)
+    FROM ComponentType CT INNER JOIN ProductTemplate PT ON (CT.CategoryId = PT.CategoryId AND CT.IsActive = 1 AND PT.Id = @ProductTemplateId)
 END;
 GO

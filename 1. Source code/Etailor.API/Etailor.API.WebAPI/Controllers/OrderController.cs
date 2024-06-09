@@ -199,50 +199,51 @@ namespace Etailor.API.WebAPI.Controllers
                     }
                     else
                     {
-                        var order = new OrderDetailVM();
+                        var order = new Order();
 
                         if (role == RoleName.CUSTOMER)
                         {
-                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrderByCustomer(staffid, id));
+                            order = await orderService.GetOrderByCustomer(staffid, id);
                         }
                         else
                         {
-                            order = mapper.Map<OrderDetailVM>(await orderService.GetOrder(id));
+                            order = await orderService.GetOrder(id);
                         }
 
                         if (order != null)
                         {
+                            var orderVM = mapper.Map<OrderDetailVM>(order);
+
                             if (!string.IsNullOrWhiteSpace(order.DiscountId))
                             {
-                                order.Discount = mapper.Map<DiscountOrderDetailVM>(discountService.GetDiscount(order.DiscountId));
+                                orderVM.Discount = mapper.Map<DiscountOrderDetailVM>(discountService.GetDiscount(order.DiscountId));
                             }
                             if (!string.IsNullOrWhiteSpace(order.CustomerId))
                             {
-                                order.Customer = mapper.Map<CustomerAllVM>(customerService.FindById(order.CustomerId));
+                                orderVM.Customer = mapper.Map<CustomerAllVM>(customerService.FindById(order.CustomerId));
 
-                                order.Customer.Avatar = Ultils.GetUrlImage(order.Customer.Avatar);
+                                orderVM.Customer.Avatar = Ultils.GetUrlImage(order.Customer.Avatar);
                             }
 
-                            var listProducts = await productService.GetProductsByOrderId(order.Id);
+                            var listProducts = order.Products;
 
                             if (listProducts != null && listProducts.Any() && listProducts.Count() > 0)
                             {
-                                order.Products = new List<ProductListOrderDetailVM>();
+                                orderVM.Products = new List<ProductListOrderDetailVM>();
                                 foreach (var product in listProducts)
                                 {
                                     var productVM = mapper.Map<ProductListOrderDetailVM>(product);
 
-                                    if (product.ProductTemplate == null)
+                                    if (product.ProductTemplate != null)
                                     {
-                                        product.ProductTemplate = await productTemplateService.GetById(product.ProductTemplateId);
+                                        productVM.TemplateThumnailImage = product.ProductTemplate.ThumbnailImage;
+                                        productVM.TemplateName = product.ProductTemplate.Name;
                                     }
-                                    productVM.TemplateThumnailImage = product.ProductTemplate.ThumbnailImage;
-                                    productVM.TemplateName = product.ProductTemplate.Name;
 
-                                    order.Products.Add(productVM);
+                                    orderVM.Products.Add(productVM);
                                 }
                             }
-                            return Ok(order);
+                            return Ok(orderVM);
                         }
                         return NotFound();
                     }

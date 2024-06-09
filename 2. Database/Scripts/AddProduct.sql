@@ -19,8 +19,6 @@ BEGIN
 
     DECLARE @OrderStatus INT;
     DECLARE @ProducPrice DECIMAL(18, 0) = 0;
-    DECLARE @MaterialPrice DECIMAL(18, 0);
-    DECLARE @MaterialCategoryPricePerUnit DECIMAL(18, 2);
     DECLARE @CustomerId NVARCHAR(50);
     DECLARE @StaffMakeProfileBody NVARCHAR(50);
     DECLARE @ProductBodySize TABLE (
@@ -28,6 +26,9 @@ BEGIN
         [Value] DECIMAL(18,0)
     );
     DECLARE @OrderPlannedTime DATETIME;
+
+    IF @FabricMaterialId IS NULL
+        THROW 50000, N'Vui lòng chọn loại vải chính cho sản phẩm', 1;
 
     SELECT @OrderStatus = [Status], @CustomerId = CustomerId, @OrderPlannedTime = PlannedTime
     FROM [Order]
@@ -45,10 +46,7 @@ BEGIN
     WHERE Id = @ProductTemplateId AND IsActive = 1;
 
     IF @ProducPrice IS NULL
-    BEGIN
-        RAISERROR('Không tìm thấy bản mẫu asas', 16, 1);
-        RETURN;
-    END
+        THROW 50000, N'Không tìm thấy bản mẫu', 1;
     IF @ProductTemplateId IS NULL
         THROW 50000, N'Vui lòng chọn bản mẫu cho sản phẩm', 1;
 
@@ -62,8 +60,6 @@ BEGIN
         THROW 50000, N'Không tìm thấy nguyên liệu', 1;
     ELSE
     BEGIN
-        SELECT @MaterialPrice = MC.PricePerUnit
-        FROM MaterialCategory MC INNER JOIN Material M ON MC.Id = M.MaterialCategoryId
 
         IF EXISTS(SELECT 1
         FROM OrderMaterial
@@ -99,11 +95,6 @@ BEGIN
                     0)
         END;
     END;
-
-    IF(@IsCusMaterial = 0)
-    SET @ProducPrice = @ProducPrice + ROUND((@MaterialPrice * @MaterialValue), 2);
-    ELSE
-    SET @ProducPrice = @ProducPrice
 
     IF NOT EXISTS(SELECT 1
     FROM ProfileBody
