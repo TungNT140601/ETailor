@@ -58,7 +58,6 @@ namespace Etailor.API.Repository.DataAccess
         #endregion
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("server=tungnt-dbcloud.database.windows.net;uid=tungnt;pwd=123456789aA@;database=ETailor_DB;TrustServerCertificate=True;", b => b.MigrationsAssembly("Etailor.API.WebAPI"));
             optionsBuilder.EnableSensitiveDataLogging();
             //            if (!optionsBuilder.IsConfigured)
             //            {
